@@ -9,9 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
+    <PackageReference Include="EasyHook" Version="2.7.7097" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <Reference Include="EasyHook">
-      <HintPath>$(OriginalBinaryDirectory)EasyHook.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>

@@ -1,0 +1,28 @@
+*
+
+!*/
+
+# Public repository entry points and build automation.
+!/.gitignore
+!/README.md
+!/AolaLoader.sln
+!/.github/**
+
+# Maintained source and documentation.
+!/doc/**
+!/analysis/Directory.Build.props
+!/analysis/AolaLoader/**
+!/analysis/AolaSocketHack/**
+!/analysis/AolaSocketHack.Contracts/**
+!/analysis/AolaSocketHack.Verify/**
+
+# Keep runtime setup documentation, but never publish local runtime binaries.
+!/analysis/runtime/
+/analysis/runtime/*
+!/analysis/runtime/README.md
+!/analysis/runtime/pepflashplayer.dll
+
+# Retained private/reverse-engineering work stays out of the public repository.
+/analysis/loader/
+/analysis/reverse-engineering/
+/analysis/tools/

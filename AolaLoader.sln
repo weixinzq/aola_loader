@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AolaLoader", "analysis\AolaLoader\AolaLoader.csproj", "{1C1E8792-A1C5-4BD8-83A9-12A95319A44B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AolaSocketHack", "analysis\AolaSocketHack\AolaSocketHack.csproj", "{4BF91EA9-5B38-49D3-B628-4B6BEEB1644D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AolaSocketHack.Contracts", "analysis\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj", "{52320F49-CFA0-45DF-97F3-C9A13A445B93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AolaSocketHack.Verify", "analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj", "{076343C2-8AD5-466A-9AD6-CB0D468A19C2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C1E8792-A1C5-4BD8-83A9-12A95319A44B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1C1E8792-A1C5-4BD8-83A9-12A95319A44B}.Debug|x64.Build.0 = Debug|Any CPU
+		{1C1E8792-A1C5-4BD8-83A9-12A95319A44B}.Release|x64.ActiveCfg = Release|Any CPU
+		{1C1E8792-A1C5-4BD8-83A9-12A95319A44B}.Release|x64.Build.0 = Release|Any CPU
+		{4BF91EA9-5B38-49D3-B628-4B6BEEB1644D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4BF91EA9-5B38-49D3-B628-4B6BEEB1644D}.Debug|x64.Build.0 = Debug|Any CPU
+		{4BF91EA9-5B38-49D3-B628-4B6BEEB1644D}.Release|x64.ActiveCfg = Release|Any CPU
+		{4BF91EA9-5B38-49D3-B628-4B6BEEB1644D}.Release|x64.Build.0 = Release|Any CPU
+		{52320F49-CFA0-45DF-97F3-C9A13A445B93}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{52320F49-CFA0-45DF-97F3-C9A13A445B93}.Debug|x64.Build.0 = Debug|Any CPU
+		{52320F49-CFA0-45DF-97F3-C9A13A445B93}.Release|x64.ActiveCfg = Release|Any CPU
+		{52320F49-CFA0-45DF-97F3-C9A13A445B93}.Release|x64.Build.0 = Release|Any CPU
+		{076343C2-8AD5-466A-9AD6-CB0D468A19C2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{076343C2-8AD5-466A-9AD6-CB0D468A19C2}.Debug|x64.Build.0 = Debug|Any CPU
+		{076343C2-8AD5-466A-9AD6-CB0D468A19C2}.Release|x64.ActiveCfg = Release|Any CPU
+		{076343C2-8AD5-466A-9AD6-CB0D468A19C2}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
