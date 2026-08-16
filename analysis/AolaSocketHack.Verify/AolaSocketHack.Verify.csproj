@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>AolaSocketHack.Verify</AssemblyName>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
+    <ProjectReference Include="..\AolaSocketHack\AolaSocketHack.csproj" />
+  </ItemGroup>
+</Project>
