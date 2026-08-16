@@ -26,6 +26,7 @@ internal sealed class AolaMainForm : Form
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private AolaPacketsForm _packetsForm;
 	private AolaBattleAssistantForm _battleAssistantForm;
+	private AolaPetMorphForm _petMorphForm;
 	private ToolStripMenuItem _themeMenu;
 
 	public AolaMainForm()
@@ -84,6 +85,7 @@ internal sealed class AolaMainForm : Form
 		AolaHookHostService.StatusReceived -= HookStatusReceived;
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
+		_petMorphForm?.Dispose();
 		_battleAssistantForm?.Close();
 		_packetsForm?.Close();
 		_battleTracker.Dispose();
@@ -101,12 +103,19 @@ internal sealed class AolaMainForm : Form
 			BackColor = SystemColors.Control
 		};
 		ToolStripMenuItem extensions = new ToolStripMenuItem("扩展");
+		ToolStripMenuItem featurePanel = new ToolStripMenuItem("功能面板")
+		{
+			ShortcutKeys = Keys.F2,
+			ShowShortcutKeys = true
+		};
+		featurePanel.Click += delegate { ShowPetMorphPanel(); };
 		ToolStripMenuItem battleAssistant = new ToolStripMenuItem("对战助手")
 		{
 			ShortcutKeys = Keys.F3,
 			ShowShortcutKeys = true
 		};
 		battleAssistant.Click += delegate { ShowBattleAssistant(); };
+		extensions.DropDownItems.Add(featurePanel);
 		extensions.DropDownItems.Add(battleAssistant);
 		extensions.DropDownItems.Add(new ToolStripSeparator());
 		extensions.DropDownItems.Add(BuildThemeMenu());
@@ -170,6 +179,33 @@ internal sealed class AolaMainForm : Form
 		{
 			entry.Value.Checked = entry.Key == themeId;
 		}
+	}
+
+	private void ShowPetMorphPanel()
+	{
+		if (_petMorphForm == null || _petMorphForm.IsDisposed)
+		{
+			_petMorphForm = new AolaPetMorphForm(
+				_themeRequestHandler.ValidatePetMorphRule,
+				ApplyPetMorphRules);
+			_petMorphForm.FormClosed += delegate { _petMorphForm = null; };
+			_petMorphForm.Show(this);
+		}
+		else
+		{
+			_petMorphForm.Show();
+			_petMorphForm.BringToFront();
+			_petMorphForm.Activate();
+		}
+	}
+
+	private void ApplyPetMorphRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
+	{
+		_themeRequestHandler.SetPetMorphRules(rules, enabled);
+		_status.Text = enabled
+			? "形态变化已启用；重新进入背包或重启游戏后应用远程资源替换"
+			: "形态变化已关闭，官方资源不再被拦截";
+		_browser.Reload(true);
 	}
 
 	private static void InitializeCef()
