@@ -7,6 +7,7 @@
     <UseWindowsForms>True</UseWindowsForms>
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <LangVersion>latest</LangVersion>
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
@@ -16,23 +17,21 @@
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
     <PackageReference Include="CefSharp.WinForms" Version="87.1.132" />
+    <PackageReference Include="EasyHook" Version="2.7.7097" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <Reference Include="System.Management" />
     <Reference Include="System.Runtime.Remoting" />
-    <Reference Include="EasyHook">
-      <HintPath>$(OriginalBinaryDirectory)EasyHook.dll</HintPath>
-    </Reference>
     <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
     <ProjectReference Include="..\AolaSocketHack\AolaSocketHack.csproj" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="Exists('..\runtime\pepflashplayer.dll')">
     <Content Include="..\runtime\pepflashplayer.dll">
       <Link>runtime\pepflashplayer.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\runtime\EasyHook32.dll;..\runtime\EasyHook64.dll;..\runtime\EasyHook32Svc.exe;..\runtime\EasyHook64Svc.exe;..\runtime\EasyLoad32.dll;..\runtime\EasyLoad64.dll">
-      <Link>%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
+  <Target Name="WarnWhenPepFlashPlayerIsMissing" BeforeTargets="Build"
+          Condition="!Exists('..\runtime\pepflashplayer.dll')">
+    <Warning Text="PPAPI Flash runtime is not present. The project will compile, but AolaLoader cannot start until analysis\runtime\pepflashplayer.dll is supplied locally." />
+  </Target>
 </Project>

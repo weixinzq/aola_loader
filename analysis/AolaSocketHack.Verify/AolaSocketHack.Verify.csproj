@@ -4,6 +4,7 @@
     <AssemblyName>AolaSocketHack.Verify</AssemblyName>
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
