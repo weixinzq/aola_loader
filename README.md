@@ -29,7 +29,7 @@ Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓�
 
 - Windows x64 与 .NET Framework 4.8 Developer Pack。
 - 可访问 NuGet.org；构建会恢复 CefSharp.WinForms 87.1.132、EasyHook 2.7.7097 和 Newtonsoft.Json 13.0.4。
-- 编译不要求 PPAPI Flash；实际启动前必须自行将兼容的 `pepflashplayer.dll` 放入 `analysis/runtime/`。
+- 仓库包含当前 Loader 使用的 `analysis/runtime/pepflashplayer.dll`，构建时会复制到程序输出目录。
 - PCAP 验证需要 Wireshark/TShark；仓库命令默认使用 `D:\Programs\Wireshark\tshark.exe`。
 - SWF 分析建议使用 JPEXS FFDec CLI；本机已知路径为 `D:\Programs\FFdec\ffdec-cli.exe`。
 
@@ -53,8 +53,8 @@ dotnet build .\AolaLoader.sln -c Release --no-restore
 analysis/build/AolaLoader/Release/net48/AolaLoader.exe
 ```
 
-如果 `analysis/runtime/pepflashplayer.dll` 不存在，构建会成功并给出警告，
-但程序启动时会明确报告缺少 PPAPI Flash。该遗留二进制不随仓库发布，详见
+如果 `analysis/runtime/pepflashplayer.dll` 不存在，构建仍会成功并给出警告，
+但程序启动时会明确报告缺少 PPAPI Flash。运行库的固定版本和完整性信息详见
 [`analysis/runtime/README.md`](analysis/runtime/README.md)。
 
 ## 验证

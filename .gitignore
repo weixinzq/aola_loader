@@ -20,6 +20,7 @@
 !/analysis/runtime/
 /analysis/runtime/*
 !/analysis/runtime/README.md
+!/analysis/runtime/pepflashplayer.dll
 
 # Retained private/reverse-engineering work stays out of the public repository.
 /analysis/loader/
