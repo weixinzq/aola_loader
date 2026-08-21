@@ -32,11 +32,16 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	private static readonly Regex PetPackagePathPattern = new Regex(
 		@"^/play/pet/newpetpackage~(?<version>\d+)\.swf$",
 		RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+	private static readonly Regex BattlePetPathPattern = new Regex(
+		@"^/play/fightassets/bitmap/pet(?<directoryId>\d+)/pet(?<fileId>\d+)_(?<direction>[12])_(?<part>[0-2])(?<suffix>~[^/]+)?\.swf$",
+		RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 	private static readonly int[] KnownPetMovieTokenCounts = { 45, 39, 36, 36 };
 	private readonly byte[][] _themes = new byte[10][];
 	private int _selectedThemeId = -1;
 	private AolaPetMorphRule[] _petMorphRules = Array.Empty<AolaPetMorphRule>();
 	private int _petMorphEnabled;
+	private AolaBattleMorphRule[] _battleRules = Array.Empty<AolaBattleMorphRule>();
+	private int _battleMorphEnabled;
 	private readonly AolaPetPosterCatalog _posterCatalog;
 	private readonly byte[] _petPackageLiveTemplate;
 	private readonly bool _petMorphLiveBridgeEnabled;
@@ -107,6 +112,36 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	}
 
 	public bool IsPetMorphLiveBridgeAvailable => _petPackageLiveTemplate != null;
+
+	public void SetBattleMorphRules(IEnumerable<AolaBattleMorphRule> rules, bool enabled)
+	{
+		AolaBattleMorphRule[] snapshot = (rules ?? Enumerable.Empty<AolaBattleMorphRule>())
+			.Where(rule => rule != null && rule.Enabled &&
+				rule.SourceId > 0 && rule.TargetId > 0 && rule.SourceId != rule.TargetId &&
+				rule.SourceId.ToString().Length == rule.TargetId.ToString().Length)
+			.Select(rule => new AolaBattleMorphRule(
+				rule.Note, rule.SourceId, rule.TargetId, rule.Scope, true))
+			.ToArray();
+		Volatile.Write(ref _battleRules, snapshot);
+		Volatile.Write(ref _battleMorphEnabled, enabled ? 1 : 0);
+	}
+
+	public string ValidateBattleMorphRule(AolaBattleMorphRule rule)
+	{
+		if (rule == null || rule.SourceId <= 0 || rule.TargetId <= 0 || rule.SourceId == rule.TargetId)
+		{
+			return "战斗模型源 ID 和目标 ID 必须填写且不同。";
+		}
+		if (rule.SourceId.ToString().Length != rule.TargetId.ToString().Length)
+		{
+			return "战斗模型源 ID 与目标 ID 的位数必须一致，以保持类名长度不变。";
+		}
+		if (rule.SourceId < 4400 || rule.TargetId < 4400)
+		{
+			return "战斗模型替换当前仅支持 ID 大于等于 4400 的多分片战斗模型。";
+		}
+		return null;
+	}
 
 	public async Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
 		IEnumerable<AolaPetMorphRule> rules,
@@ -259,6 +294,10 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		{
 			plan = CreatePetMoviePlan(rules, movieUri, movieId, part, movieSuffix);
 		}
+		else if (TryGetRequestedBattlePet(request?.Url, out Uri battleUri, out int battleId, out int direction, out int battlePart, out string battleSuffix))
+		{
+			plan = CreateBattlePetPlan(Volatile.Read(ref _battleRules), battleUri, battleId, direction, battlePart, battleSuffix);
+		}
 		return plan == null ? null : new RemoteSwfResourceRequestHandler(plan, false);
 	}
 
@@ -389,6 +428,46 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		return null;
 	}
 
+	private static RemoteSwfPlan CreateBattlePetPlan(
+		AolaBattleMorphRule[] rules,
+		Uri requestedUri,
+		int requestedBattleId,
+		int direction,
+		int part,
+		string suffix)
+	{
+		foreach (AolaBattleMorphRule rule in rules)
+		{
+			if (rule.SourceId != requestedBattleId || !MatchesDirection(rule.Scope, direction))
+			{
+				continue;
+			}
+			string path = "/play/fightassets/bitmap/pet" + rule.TargetId +
+				"/pet" + rule.TargetId + "_" + direction + "_" + part + suffix + ".swf";
+			string marker = "b-" + requestedBattleId + "-" + rule.TargetId + "-" + direction + "-" + part;
+			return new RemoteSwfPlan(
+				requestedUri.AbsoluteUri,
+				BuildRemoteUrl(requestedUri, path, marker),
+				"Pet" + rule.TargetId,
+				"Pet" + requestedBattleId,
+				0,
+				1,
+				false,
+				false,
+				requestedBattleId,
+				rule.TargetId);
+		}
+		return null;
+	}
+
+	private static bool MatchesDirection(BattleScope scope, int direction)
+	{
+		// _1_* = positive/enemy face, _2_* = back/self face (see evidence README).
+		return scope == BattleScope.Both ||
+			(scope == BattleScope.Self && direction == 2) ||
+			(scope == BattleScope.Enemy && direction == 1);
+	}
+
 	private static string BuildRemoteUrl(Uri requestedUri, string path, string marker)
 	{
 		UriBuilder builder = new UriBuilder(requestedUri)
@@ -451,6 +530,30 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 				0,
 				1,
 				true);
+			return true;
+		}
+
+		if (parts.Length == 5 && parts[0] == "b" &&
+			int.TryParse(parts[1], out int originalBattleId) &&
+			int.TryParse(parts[2], out int replacementBattleId) &&
+			int.TryParse(parts[3], out int battleMarkerDirection) &&
+			int.TryParse(parts[4], out int battleMarkerPart) &&
+			TryGetRequestedBattlePet(url, out _, out int battleRequestedId, out int battleRequestedDirection, out int battleRequestedPart, out string battleSuffix) &&
+			battleRequestedId == replacementBattleId && battleRequestedDirection == battleMarkerDirection && battleRequestedPart == battleMarkerPart)
+		{
+			string originalPath = "/play/fightassets/bitmap/pet" + originalBattleId +
+				"/pet" + originalBattleId + "_" + battleMarkerDirection + "_" + battleMarkerPart + battleSuffix + ".swf";
+			plan = new RemoteSwfPlan(
+				BuildUrlWithoutMorphMarker(uri, originalPath),
+				uri.AbsoluteUri,
+				"Pet" + replacementBattleId,
+				"Pet" + originalBattleId,
+				0,
+				1,
+				false,
+				false,
+				originalBattleId,
+				replacementBattleId);
 			return true;
 		}
 		return false;
@@ -624,6 +727,35 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		return directoryId == movieId;
 	}
 
+	private static bool TryGetRequestedBattlePet(
+		string url,
+		out Uri uri,
+		out int battleId,
+		out int direction,
+		out int part,
+		out string suffix)
+	{
+		battleId = -1;
+		direction = -1;
+		part = -1;
+		suffix = string.Empty;
+		if (!TryGetAolaUri(url, out uri))
+		{
+			return false;
+		}
+		Match match = BattlePetPathPattern.Match(uri.AbsolutePath);
+		if (!match.Success ||
+			!int.TryParse(match.Groups["directoryId"].Value, out int directoryId) ||
+			!int.TryParse(match.Groups["fileId"].Value, out battleId) ||
+			!int.TryParse(match.Groups["direction"].Value, out direction) ||
+			!int.TryParse(match.Groups["part"].Value, out part))
+		{
+			return false;
+		}
+		suffix = match.Groups["suffix"].Value;
+		return directoryId == battleId;
+	}
+
 	private static bool TryGetAolaUri(string url, out Uri uri)
 	{
 		return Uri.TryCreate(url, UriKind.Absolute, out uri) &&
@@ -646,7 +778,9 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 			int expectedCount,
 			double scaleFactor,
 			bool structuralClassAdaptation = false,
-			bool makeBitmapsTransparent = false)
+			bool makeBitmapsTransparent = false,
+			int battleSourceId = 0,
+			int battleTargetId = 0)
 		{
 			OriginalUrl = originalUrl;
 			RemoteUrl = remoteUrl;
@@ -656,6 +790,8 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 			ScaleFactor = scaleFactor;
 			StructuralClassAdaptation = structuralClassAdaptation;
 			MakeBitmapsTransparent = makeBitmapsTransparent;
+			BattleSourceId = battleSourceId;
+			BattleTargetId = battleTargetId;
 		}
 
 		public string OriginalUrl { get; }
@@ -666,6 +802,8 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		public double ScaleFactor { get; }
 		public bool StructuralClassAdaptation { get; }
 		public bool MakeBitmapsTransparent { get; }
+		public int BattleSourceId { get; }
+		public int BattleTargetId { get; }
 	}
 
 	private sealed class RemoteSwfResourceRequestHandler : ResourceRequestHandler
@@ -766,7 +904,9 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 				_plan.ExpectedCount,
 				_plan.ScaleFactor,
 				_plan.StructuralClassAdaptation,
-				_plan.MakeBitmapsTransparent);
+				_plan.MakeBitmapsTransparent,
+				_plan.BattleSourceId,
+				_plan.BattleTargetId);
 		}
 	}
 

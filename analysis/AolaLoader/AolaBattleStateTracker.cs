@@ -18,6 +18,8 @@ internal sealed class AolaBattleStateTracker : IDisposable
 
 	public event Action<AolaBattleSnapshot> SnapshotChanged;
 
+	public event Action BattleStarted;
+
 	public AolaBattleSnapshot CurrentSnapshot
 	{
 		get
@@ -26,6 +28,18 @@ internal sealed class AolaBattleStateTracker : IDisposable
 			{
 				return _snapshot.Clone();
 			}
+		}
+	}
+
+	public void ConsumeForVerification(AolaPacketEvent packet)
+	{
+		if (packet == null || !AolaBattlePacketParser.TryParse(packet, out AolaBattlePacketUpdate update))
+		{
+			return;
+		}
+		lock (_syncRoot)
+		{
+			ApplyUpdate(update);
 		}
 	}
 
@@ -49,6 +63,10 @@ internal sealed class AolaBattleStateTracker : IDisposable
 
 		try
 		{
+			if (update.StartsNewBattle)
+			{
+				BattleStarted?.Invoke();
+			}
 			SnapshotChanged?.Invoke(published);
 		}
 		catch (ObjectDisposedException)
@@ -186,6 +204,7 @@ internal sealed class AolaBattleStateTracker : IDisposable
 		{
 			_disposed = true;
 			SnapshotChanged = null;
+			BattleStarted = null;
 		}
 	}
 }

@@ -10,5 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
     <ProjectReference Include="..\AolaSocketHack\AolaSocketHack.csproj" />
+    <ProjectReference Include="..\AolaLoader\AolaLoader.csproj" />
   </ItemGroup>
 </Project>

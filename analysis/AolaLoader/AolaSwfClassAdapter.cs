@@ -86,7 +86,220 @@ internal static class AolaSwfClassAdapter
 		return IsValidFws(adapted);
 	}
 
-	private static bool TryDecodeToFws(byte[] content, out byte[] fws)
+	/// <summary>
+	/// Adapt battle bitmap model shards. The remote SWF exports
+	/// mmo.petfight.bitmap.Pet{targetId}* and mmo.petfight.bitmap.pet{targetId}_*;
+	/// the caller looks up the matching Pet{sourceId}* / pet{sourceId}_* classes.
+	/// Both source and target tokens must be equal-length ASCII so the ABC string
+	/// pool, SymbolClass and ExportAssets entries can be rewritten in place.
+	/// </summary>
+	public static bool TryAdaptBattleModel(
+		byte[] content,
+		int sourceId,
+		int targetId,
+		out byte[] adapted)
+	{
+		adapted = null;
+		string remoteUpper = "Pet" + targetId;
+		string remoteLower = "pet" + targetId;
+		string expectedUpper = "Pet" + sourceId;
+		string expectedLower = "pet" + sourceId;
+		if (sourceId <= 0 || targetId <= 0 || sourceId == targetId ||
+			remoteUpper.Length != expectedUpper.Length || remoteLower.Length != expectedLower.Length ||
+			!TryDecodeToFws(content, out byte[] fws))
+		{
+			return false;
+		}
+
+		int tagOffset = GetTagOffset(fws);
+		if (tagOffset < 0 || !TryParseTags(fws, tagOffset, out List<SwfTag> tags))
+		{
+			return false;
+		}
+
+		int targetMatches = 0;
+		int sourceMatches = 0;
+		foreach (SwfTag tag in tags)
+		{
+			if (tag.Code == SymbolClassTag || tag.Code == ExportAssetsTag)
+			{
+				if (!TryPatchClassNameToken(tag.Body, expectedUpper, expectedLower, remoteUpper, remoteLower,
+					ref sourceMatches, ref targetMatches, out byte[] patchedBody))
+				{
+					return false;
+				}
+				tag.Body = patchedBody;
+			}
+			else if (tag.Code == DoAbcTag)
+			{
+				if (!TryPatchDoAbcToken(tag.Body, expectedUpper, expectedLower, remoteUpper, remoteLower,
+					ref sourceMatches, ref targetMatches, out byte[] patchedBody))
+				{
+					return false;
+				}
+				tag.Body = patchedBody;
+			}
+		}
+
+		if ((targetMatches == 0) == (sourceMatches == 0) ||
+			(targetMatches > 0 && sourceMatches > 0))
+		{
+			return false;
+		}
+
+		using (MemoryStream output = new MemoryStream())
+		{
+			output.Write(fws, 0, tagOffset);
+			foreach (SwfTag tag in tags)
+			{
+				WriteTag(output, tag);
+				if (output.Length > MaximumSwfBytes)
+				{
+					return false;
+				}
+			}
+			adapted = output.ToArray();
+		}
+		WriteUInt32(adapted, 4, (uint)adapted.Length);
+		return IsValidFws(adapted);
+	}
+
+	private static bool TryPatchClassNameToken(
+		byte[] body,
+		string expectedUpper,
+		string expectedLower,
+		string remoteUpper,
+		string remoteLower,
+		ref int sourceMatches,
+		ref int targetMatches,
+		out byte[] patchedBody)
+	{
+		patchedBody = null;
+		if (body == null || body.Length < 2)
+		{
+			return false;
+		}
+		int cursor = 0;
+		ushort count = ReadUInt16(body, cursor);
+		cursor += 2;
+		using (MemoryStream output = new MemoryStream())
+		{
+			WriteUInt16(output, count);
+			for (int index = 0; index < count; index++)
+			{
+				if (cursor + 2 > body.Length)
+				{
+					return false;
+				}
+				ushort tagId = ReadUInt16(body, cursor);
+				cursor += 2;
+				if (!TryReadNullTerminated(body, ref cursor, out string name))
+				{
+					return false;
+				}
+				string replacement = RewriteClassToken(
+					name, expectedUpper, expectedLower, remoteUpper, remoteLower,
+					ref sourceMatches, ref targetMatches);
+				WriteUInt16(output, tagId);
+				WriteNullTerminated(output, replacement);
+			}
+			if (cursor != body.Length)
+			{
+				return false;
+			}
+			patchedBody = output.ToArray();
+			return true;
+		}
+	}
+
+	private static bool TryPatchDoAbcToken(
+		byte[] body,
+		string expectedUpper,
+		string expectedLower,
+		string remoteUpper,
+		string remoteLower,
+		ref int sourceMatches,
+		ref int targetMatches,
+		out byte[] patchedBody)
+	{
+		patchedBody = null;
+		if (body == null || body.Length < 8)
+		{
+			return false;
+		}
+		int abcOffset = 4;
+		int nameEnd = Array.IndexOf(body, (byte)0, abcOffset);
+		if (nameEnd < 0 || nameEnd + 1 >= body.Length)
+		{
+			return false;
+		}
+		abcOffset = nameEnd + 1;
+		if (abcOffset + 4 > body.Length)
+		{
+			return false;
+		}
+		int cursor = abcOffset + 4;
+		if (!SkipU30Table(body, ref cursor) || !SkipU30Table(body, ref cursor) ||
+			!SkipDoubleTable(body, ref cursor) || cursor >= body.Length)
+		{
+			return false;
+		}
+		int stringCountOffset = cursor;
+		if (!TryReadU30(body, ref cursor, out uint stringCount) || stringCount > 0x3fffffff)
+		{
+			return false;
+		}
+		using (MemoryStream output = new MemoryStream())
+		{
+			output.Write(body, 0, stringCountOffset);
+			WriteU30(output, stringCount);
+			for (uint index = 1; index < stringCount; index++)
+			{
+				if (!TryReadU30(body, ref cursor, out uint length) || length > int.MaxValue ||
+					cursor + (long)length > body.Length)
+				{
+					return false;
+				}
+				string value = Encoding.UTF8.GetString(body, cursor, (int)length);
+				string replacement = RewriteClassToken(
+					value, expectedUpper, expectedLower, remoteUpper, remoteLower,
+					ref sourceMatches, ref targetMatches);
+				byte[] encoded = Encoding.UTF8.GetBytes(replacement);
+				WriteU30(output, (uint)encoded.Length);
+				output.Write(encoded, 0, encoded.Length);
+				cursor += (int)length;
+			}
+			output.Write(body, cursor, body.Length - cursor);
+			patchedBody = output.ToArray();
+			return true;
+		}
+	}
+
+	private static string RewriteClassToken(
+		string value,
+		string expectedUpper,
+		string expectedLower,
+		string remoteUpper,
+		string remoteLower,
+		ref int sourceMatches,
+		ref int targetMatches)
+	{
+		string replacement = value;
+		if (value.IndexOf(remoteUpper, StringComparison.Ordinal) >= 0 ||
+			value.IndexOf(remoteLower, StringComparison.Ordinal) >= 0)
+		{
+			replacement = value.Replace(remoteUpper, expectedUpper).Replace(remoteLower, expectedLower);
+			sourceMatches++;
+		}
+		else if (value.IndexOf(expectedUpper, StringComparison.Ordinal) >= 0 ||
+			value.IndexOf(expectedLower, StringComparison.Ordinal) >= 0)
+		{
+			targetMatches++;
+		}
+		return replacement;
+	}
+
+	internal static bool TryDecodeToFws(byte[] content, out byte[] fws)
 	{
 		fws = null;
 		if (content == null || content.Length < 8 || content.Length > MaximumSwfBytes)

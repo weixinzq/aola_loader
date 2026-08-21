@@ -30,6 +30,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly AolaBattleStateTracker _battleTracker;
 	private readonly AolaThemeRequestHandler _themeRequestHandler;
 	private readonly AolaPetMorphLiveBridge _petMorphLiveBridge = new AolaPetMorphLiveBridge();
+	private readonly AolaBattleLiveBridge _battleLiveBridge = new AolaBattleLiveBridge();
 	private readonly ChromiumWebBrowser _browser;
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private AolaPacketsForm _packetsForm;
@@ -38,6 +39,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private ToolStripMenuItem _themeMenu;
 	private bool _mainWindowMinimized;
 	private long _petMorphPushRequest;
+	private long _battlePushRequest;
 
 	public AolaMainForm()
 	{
@@ -75,6 +77,9 @@ internal sealed class AolaMainForm : AolaFormBase
 		_themeRequestHandler.SetPetMorphRules(
 			ToMorphRules(_settings.PetMorphRules),
 			_settings.PetMorphEnabled);
+		_themeRequestHandler.SetBattleMorphRules(
+			ToBattleMorphRules(_settings.BattleMorphRules),
+			_settings.BattleMorphEnabled);
 		_browser = new ChromiumWebBrowser(DefaultUrl)
 		{
 			Dock = DockStyle.Fill,
@@ -96,6 +101,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_injectTimer.Interval = 750;
 		_injectTimer.Tick += delegate { EnsureHookInjected(); };
 		AolaHookHostService.StatusReceived += HookStatusReceived;
+		_battleTracker.BattleStarted += ApplyBattleDisplayOnBattleStart;
 		Shown += delegate
 		{
 			ShowPackets();
@@ -282,6 +288,29 @@ internal sealed class AolaMainForm : AolaFormBase
 			.ToArray();
 	}
 
+	private static AolaBattleMorphRule[] ToBattleMorphRules(IEnumerable<AolaBattleMorphRuleData> data)
+	{
+		return (data ?? Enumerable.Empty<AolaBattleMorphRuleData>())
+			.Where(item => item != null && item.SourceId > 0 && item.TargetId > 0 &&
+				item.SourceId != item.TargetId)
+			.Select(item => new AolaBattleMorphRule(
+				item.Note ?? string.Empty,
+				item.SourceId,
+				item.TargetId,
+				NormalizeScope(item.Scope),
+				item.Enabled))
+			.ToArray();
+	}
+
+	private static BattleScope NormalizeScope(int value)
+	{
+		if (value == (int)BattleScope.Self || value == (int)BattleScope.Enemy)
+		{
+			return (BattleScope)value;
+		}
+		return BattleScope.Both;
+	}
+
 	private bool TrySaveSettings()
 	{
 		try
@@ -312,7 +341,13 @@ internal sealed class AolaMainForm : AolaFormBase
 				_themeRequestHandler.ValidatePetMorphRule,
 				ApplyPetMorphRules,
 				ToMorphRules(_settings.PetMorphRules),
-				_settings.PetMorphEnabled);
+				_settings.PetMorphEnabled,
+				_themeRequestHandler.ValidateBattleMorphRule,
+				ApplyBattleMorphRules,
+				ToBattleMorphRules(_settings.BattleMorphRules),
+				_settings.BattleMorphEnabled,
+				BuildBattleDisplayState,
+				ApplyBattleDisplayState);
 			_petMorphForm.FormClosed += delegate { _petMorphForm = null; };
 			_petMorphForm.Show();
 		}
@@ -321,6 +356,103 @@ internal sealed class AolaMainForm : AolaFormBase
 			_petMorphForm.Show();
 			_petMorphForm.BringToFront();
 			_petMorphForm.Activate();
+		}
+	}
+
+	private BattleDisplayState BuildBattleDisplayState()
+	{
+		return new BattleDisplayState
+		{
+			Enabled = _settings.BattleDisplayEnabled,
+			HideDamageNumbers = _settings.HideDamageNumbers,
+			HideHealingNumbers = _settings.HideHealingNumbers,
+			SkipPetAttackActions = _settings.SkipPetAttackActions,
+			DisableSkillEffects = _settings.DisableSkillEffects
+		};
+	}
+
+	private async void ApplyBattleDisplayState(BattleDisplayState state)
+	{
+		if (state == null)
+		{
+			return;
+		}
+		_settings.BattleDisplayEnabled = state.Enabled;
+		_settings.HideDamageNumbers = state.HideDamageNumbers;
+		_settings.HideHealingNumbers = state.HideHealingNumbers;
+		_settings.SkipPetAttackActions = state.SkipPetAttackActions;
+		_settings.DisableSkillEffects = state.DisableSkillEffects;
+		if (!TrySaveSettings())
+		{
+			return;
+		}
+		_status.Text = state.Enabled ? "战斗表现选项已保存并推送" : "战斗表现选项已关闭并保存";
+		await PushBattleDisplayAsync(state);
+	}
+
+	private void ApplyBattleMorphRules(IReadOnlyList<AolaBattleMorphRule> rules, bool enabled)
+	{
+		_themeRequestHandler.SetBattleMorphRules(rules, enabled);
+		_settings.BattleMorphRules = (rules ?? Array.Empty<AolaBattleMorphRule>())
+			.Select(rule => new AolaBattleMorphRuleData
+			{
+				Note = rule.Note,
+				SourceId = rule.SourceId,
+				TargetId = rule.TargetId,
+				Scope = (int)rule.Scope,
+				Enabled = rule.Enabled
+			})
+			.ToList();
+		_settings.BattleMorphEnabled = enabled;
+		if (!TrySaveSettings())
+		{
+			return;
+		}
+		_status.Text = enabled
+			? "战斗模型规则已保存；目标分片全部可用后，在下一场战斗或重启后完全生效"
+			: "战斗模型替换已关闭并保存";
+	}
+
+	private async Task<AolaBattlePushResult> PushBattleDisplayAsync(BattleDisplayState state)
+	{
+		if (!state.Enabled)
+		{
+			state = new BattleDisplayState();
+		}
+		long request = System.Threading.Interlocked.Increment(ref _battlePushRequest);
+		using (IFrame frame = _browser.GetMainFrame())
+		{
+			AolaBattlePushResult result = await _battleLiveBridge.PushAsync(
+				frame, state.HideDamageNumbers, state.HideHealingNumbers,
+				state.SkipPetAttackActions, state.DisableSkillEffects);
+			if (request != System.Threading.Volatile.Read(ref _battlePushRequest))
+			{
+				return AolaBattlePushResult.NotInjected("已由更新请求取代");
+			}
+			return result;
+		}
+	}
+
+	private async void ApplySavedBattleDisplay()
+	{
+		try
+		{
+			await PushBattleDisplayAsync(BuildBattleDisplayState());
+		}
+		catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+		{
+			_status.Text = "战斗表现选项已保存；浏览器未就绪，进入战斗后应用：" + ex.Message;
+		}
+	}
+
+	private async void ApplyBattleDisplayOnBattleStart()
+	{
+		try
+		{
+			await PushBattleDisplayAsync(BuildBattleDisplayState());
+		}
+		catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+		{
 		}
 	}
 
@@ -659,6 +791,10 @@ internal sealed class AolaMainForm : AolaFormBase
 			{
 				return;
 			}
+			if (isAolaPlayPage)
+			{
+				ApplySavedBattleDisplay();
+			}
 			BeginInvoke(new Action(delegate
 			{
 				_status.Text = morphResult != null && !morphResult.Superseded && !morphResult.Injected
@@ -686,4 +822,17 @@ internal sealed class AolaMainForm : AolaFormBase
 		}
 		_status.Text = string.Format("[{0}] {1}", status.Level, status.Message);
 	}
+}
+
+internal sealed class BattleDisplayState
+{
+	public bool Enabled { get; set; }
+
+	public bool HideDamageNumbers { get; set; }
+
+	public bool HideHealingNumbers { get; set; }
+
+	public bool SkipPetAttackActions { get; set; }
+
+	public bool DisableSkillEffects { get; set; }
 }

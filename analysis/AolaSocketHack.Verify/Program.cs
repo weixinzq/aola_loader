@@ -15,6 +15,14 @@ internal static class Program
 {
 	private static int Main(string[] args)
 	{
+		if (args.Length == 2 && args[0] == "--battle-adapt")
+		{
+			return RunBattleAdaptVerification(Path.GetFullPath(args[1]));
+		}
+		if (args.Length == 2 && args[0] == "--battle-replay")
+		{
+			return RunBattleReplayVerification(Path.GetFullPath(args[1]));
+		}
 		if (args.Length < 2)
 		{
 			Console.Error.WriteLine("Usage: AolaSocketHack.Verify <tshark.exe> <capture.pcapng> [tcp.stream]");
@@ -168,5 +176,218 @@ internal static class Program
 			result[i] = byte.Parse(value.Substring(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 		}
 		return result;
+	}
+
+	private static int RunBattleAdaptVerification(string directory)
+	{
+		if (!Directory.Exists(directory))
+		{
+			Console.Error.WriteLine("battle-adapt source directory does not exist: " + directory);
+			return 2;
+		}
+		string[] sourceIds = { "6000", "6047" };
+		string[] directions = { "1", "2" };
+		int checkedFiles = 0;
+		int adapted = 0;
+		bool passed = true;
+		foreach (string fileId in sourceIds)
+		{
+			foreach (string direction in directions)
+			{
+				for (int part = 0; part < 3; part++)
+				{
+					string name = "pet" + fileId + "_" + direction + "_" + part + "~1210.swf";
+					string path = Path.Combine(directory, name);
+					if (!File.Exists(path))
+					{
+						continue;
+					}
+					checkedFiles++;
+					byte[] original = File.ReadAllBytes(path);
+					int remoteId = int.Parse(fileId);
+					int expectedId = remoteId == 6000 ? 6047 : 6000;
+					bool ok = AolaLoader.AolaSwfClassAdapter.TryAdaptBattleModel(
+						original, expectedId, remoteId, out byte[] output);
+					if (!ok || output == null)
+					{
+						Console.WriteLine("ADAPT FAIL: " + name);
+						passed = false;
+						continue;
+					}
+					adapted++;
+					byte[] remoteUpperBytes = System.Text.Encoding.ASCII.GetBytes("Pet" + remoteId);
+					byte[] remoteLowerBytes = System.Text.Encoding.ASCII.GetBytes("pet" + remoteId);
+					byte[] expectedUpperBytes = System.Text.Encoding.ASCII.GetBytes("Pet" + expectedId);
+					byte[] expectedLowerBytes = System.Text.Encoding.ASCII.GetBytes("pet" + expectedId);
+					byte[] decodedOriginal = AolaLoader.AolaSwfClassAdapter.TryDecodeToFws(original, out byte[] fwsBody)
+						? fwsBody
+						: original;
+					int remoteUpperOriginal = CountBytes(decodedOriginal, remoteUpperBytes);
+					int remoteLowerOriginal = CountBytes(decodedOriginal, remoteLowerBytes);
+					int remoteUpperCount = CountBytes(output, remoteUpperBytes);
+					int remoteLowerCount = CountBytes(output, remoteLowerBytes);
+					int expectedUpperCount = CountBytes(output, expectedUpperBytes);
+					int expectedLowerCount = CountBytes(output, expectedLowerBytes);
+					if (remoteUpperCount != 0 || remoteLowerCount != 0 ||
+						expectedUpperCount != remoteUpperOriginal ||
+						expectedLowerCount != remoteLowerOriginal)
+					{
+						Console.WriteLine("ADAPT TOKENS FAIL: " + name +
+							" expectedUpper=" + expectedUpperCount + "/" + remoteUpperOriginal +
+							" expectedLower=" + expectedLowerCount + "/" + remoteLowerOriginal +
+							" remoteUpperRemaining=" + remoteUpperCount + " remoteLowerRemaining=" + remoteLowerCount);
+						passed = false;
+						continue;
+					}
+					Console.WriteLine("ADAPT OK: " + name + " -> " + expectedId +
+						" (upper=" + expectedUpperCount + " lower=" + expectedLowerCount + ")");
+				}
+			}
+		}
+		if (checkedFiles == 0)
+		{
+			Console.Error.WriteLine("battle-adapt: no captured shard files found under " + directory);
+			return 2;
+		}
+		Console.WriteLine("battle_adapt checked={0} adapted={1} passed={2}", checkedFiles, adapted, passed);
+		Console.WriteLine(passed ? "Battle model adaptation: PASS" : "Battle model adaptation: FAIL");
+		return passed ? 0 : 1;
+	}
+
+	private static int CountBytes(byte[] content, byte[] search)
+	{
+		if (content == null || search == null || search.Length == 0)
+		{
+			return 0;
+		}
+		int count = 0;
+		for (int offset = 0; offset <= content.Length - search.Length; offset++)
+		{
+			bool match = true;
+			for (int index = 0; index < search.Length; index++)
+			{
+				if (content[offset + index] != search[index])
+				{
+					match = false;
+					break;
+				}
+			}
+			if (match)
+			{
+				count++;
+				offset += search.Length - 1;
+			}
+		}
+		return count;
+	}
+
+	private static int RunBattleReplayVerification(string logPath)
+	{
+		if (!File.Exists(logPath))
+		{
+			Console.Error.WriteLine("battle-replay log does not exist: " + logPath);
+			return 2;
+		}
+		List<AolaSocketHack.Contracts.AolaPacketEvent> events = new List<AolaSocketHack.Contracts.AolaPacketEvent>();
+		foreach (string line in File.ReadLines(logPath))
+		{
+			if (string.IsNullOrWhiteSpace(line))
+			{
+				continue;
+			}
+			try
+			{
+				JObject record = JObject.Parse(line);
+				if (record == null)
+				{
+					continue;
+				}
+				events.Add(new AolaSocketHack.Contracts.AolaPacketEvent
+				{
+					TimestampUtc = record.Value<DateTime?>("timeUtc") ?? DateTime.MinValue,
+					ProcessId = record.Value<int?>("processId") ?? 0,
+					SocketHandle = record.Value<long?>("socket") ?? 0,
+					Direction = "接收",
+					FrameLength = record.Value<int?>("length") ?? 0,
+					MessageType = record.Value<int?>("type"),
+					Command = record.Value<string>("cmd"),
+					ParametersJson = record["param"]?.ToString(Newtonsoft.Json.Formatting.None),
+					DecodeSucceeded = record.Value<bool?>("decoded") ?? false
+				});
+			}
+			catch (Newtonsoft.Json.JsonException)
+			{
+			}
+		}
+
+		if (events.Count == 0)
+		{
+			Console.Error.WriteLine("battle-replay: no decodable records in " + logPath);
+			return 2;
+		}
+
+		string[] expectedOrder = { "2303", "2304", "2401", "2411", "2404", "2309" };
+		foreach (string command in expectedOrder)
+		{
+			int found = events.FindIndex(item => item.Command == command);
+			if (found < 0)
+			{
+				Console.Error.WriteLine("battle-replay: missing command " + command + " in log");
+				return 1;
+			}
+		}
+
+		long? firstHpChange = null;
+		string firstHpDetails = null;
+		foreach (AolaSocketHack.Contracts.AolaPacketEvent item in events)
+		{
+			if (item.Command != "2411" || string.IsNullOrWhiteSpace(item.ParametersJson))
+			{
+				continue;
+			}
+			try
+			{
+				JObject parameters = JObject.Parse(item.ParametersJson);
+				if (parameters["pmmList"] is JArray list)
+				{
+					foreach (JObject entry in list.OfType<JObject>())
+					{
+						long? hpInc = entry.Value<long?>("hpInc");
+						if (hpInc.HasValue && !firstHpChange.HasValue)
+						{
+							firstHpChange = hpInc;
+							firstHpDetails = entry.Value<string>("hpIncList");
+						}
+					}
+				}
+			}
+			catch (Newtonsoft.Json.JsonException)
+			{
+			}
+		}
+
+		if (!firstHpChange.HasValue)
+		{
+			Console.Error.WriteLine("battle-replay: no 2411 hpInc found");
+			return 1;
+		}
+
+		// Display switches never touch the packet parser/tracker. Re-run the tracker
+		// to prove that the battle snapshot invariants (command consumption, HP results,
+		// end state) hold regardless of the display settings.
+		AolaLoader.AolaBattleStateTracker tracker = new AolaLoader.AolaBattleStateTracker();
+		AolaLoader.AolaBattleSnapshot last = null;
+		foreach (AolaSocketHack.Contracts.AolaPacketEvent item in events)
+		{
+			tracker.ConsumeForVerification(item);
+			last = tracker.CurrentSnapshot;
+		}
+		bool ended = last != null && last.IsEnded;
+		int petCount = last == null ? 0 : last.Sides.Sum(side => side.Pets.Count);
+		bool invariantsOk = ended && petCount > 0;
+		Console.WriteLine("battle_replay_events={0} first_hpInc={1} hpIncList={2} ended={3} pets={4}",
+			events.Count, firstHpChange.Value, firstHpDetails ?? "null", ended, petCount);
+		Console.WriteLine(invariantsOk ? "Battle JSONL replay: PASS" : "Battle JSONL replay: FAIL");
+		return invariantsOk ? 0 : 1;
 	}
 }

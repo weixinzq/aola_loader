@@ -14,6 +14,8 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 	private readonly double _scaleFactor;
 	private readonly bool _structuralClassAdaptation;
 	private readonly bool _makeBitmapsTransparent;
+	private readonly int _battleSourceId;
+	private readonly int _battleTargetId;
 	private MemoryStream _input = new MemoryStream();
 	private byte[] _output;
 	private int _outputOffset;
@@ -24,7 +26,9 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 		int expectedCount,
 		double scaleFactor,
 		bool structuralClassAdaptation = false,
-		bool makeBitmapsTransparent = false)
+		bool makeBitmapsTransparent = false,
+		int battleSourceId = 0,
+		int battleTargetId = 0)
 	{
 		_sourceToken = Encoding.ASCII.GetBytes(sourceToken ?? string.Empty);
 		_targetToken = Encoding.ASCII.GetBytes(targetToken ?? string.Empty);
@@ -32,10 +36,16 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 		_scaleFactor = scaleFactor;
 		_structuralClassAdaptation = structuralClassAdaptation;
 		_makeBitmapsTransparent = makeBitmapsTransparent;
+		_battleSourceId = battleSourceId;
+		_battleTargetId = battleTargetId;
 	}
 
 	public bool InitFilter()
 	{
+		if (_battleSourceId > 0 && _battleTargetId > 0)
+		{
+			return true;
+		}
 		return _sourceToken.Length > 0 && _targetToken.Length > 0 &&
 			(_structuralClassAdaptation || _sourceToken.Length == _targetToken.Length);
 	}
@@ -77,7 +87,14 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 		}
 
 		byte[] remote = _input.ToArray();
-		if (_structuralClassAdaptation)
+		if (_battleSourceId > 0 && _battleTargetId > 0)
+		{
+			if (!AolaSwfClassAdapter.TryAdaptBattleModel(remote, _battleSourceId, _battleTargetId, out _output))
+			{
+				return FilterStatus.Error;
+			}
+		}
+		else if (_structuralClassAdaptation)
 		{
 			string sourceToken = Encoding.ASCII.GetString(_sourceToken);
 			string targetToken = Encoding.ASCII.GetString(_targetToken);

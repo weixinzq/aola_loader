@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("Aola Loader")]
@@ -10,3 +11,4 @@ using System.Runtime.InteropServices;
 [assembly: Guid("0bc8220e-b8f1-47dc-9098-78345f10c5cd")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: AssemblyVersion("1.0.0.0")]
+[assembly: InternalsVisibleTo("AolaSocketHack.Verify")]

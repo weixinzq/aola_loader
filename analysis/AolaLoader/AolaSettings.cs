@@ -11,7 +11,7 @@ namespace AolaLoader;
 /// </summary>
 internal sealed class AolaAppSettings
 {
-	public int SchemaVersion { get; set; } = 5;
+	public int SchemaVersion { get; set; } = 6;
 
 	public int SelectedThemeId { get; set; }
 
@@ -20,6 +20,33 @@ internal sealed class AolaAppSettings
 	public bool PetMorphLiveBridgeEnabled { get; set; } = true;
 
 	public List<AolaPetMorphRuleData> PetMorphRules { get; set; } = new List<AolaPetMorphRuleData>();
+
+	public bool BattleDisplayEnabled { get; set; }
+
+	public bool HideDamageNumbers { get; set; }
+
+	public bool HideHealingNumbers { get; set; }
+
+	public bool SkipPetAttackActions { get; set; }
+
+	public bool DisableSkillEffects { get; set; }
+
+	public bool BattleMorphEnabled { get; set; }
+
+	public List<AolaBattleMorphRuleData> BattleMorphRules { get; set; } = new List<AolaBattleMorphRuleData>();
+}
+
+internal sealed class AolaBattleMorphRuleData
+{
+	public string Note { get; set; }
+
+	public int SourceId { get; set; }
+
+	public int TargetId { get; set; }
+
+	public int Scope { get; set; }
+
+	public bool Enabled { get; set; } = true;
 }
 
 internal sealed class AolaPetMorphRuleData
@@ -68,7 +95,10 @@ internal sealed class AolaSettingsStore
 			loaded.PetMorphRules = loaded.PetMorphRules ?? new List<AolaPetMorphRuleData>();
 			loaded.PetMorphRules.RemoveAll(item => item == null ||
 				(item.OriginalId <= 0 && item.PosterSourceId <= 0));
-			loaded.SchemaVersion = 5;
+			loaded.BattleMorphRules = loaded.BattleMorphRules ?? new List<AolaBattleMorphRuleData>();
+			loaded.BattleMorphRules.RemoveAll(item => item == null ||
+				item.SourceId <= 0 || item.TargetId <= 0 || item.SourceId == item.TargetId);
+			loaded.SchemaVersion = 6;
 			return loaded;
 		}
 		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is JsonException || ex is ArgumentException)
