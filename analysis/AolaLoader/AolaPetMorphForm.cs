@@ -6,12 +6,16 @@ using System.Windows.Forms;
 
 namespace AolaLoader;
 
-internal sealed class AolaPetMorphForm : Form
+internal sealed class AolaPetMorphForm : AolaFormBase
 {
 	private readonly TextBox _note = new TextBox();
 	private readonly TextBox _originalId = new TextBox();
 	private readonly TextBox _backpackId = new TextBox();
+	private readonly TextBox _posterSourceId = new TextBox();
 	private readonly TextBox _posterId = new TextBox();
+	private readonly CheckBox _removeOriginalBackground = new CheckBox();
+	private readonly CheckBox _replaceBackpackIcon = new CheckBox();
+	private readonly CheckBox _hideOriginalModel = new CheckBox();
 	private readonly DataGridView _grid = new DataGridView();
 	private readonly CheckBox _enabled = new CheckBox();
 	private readonly Label _status = new Label();
@@ -21,15 +25,23 @@ internal sealed class AolaPetMorphForm : Form
 
 	public AolaPetMorphForm(
 		Func<AolaPetMorphRule, string> validateRule,
-		Action<IReadOnlyList<AolaPetMorphRule>, bool> applyRules)
+		Action<IReadOnlyList<AolaPetMorphRule>, bool> applyRules,
+		IReadOnlyList<AolaPetMorphRule> initialRules,
+		bool initialEnabled)
 	{
 		_validateRule = validateRule ?? throw new ArgumentNullException(nameof(validateRule));
 		_applyRules = applyRules ?? throw new ArgumentNullException(nameof(applyRules));
+		if (initialRules != null)
+		{
+			_rules.AddRange(initialRules);
+		}
+		_enabled.Checked = initialEnabled;
 		Text = "功能面板 - 形态变化";
 		StartPosition = FormStartPosition.CenterParent;
-		MinimumSize = new Size(760, 480);
-		Size = new Size(900, 560);
+		MinimumSize = new Size(1080, 480);
+		Size = new Size(1220, 560);
 		BuildLayout();
+		RefreshGrid(null);
 	}
 
 	protected override void OnFormClosing(FormClosingEventArgs e)
@@ -57,34 +69,56 @@ internal sealed class AolaPetMorphForm : Form
 		TableLayoutPanel editor = new TableLayoutPanel
 		{
 			Dock = DockStyle.Top,
-			Height = 92,
+			Height = 100,
 			Padding = new Padding(12, 4, 12, 8),
-			ColumnCount = 5,
+			ColumnCount = 9,
 			RowCount = 2
 		};
-		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
-		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
-		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
-		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
-		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
-		editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 14));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 8));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 8));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 8));
+		editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
+		editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 		editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 		editor.Controls.Add(CreateHeader("备注"), 0, 0);
-		editor.Controls.Add(CreateHeader("原型 ID"), 1, 0);
-		editor.Controls.Add(CreateHeader("替换 ID（背包）"), 2, 0);
-		editor.Controls.Add(CreateHeader("替换 ID（海报）"), 3, 0);
-		editor.Controls.Add(CreateHeader("操作"), 4, 0);
+		editor.Controls.Add(CreateHeader("模型源 ID"), 1, 0);
+		editor.Controls.Add(CreateHeader("模型目标 ID"), 2, 0);
+		editor.Controls.Add(CreateHeader("海报源皮肤 ID"), 3, 0);
+		editor.Controls.Add(CreateHeader("海报目标皮肤 ID"), 4, 0);
+		editor.Controls.Add(CreateHeader("移除原背景"), 5, 0);
+		editor.Controls.Add(CreateHeader("替换背包头像"), 6, 0);
+		editor.Controls.Add(CreateHeader("隐藏原模型"), 7, 0);
+		editor.Controls.Add(CreateHeader("操作"), 8, 0);
 		ConfigureEditor(_note);
 		ConfigureEditor(_originalId);
 		ConfigureEditor(_backpackId);
+		ConfigureEditor(_posterSourceId);
 		ConfigureEditor(_posterId);
 		editor.Controls.Add(_note, 0, 1);
 		editor.Controls.Add(_originalId, 1, 1);
 		editor.Controls.Add(_backpackId, 2, 1);
-		editor.Controls.Add(_posterId, 3, 1);
+		editor.Controls.Add(_posterSourceId, 3, 1);
+		editor.Controls.Add(_posterId, 4, 1);
+		_removeOriginalBackground.Text = "移除";
+		_removeOriginalBackground.AutoSize = true;
+		_removeOriginalBackground.Anchor = AnchorStyles.Left;
+		editor.Controls.Add(_removeOriginalBackground, 5, 1);
+		_replaceBackpackIcon.Text = "替换";
+		_replaceBackpackIcon.AutoSize = true;
+		_replaceBackpackIcon.Anchor = AnchorStyles.Left;
+		editor.Controls.Add(_replaceBackpackIcon, 6, 1);
+		_hideOriginalModel.Text = "隐藏";
+		_hideOriginalModel.AutoSize = true;
+		_hideOriginalModel.Anchor = AnchorStyles.Left;
+		editor.Controls.Add(_hideOriginalModel, 7, 1);
 		Button save = new Button { Text = "添加 / 更新", Dock = DockStyle.Fill };
 		save.Click += delegate { SaveRule(); };
-		editor.Controls.Add(save, 4, 1);
+		editor.Controls.Add(save, 8, 1);
 
 		_grid.Dock = DockStyle.Fill;
 		_grid.AllowUserToAddRows = false;
@@ -98,13 +132,33 @@ internal sealed class AolaPetMorphForm : Form
 		_grid.RowHeadersVisible = false;
 		_grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 		_grid.Columns.Add("Note", "备注");
-		_grid.Columns.Add("OriginalId", "原型 ID");
-		_grid.Columns.Add("BackpackId", "目标 ID（背包）");
-		_grid.Columns.Add("PosterId", "目标 ID（海报）");
-		_grid.Columns[0].FillWeight = 180;
+		_grid.Columns.Add("OriginalId", "模型源 ID");
+		_grid.Columns.Add("BackpackId", "模型目标 ID");
+		_grid.Columns.Add("PosterSourceId", "海报源 ID");
+		_grid.Columns.Add("PosterId", "海报目标 ID");
+		_grid.Columns.Add(new DataGridViewCheckBoxColumn
+		{
+			Name = "RemoveOriginalBackground",
+			HeaderText = "移除原背景"
+		});
+		_grid.Columns.Add(new DataGridViewCheckBoxColumn
+		{
+			Name = "ReplaceBackpackIcon",
+			HeaderText = "替换背包头像"
+		});
+		_grid.Columns.Add(new DataGridViewCheckBoxColumn
+		{
+			Name = "HideOriginalModel",
+			HeaderText = "隐藏原模型"
+		});
+		_grid.Columns[0].FillWeight = 150;
 		_grid.Columns[1].FillWeight = 80;
-		_grid.Columns[2].FillWeight = 100;
-		_grid.Columns[3].FillWeight = 100;
+		_grid.Columns[2].FillWeight = 90;
+		_grid.Columns[3].FillWeight = 90;
+		_grid.Columns[4].FillWeight = 90;
+		_grid.Columns[5].FillWeight = 65;
+		_grid.Columns[6].FillWeight = 75;
+		_grid.Columns[7].FillWeight = 65;
 		_grid.SelectionChanged += delegate { LoadSelectedRule(); };
 
 		FlowLayoutPanel actions = new FlowLayoutPanel
@@ -129,7 +183,7 @@ internal sealed class AolaPetMorphForm : Form
 		_status.Dock = DockStyle.Bottom;
 		_status.Height = 40;
 		_status.Padding = new Padding(12, 10, 0, 0);
-		_status.Text = "背包模型和海报将改写到官方替换资源；战斗内替换未启用。";
+		_status.Text = "6000→6047：可同时勾选移除原背景和替换背包头像；战斗内替换未启用。";
 
 		Panel body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12, 0, 12, 0) };
 		body.Controls.Add(_grid);
@@ -159,19 +213,54 @@ internal sealed class AolaPetMorphForm : Form
 
 	private void SaveRule()
 	{
-		if (!TryParseRequiredId(_originalId.Text, "原型 ID", out int originalId) ||
-			!TryParseOptionalId(_backpackId.Text, "背包替换 ID", out int backpackId) ||
-			!TryParseOptionalId(_posterId.Text, "海报替换 ID", out int posterId))
+		if (!TryParseOptionalId(_originalId.Text, "模型源 ID", out int originalId) ||
+			!TryParseOptionalId(_backpackId.Text, "模型目标 ID", out int backpackId) ||
+			!TryParseOptionalId(_posterSourceId.Text, "海报源皮肤 ID", out int posterSourceId) ||
+			!TryParseOptionalId(_posterId.Text, "海报目标皮肤 ID", out int posterId))
 		{
 			return;
 		}
-		if (backpackId == 0 && posterId == 0)
+		if (backpackId > 0 && originalId == 0)
 		{
-			ShowValidationError("背包替换 ID 和海报替换 ID 至少填写一个。");
+			ShowValidationError("填写模型目标 ID 时必须同时填写模型源 ID。");
+			return;
+		}
+		if (_hideOriginalModel.Checked && originalId == 0)
+		{
+			ShowValidationError("隐藏原模型时必须填写模型源 ID。");
+			return;
+		}
+		if (_hideOriginalModel.Checked && backpackId > 0)
+		{
+			ShowValidationError("隐藏原模型时请将模型目标 ID 留空。");
+			return;
+		}
+		if (_removeOriginalBackground.Checked && originalId == 0)
+		{
+			ShowValidationError("移除原背景时必须填写模型源 ID。");
+			return;
+		}
+		if (_replaceBackpackIcon.Checked && (originalId == 0 || backpackId == 0))
+		{
+			ShowValidationError("替换背包头像时必须同时填写模型源 ID 和模型目标 ID。");
+			return;
+		}
+		if (posterId > 0 && posterSourceId == 0 && originalId == 0)
+		{
+			ShowValidationError("模型形态转海报时请填写模型源 ID；已有海报改写时请填写海报源皮肤 ID。");
+			return;
+		}
+		if (backpackId == 0 && posterId == 0 && !_hideOriginalModel.Checked &&
+			!_removeOriginalBackground.Checked && !_replaceBackpackIcon.Checked)
+		{
+			ShowValidationError("模型目标 ID 和海报目标 ID 至少填写一个。");
 			return;
 		}
 
-		AolaPetMorphRule rule = new AolaPetMorphRule(_note.Text.Trim(), originalId, backpackId, posterId);
+		AolaPetMorphRule rule = new AolaPetMorphRule(
+			_note.Text.Trim(), originalId, backpackId, posterSourceId, posterId,
+			_hideOriginalModel.Checked, _removeOriginalBackground.Checked,
+			_replaceBackpackIcon.Checked);
 		string validationError = _validateRule(rule);
 		if (!string.IsNullOrEmpty(validationError))
 		{
@@ -179,7 +268,26 @@ internal sealed class AolaPetMorphForm : Form
 			return;
 		}
 
-		int existingIndex = _rules.FindIndex(item => item.OriginalId == originalId);
+		int existingIndex = _grid.CurrentRow != null &&
+			_grid.CurrentRow.Tag is AolaPetMorphRule selectedRule
+			? _rules.IndexOf(selectedRule)
+			: -1;
+		if (existingIndex < 0)
+		{
+			existingIndex = _rules.FindIndex(item =>
+				item.OriginalId == originalId && item.PosterSourceId == posterSourceId);
+		}
+		if (posterId > 0)
+		{
+			int effectiveSourceId = posterSourceId > 0 ? posterSourceId : originalId;
+			int conflictIndex = _rules.FindIndex(item =>
+				(item.PosterSourceId > 0 ? item.PosterSourceId : item.OriginalId) == effectiveSourceId);
+			if (conflictIndex >= 0 && conflictIndex != existingIndex)
+			{
+				ShowValidationError("同一个背包皮肤源 ID 只能对应一个海报目标，请先修改或删除已有规则。");
+				return;
+			}
+		}
 		if (existingIndex >= 0)
 		{
 			_rules[existingIndex] = rule;
@@ -188,7 +296,7 @@ internal sealed class AolaPetMorphForm : Form
 		{
 			_rules.Add(rule);
 		}
-		RefreshGrid(originalId);
+		RefreshGrid(rule);
 		PublishRules(existingIndex >= 0 ? "规则已更新" : "规则已添加");
 	}
 
@@ -199,24 +307,32 @@ internal sealed class AolaPetMorphForm : Form
 			_status.Text = "请先选择要删除的规则。";
 			return;
 		}
-		_rules.RemoveAll(item => item.OriginalId == selected.OriginalId);
-		RefreshGrid(-1);
+		_rules.RemoveAll(item => item.OriginalId == selected.OriginalId &&
+			item.PosterSourceId == selected.PosterSourceId);
+		RefreshGrid(null);
 		ClearEditor();
 		PublishRules("规则已删除");
 	}
 
-	private void RefreshGrid(int selectedOriginalId)
+	private void RefreshGrid(AolaPetMorphRule selectedRule)
 	{
 		_grid.Rows.Clear();
-		foreach (AolaPetMorphRule rule in _rules.OrderBy(item => item.OriginalId))
+		foreach (AolaPetMorphRule rule in _rules
+			.OrderBy(item => item.OriginalId)
+			.ThenBy(item => item.PosterSourceId))
 		{
 			int index = _grid.Rows.Add(
 				rule.Note,
-				rule.OriginalId,
+				rule.OriginalId > 0 ? rule.OriginalId.ToString() : "/",
 				rule.BackpackId > 0 ? rule.BackpackId.ToString() : "/",
-				rule.PosterId > 0 ? rule.PosterId.ToString() : "/");
+				rule.PosterSourceId > 0 ? rule.PosterSourceId.ToString() : "/",
+				rule.PosterId > 0 ? rule.PosterId.ToString() : "/",
+				rule.RemoveOriginalBackground,
+				rule.ReplaceBackpackIcon,
+				rule.HideOriginalModel);
 			_grid.Rows[index].Tag = rule;
-			if (rule.OriginalId == selectedOriginalId)
+			if (selectedRule != null && rule.OriginalId == selectedRule.OriginalId &&
+				rule.PosterSourceId == selectedRule.PosterSourceId)
 			{
 				_grid.Rows[index].Selected = true;
 				_grid.CurrentCell = _grid.Rows[index].Cells[0];
@@ -231,9 +347,13 @@ internal sealed class AolaPetMorphForm : Form
 			return;
 		}
 		_note.Text = selected.Note;
-		_originalId.Text = selected.OriginalId.ToString();
+		_originalId.Text = selected.OriginalId > 0 ? selected.OriginalId.ToString() : string.Empty;
 		_backpackId.Text = selected.BackpackId > 0 ? selected.BackpackId.ToString() : string.Empty;
+		_posterSourceId.Text = selected.PosterSourceId > 0 ? selected.PosterSourceId.ToString() : string.Empty;
 		_posterId.Text = selected.PosterId > 0 ? selected.PosterId.ToString() : string.Empty;
+		_removeOriginalBackground.Checked = selected.RemoveOriginalBackground;
+		_replaceBackpackIcon.Checked = selected.ReplaceBackpackIcon;
+		_hideOriginalModel.Checked = selected.HideOriginalModel;
 	}
 
 	private void ClearEditor()
@@ -241,19 +361,13 @@ internal sealed class AolaPetMorphForm : Form
 		_note.Clear();
 		_originalId.Clear();
 		_backpackId.Clear();
+		_posterSourceId.Clear();
 		_posterId.Clear();
+		_removeOriginalBackground.Checked = false;
+		_replaceBackpackIcon.Checked = false;
+		_hideOriginalModel.Checked = false;
 		_grid.ClearSelection();
-		_originalId.Focus();
-	}
-
-	private bool TryParseRequiredId(string value, string fieldName, out int id)
-	{
-		if (!int.TryParse(value.Trim(), out id) || id <= 0)
-		{
-			ShowValidationError(fieldName + " 必须是大于 0 的整数。");
-			return false;
-		}
-		return true;
+		_posterSourceId.Focus();
 	}
 
 	private bool TryParseOptionalId(string value, string fieldName, out int id)
@@ -281,6 +395,7 @@ internal sealed class AolaPetMorphForm : Form
 	private void PublishRules(string message)
 	{
 		_applyRules(_rules.ToArray(), _enabled.Checked);
-		_status.Text = message + "；规则数：" + _rules.Count + "。目标资源不可用时恢复原始请求。";
+		_status.Text = message + "；规则数：" + _rules.Count +
+			"。规则会热推送到已打开的背包；目标资源不可用时保持原形态。";
 	}
 }

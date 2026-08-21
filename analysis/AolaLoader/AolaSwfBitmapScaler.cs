@@ -96,6 +96,116 @@ internal static class AolaSwfBitmapScaler
 			scaled[0] == 'F' && scaled[1] == 'W' && scaled[2] == 'S';
 	}
 
+	public static bool TryMakeTransparentFws(byte[] content, out byte[] transparent)
+	{
+		transparent = null;
+		if (!AolaSwfResponseFilter.IsValidFws(content))
+		{
+			return false;
+		}
+
+		int tagOffset = GetTagOffset(content);
+		if (tagOffset < 0)
+		{
+			return false;
+		}
+		List<SwfTag> tags = ParseTags(content, tagOffset);
+		if (tags == null)
+		{
+			return false;
+		}
+
+		int hiddenBitmapCount = 0;
+		foreach (SwfTag tag in tags)
+		{
+			if (tag.Code != DefineBitsLossless2Tag)
+			{
+				continue;
+			}
+			if (!TryMakeLosslessBitmapTransparent(tag.Body, out byte[] body))
+			{
+				return false;
+			}
+			tag.Body = body;
+			hiddenBitmapCount++;
+		}
+		if (hiddenBitmapCount == 0)
+		{
+			return false;
+		}
+
+		using (MemoryStream output = new MemoryStream())
+		{
+			output.Write(content, 0, tagOffset);
+			foreach (SwfTag tag in tags)
+			{
+				WriteTag(output, tag);
+				if (output.Length > MaximumOutputBytes)
+				{
+					return false;
+				}
+			}
+			transparent = output.ToArray();
+		}
+		WriteUInt32(transparent, 4, (uint)transparent.Length);
+		return AolaSwfResponseFilter.IsValidFws(transparent);
+	}
+
+	private static bool TryMakeLosslessBitmapTransparent(byte[] body, out byte[] transparentBody)
+	{
+		transparentBody = null;
+		if (body == null || body.Length < 8 || body[2] != 3 && body[2] != 5)
+		{
+			return false;
+		}
+
+		int format = body[2];
+		int width = ReadUInt16(body, 3);
+		int height = ReadUInt16(body, 5);
+		if (width <= 0 || height <= 0)
+		{
+			return false;
+		}
+		int dataOffset = format == 3 ? 8 : 7;
+		int paletteEntries = format == 3 ? body[7] + 1 : 0;
+		int paletteBytes = paletteEntries * 4;
+		int stride = format == 3 ? (width + 3) & ~3 : checked(width * 4);
+		int decodedLength = checked(paletteBytes + stride * height);
+		byte[] compressed = new byte[body.Length - dataOffset];
+		Buffer.BlockCopy(body, dataOffset, compressed, 0, compressed.Length);
+		if (!TryDecompressZlib(compressed, decodedLength, out byte[] pixels))
+		{
+			return false;
+		}
+
+		if (format == 3)
+		{
+			for (int index = 0; index < paletteEntries; index++)
+			{
+				// Lossless2 colormaps store RGBA palette entries.
+				pixels[index * 4 + 3] = 0;
+			}
+		}
+		else
+		{
+			for (int y = 0; y < height; y++)
+			{
+				for (int x = 0; x < width; x++)
+				{
+					// Lossless2 format 5 stores pixels as ARGB.
+					pixels[y * stride + x * 4] = 0;
+				}
+			}
+		}
+
+		byte[] transparentCompressed = CompressZlib(pixels);
+		transparentBody = new byte[dataOffset + transparentCompressed.Length];
+		Buffer.BlockCopy(body, 0, transparentBody, 0, dataOffset);
+		Buffer.BlockCopy(transparentCompressed, 0, transparentBody, dataOffset,
+			transparentCompressed.Length);
+		return true;
+	}
+
 	private static int GetTagOffset(byte[] content)
 	{
 		if (content.Length < 13)

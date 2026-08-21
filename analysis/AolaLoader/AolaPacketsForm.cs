@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 
 namespace AolaLoader;
 
-internal sealed class AolaPacketsForm : Form
+internal sealed class AolaPacketsForm : AolaFormBase
 {
 	private const int MaximumVisiblePackets = 5000;
 	private readonly ListView _packetList = new ListView();

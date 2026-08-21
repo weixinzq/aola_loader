@@ -12,6 +12,8 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 	private readonly byte[] _targetToken;
 	private readonly int _expectedCount;
 	private readonly double _scaleFactor;
+	private readonly bool _structuralClassAdaptation;
+	private readonly bool _makeBitmapsTransparent;
 	private MemoryStream _input = new MemoryStream();
 	private byte[] _output;
 	private int _outputOffset;
@@ -20,17 +22,22 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 		string sourceToken,
 		string targetToken,
 		int expectedCount,
-		double scaleFactor)
+		double scaleFactor,
+		bool structuralClassAdaptation = false,
+		bool makeBitmapsTransparent = false)
 	{
 		_sourceToken = Encoding.ASCII.GetBytes(sourceToken ?? string.Empty);
 		_targetToken = Encoding.ASCII.GetBytes(targetToken ?? string.Empty);
 		_expectedCount = expectedCount;
 		_scaleFactor = scaleFactor;
+		_structuralClassAdaptation = structuralClassAdaptation;
+		_makeBitmapsTransparent = makeBitmapsTransparent;
 	}
 
 	public bool InitFilter()
 	{
-		return _sourceToken.Length > 0 && _sourceToken.Length == _targetToken.Length;
+		return _sourceToken.Length > 0 && _targetToken.Length > 0 &&
+			(_structuralClassAdaptation || _sourceToken.Length == _targetToken.Length);
 	}
 
 	public FilterStatus Filter(
@@ -70,10 +77,23 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 		}
 
 		byte[] remote = _input.ToArray();
-		bool requiresScaleCompensation = Math.Abs(_scaleFactor - 1) >= 0.0001 &&
-			CountOccurrences(remote, _sourceToken) > 0;
-		if (TryAdaptFws(remote, _sourceToken, _targetToken, _expectedCount, out byte[] adapted))
+		if (_structuralClassAdaptation)
 		{
+			string sourceToken = Encoding.ASCII.GetString(_sourceToken);
+			string targetToken = Encoding.ASCII.GetString(_targetToken);
+			if (!AolaSwfClassAdapter.TryAdapt(remote, sourceToken, targetToken, out _output))
+			{
+				return FilterStatus.Error;
+			}
+		}
+		else
+		{
+			bool requiresScaleCompensation = Math.Abs(_scaleFactor - 1) >= 0.0001 &&
+				CountOccurrences(remote, _sourceToken) > 0;
+			if (!TryAdaptFws(remote, _sourceToken, _targetToken, _expectedCount, out byte[] adapted))
+			{
+				return FilterStatus.Error;
+			}
 			if (requiresScaleCompensation)
 			{
 				if (!AolaSwfBitmapScaler.TryScaleFws(adapted, _scaleFactor, out _output))
@@ -86,7 +106,8 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 				_output = adapted;
 			}
 		}
-		else
+		if (_makeBitmapsTransparent &&
+			!AolaSwfBitmapScaler.TryMakeTransparentFws(_output, out _output))
 		{
 			return FilterStatus.Error;
 		}

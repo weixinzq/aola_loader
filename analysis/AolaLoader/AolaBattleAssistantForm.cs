@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace AolaLoader;
 
-internal sealed class AolaBattleAssistantForm : Form
+internal sealed class AolaBattleAssistantForm : AolaFormBase
 {
 	private const int CardWidth = 176;
 	private const int CardHeight = 448;

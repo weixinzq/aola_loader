@@ -5,29 +5,39 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaSocketHack.Contracts;
 using CefSharp;
 using CefSharp.WinForms;
+using Newtonsoft.Json;
 
 namespace AolaLoader;
 
-internal sealed class AolaMainForm : Form
+internal sealed class AolaMainForm : AolaFormBase
 {
 	private const string DefaultUrl = "https://aola.100bt.com/play/play.html";
+	private const int SwShowNoActivate = 4;
 	private readonly ToolStripTextBox _address = new ToolStripTextBox();
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("正在初始化奥拉星登录页面");
 	private readonly Timer _injectTimer = new Timer();
+	private readonly List<Form> _childrenVisibleBeforeMinimize = new List<Form>();
+	private readonly AolaSettingsStore _settingsStore;
+	private readonly AolaAppSettings _settings;
 	private readonly AolaHookController _hookController;
 	private readonly AolaReceiveLogger _receiveLogger;
 	private readonly AolaBattleStateTracker _battleTracker;
 	private readonly AolaThemeRequestHandler _themeRequestHandler;
+	private readonly AolaPetMorphLiveBridge _petMorphLiveBridge = new AolaPetMorphLiveBridge();
 	private readonly ChromiumWebBrowser _browser;
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private AolaPacketsForm _packetsForm;
 	private AolaBattleAssistantForm _battleAssistantForm;
 	private AolaPetMorphForm _petMorphForm;
 	private ToolStripMenuItem _themeMenu;
+	private bool _mainWindowMinimized;
+	private long _petMorphPushRequest;
 
 	public AolaMainForm()
 	{
@@ -35,6 +45,10 @@ internal sealed class AolaMainForm : Form
 		StartPosition = FormStartPosition.CenterScreen;
 		MinimumSize = new Size(960, 640);
 		Size = new Size(1200, 800);
+		_settingsStore = new AolaSettingsStore(Path.Combine(
+			AppDomain.CurrentDomain.BaseDirectory,
+			"settings.json"));
+		_settings = _settingsStore.Load();
 		InitializeCef();
 		_hookController = new AolaHookController();
 		_receiveLogger = new AolaReceiveLogger();
@@ -47,7 +61,20 @@ internal sealed class AolaMainForm : Form
 		_themeRequestHandler = new AolaThemeRequestHandler(Path.Combine(
 			AppDomain.CurrentDomain.BaseDirectory,
 			"Resources",
-			"Themes"));
+			"Themes"), Path.Combine(
+			AppDomain.CurrentDomain.BaseDirectory,
+			"Resources",
+			"Data",
+			"pet-poster-catalog.json"), Path.Combine(
+			AppDomain.CurrentDomain.BaseDirectory,
+			"Resources",
+			"Patches",
+			"newpetpackage-morph-live.fws.swf"),
+			_settings.PetMorphLiveBridgeEnabled);
+		UpdateThemeSelection(ApplySavedTheme(_themeRequestHandler));
+		_themeRequestHandler.SetPetMorphRules(
+			ToMorphRules(_settings.PetMorphRules),
+			_settings.PetMorphEnabled);
 		_browser = new ChromiumWebBrowser(DefaultUrl)
 		{
 			Dock = DockStyle.Fill,
@@ -74,9 +101,7 @@ internal sealed class AolaMainForm : Form
 			ShowPackets();
 			_injectTimer.Start();
 			EnsureHookInjected();
-			_status.Text = _receiveLogger.IsActive
-				? "接收日志已启用：" + _receiveLogger.LogPath
-				: "接收日志启用失败：" + _receiveLogger.ErrorMessage;
+			_status.Text = "接收日志正在内存中暂存；点击“保留日志”后写入文件。";
 		};
 	}
 
@@ -94,6 +119,48 @@ internal sealed class AolaMainForm : Form
 		_browser.Dispose();
 		base.OnFormClosed(e);
 	}
+
+	protected override void OnResize(EventArgs e)
+	{
+		base.OnResize(e);
+		bool minimized = WindowState == FormWindowState.Minimized;
+		if (minimized && !_mainWindowMinimized)
+		{
+			_mainWindowMinimized = true;
+			_childrenVisibleBeforeMinimize.Clear();
+			RememberVisibleChild(_petMorphForm);
+			RememberVisibleChild(_battleAssistantForm);
+			RememberVisibleChild(_packetsForm);
+			foreach (Form child in _childrenVisibleBeforeMinimize)
+			{
+				child.Hide();
+			}
+		}
+		else if (!minimized && _mainWindowMinimized)
+		{
+			_mainWindowMinimized = false;
+			foreach (Form child in _childrenVisibleBeforeMinimize)
+			{
+				if (!child.IsDisposed)
+				{
+					// 不激活子窗口，避免还原主窗口时焦点被抢走。
+					ShowWindow(child.Handle, SwShowNoActivate);
+				}
+			}
+			_childrenVisibleBeforeMinimize.Clear();
+		}
+	}
+
+	private void RememberVisibleChild(Form child)
+	{
+		if (child != null && !child.IsDisposed && child.Visible)
+		{
+			_childrenVisibleBeforeMinimize.Add(child);
+		}
+	}
+
+	[DllImport("user32.dll")]
+	private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
 	private MenuStrip BuildMenu()
 	{
@@ -161,15 +228,71 @@ internal sealed class AolaMainForm : Form
 		{
 			_themeRequestHandler.SelectedThemeId = themeId == 0 ? -1 : themeId;
 			UpdateThemeSelection(themeId);
-			_status.Text = themeId == 0
-				? "已关闭主题资源替换，正在恢复官方默认资源"
-				: "已启用 skin*.swf 本地替换，正在重新加载：" + themeName;
-			_browser.Reload(true);
+			_settings.SelectedThemeId = themeId;
+			if (TrySaveSettings())
+			{
+				_status.Text = themeId == 0
+					? "已恢复默认主题并保存；刷新页面后生效"
+					: "已启用并保存主题：" + themeName + "；刷新页面后生效";
+			}
 		}
 		catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentOutOfRangeException || ex is ObjectDisposedException)
 		{
 			_status.Text = "主题资源替换失败：" + ex.Message;
 			MessageBox.Show(this, ex.Message, "主题资源替换失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+		}
+	}
+
+	private int ApplySavedTheme(AolaThemeRequestHandler handler)
+	{
+		int themeId = _settings.SelectedThemeId;
+		if (themeId < 0 || themeId >= _themeItems.Count)
+		{
+			return 0;
+		}
+		if (themeId == 0)
+		{
+			handler.SelectedThemeId = -1;
+			return 0;
+		}
+		try
+		{
+			handler.SelectedThemeId = themeId;
+			return themeId;
+		}
+		catch (InvalidOperationException)
+		{
+			return 0;
+		}
+	}
+
+	private static AolaPetMorphRule[] ToMorphRules(IEnumerable<AolaPetMorphRuleData> data)
+	{
+		return (data ?? Enumerable.Empty<AolaPetMorphRuleData>())
+			.Where(item => item != null && (item.OriginalId > 0 || item.PosterSourceId > 0))
+			.Select(item => new AolaPetMorphRule(
+				item.Note ?? string.Empty,
+				item.OriginalId,
+				item.BackpackId,
+				item.PosterSourceId,
+				item.PosterId,
+				item.HideOriginalModel,
+				item.RemoveOriginalBackground,
+				item.ReplaceBackpackIcon))
+			.ToArray();
+	}
+
+	private bool TrySaveSettings()
+	{
+		try
+		{
+			_settingsStore.Save(_settings);
+			return true;
+		}
+		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is JsonException)
+		{
+			_status.Text = "设置保存失败：" + ex.Message;
+			return false;
 		}
 	}
 
@@ -187,9 +310,11 @@ internal sealed class AolaMainForm : Form
 		{
 			_petMorphForm = new AolaPetMorphForm(
 				_themeRequestHandler.ValidatePetMorphRule,
-				ApplyPetMorphRules);
+				ApplyPetMorphRules,
+				ToMorphRules(_settings.PetMorphRules),
+				_settings.PetMorphEnabled);
 			_petMorphForm.FormClosed += delegate { _petMorphForm = null; };
-			_petMorphForm.Show(this);
+			_petMorphForm.Show();
 		}
 		else
 		{
@@ -199,13 +324,108 @@ internal sealed class AolaMainForm : Form
 		}
 	}
 
-	private void ApplyPetMorphRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
+	private async void ApplyPetMorphRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
 	{
 		_themeRequestHandler.SetPetMorphRules(rules, enabled);
-		_status.Text = enabled
-			? "形态变化已启用；重新进入背包或重启游戏后应用远程资源替换"
-			: "形态变化已关闭，官方资源不再被拦截";
-		_browser.Reload(true);
+		_settings.PetMorphRules = (rules ?? Array.Empty<AolaPetMorphRule>())
+			.Select(rule => new AolaPetMorphRuleData
+			{
+				Note = rule.Note,
+				OriginalId = rule.OriginalId,
+				BackpackId = rule.BackpackId,
+				PosterSourceId = rule.PosterSourceId,
+				PosterId = rule.PosterId,
+				HideOriginalModel = rule.HideOriginalModel,
+				RemoveOriginalBackground = rule.RemoveOriginalBackground,
+				ReplaceBackpackIcon = rule.ReplaceBackpackIcon
+			})
+			.ToList();
+		_settings.PetMorphEnabled = enabled;
+		if (!TrySaveSettings())
+		{
+			return;
+		}
+
+		if (!_themeRequestHandler.IsPetMorphLiveBridgeAvailable)
+		{
+			_status.Text = enabled
+				? "规则已保存，但动态背包桥接模板不可用；保持官方背包模块"
+				: "形态变化已关闭并保存";
+			return;
+		}
+
+		_status.Text = enabled ? "正在准备背包形态映射并热推送规则……" : "正在关闭形态变化……";
+		try
+		{
+			using (IFrame frame = _browser.GetMainFrame())
+			{
+				AolaPetMorphPushResult result = await PushPetMorphRulesAsync(frame, rules, enabled);
+				if (!result.Superseded)
+				{
+					_status.Text = DescribePetMorphPush(result, rules, enabled);
+				}
+			}
+		}
+		catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+		{
+			_status.Text = "规则已保存；浏览器尚未就绪，打开或重新进入背包时应用：" + ex.Message;
+		}
+	}
+
+	private async Task<AolaPetMorphPushResult> PushPetMorphRulesAsync(
+		IFrame frame,
+		IReadOnlyList<AolaPetMorphRule> rules,
+		bool enabled)
+	{
+		long request = System.Threading.Interlocked.Increment(ref _petMorphPushRequest);
+		IReadOnlyDictionary<int, int> mappings =
+			await _themeRequestHandler.GetAvailableLivePosterMappingsAsync(rules, enabled);
+		if (request != System.Threading.Volatile.Read(ref _petMorphPushRequest))
+		{
+			return AolaPetMorphPushResult.SupersededResult();
+		}
+		IReadOnlyDictionary<int, bool> hiddenBackgrounds = (rules ?? Array.Empty<AolaPetMorphRule>())
+			.Where(rule => rule != null && rule.RemoveOriginalBackground && rule.OriginalId > 0)
+			.GroupBy(rule => rule.OriginalId)
+			.ToDictionary(group => group.Key, group => true);
+		IReadOnlyDictionary<int, int> iconMappings = (rules ?? Array.Empty<AolaPetMorphRule>())
+			.Where(rule => rule != null && rule.ReplaceBackpackIcon &&
+				rule.OriginalId > 0 && rule.BackpackId > 0)
+			.GroupBy(rule => rule.OriginalId)
+			.Select(group => group.Last())
+			.ToDictionary(rule => rule.OriginalId, rule => rule.BackpackId);
+		AolaPetMorphPushResult result = await _petMorphLiveBridge.PushAsync(
+			frame, mappings, hiddenBackgrounds, iconMappings, enabled);
+		return request == System.Threading.Volatile.Read(ref _petMorphPushRequest)
+			? result
+			: AolaPetMorphPushResult.SupersededResult();
+	}
+
+	private static string DescribePetMorphPush(
+		AolaPetMorphPushResult result,
+		IReadOnlyList<AolaPetMorphRule> rules,
+		bool enabled)
+	{
+		if (!result.Injected)
+		{
+			return "规则已保存，但热推送失败：" + (result.Error ?? "未知错误");
+		}
+		if (!enabled)
+		{
+			return result.BridgeReady
+				? "形态变化已关闭；当前背包显示已刷新"
+				: "形态变化已关闭；背包模块尚未加载";
+		}
+		int requestedMappings = (rules ?? Array.Empty<AolaPetMorphRule>())
+			.Count(rule => rule != null && (rule.PosterId > 0 ||
+				rule.RemoveOriginalBackground || rule.ReplaceBackpackIcon));
+		if (result.BridgeReady || result.RefreshInvoked)
+		{
+			return "形态规则已热推送并刷新当前背包；不可用的目标海报自动保持原形态";
+		}
+		return requestedMappings > 0
+			? "形态规则已热推送；背包模块打开后自动应用，不需要刷新登录器"
+			: "形态规则已热推送；当前没有需要桥接的背景、头像或海报映射";
 	}
 
 	private static void InitializeCef()
@@ -256,6 +476,7 @@ internal sealed class AolaMainForm : Form
 		ToolStripButton go = new ToolStripButton("打开");
 		ToolStripButton packets = new ToolStripButton("抓包 / 发包");
 		ToolStripButton devTools = new ToolStripButton("开发者工具");
+		ToolStripButton retainLog = new ToolStripButton("保留日志");
 		_address.AutoSize = false;
 		_address.Width = 520;
 		_address.Text = DefaultUrl;
@@ -273,7 +494,28 @@ internal sealed class AolaMainForm : Form
 		};
 		packets.Click += delegate { ShowPackets(); };
 		devTools.Click += delegate { _browser.ShowDevTools(); };
-		toolbar.Items.AddRange(new ToolStripItem[] { back, forward, refresh, _address, go, new ToolStripSeparator(), packets, devTools });
+		retainLog.Click += async delegate
+		{
+			retainLog.Enabled = false;
+			string logPath = null;
+			string errorMessage = null;
+			bool retained = await Task.Run(() => _receiveLogger.TryRetain(out logPath, out errorMessage));
+			if (retained)
+			{
+				retainLog.Text = "日志已保留";
+				long discarded = _receiveLogger.DiscardedRecordCount;
+				_status.Text = "接收日志已保留：" + logPath + (discarded > 0
+					? "（内存上限前已丢弃 " + discarded + " 条较早记录）"
+					: string.Empty);
+			}
+			else
+			{
+				retainLog.Enabled = true;
+				_status.Text = "接收日志保留失败：" + errorMessage;
+				MessageBox.Show(this, errorMessage, "保留日志失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		};
+		toolbar.Items.AddRange(new ToolStripItem[] { back, forward, refresh, _address, go, new ToolStripSeparator(), packets, devTools, retainLog });
 		return toolbar;
 	}
 
@@ -294,7 +536,7 @@ internal sealed class AolaMainForm : Form
 		{
 			_packetsForm = new AolaPacketsForm();
 			_packetsForm.FormClosed += delegate { _packetsForm = null; };
-			_packetsForm.Show(this);
+			_packetsForm.Show();
 		}
 		else
 		{
@@ -309,7 +551,7 @@ internal sealed class AolaMainForm : Form
 		{
 			_battleAssistantForm = new AolaBattleAssistantForm(_battleTracker);
 			_battleAssistantForm.FormClosed += delegate { _battleAssistantForm = null; };
-			_battleAssistantForm.Show(this);
+			_battleAssistantForm.Show();
 		}
 		else
 		{
@@ -405,9 +647,23 @@ internal sealed class AolaMainForm : Form
 				: "Array.from(navigator.plugins || []).some(function(p){ return /flash/i.test(p.name || ''); })";
 			JavascriptResponse response = await e.Frame.EvaluateScriptAsync(script);
 			bool detected = response.Success && response.Result is bool value && value;
+			AolaPetMorphPushResult morphResult = null;
+			if (isAolaPlayPage && _themeRequestHandler.IsPetMorphLiveBridgeAvailable)
+			{
+				morphResult = await PushPetMorphRulesAsync(
+					e.Frame,
+					ToMorphRules(_settings.PetMorphRules),
+					_settings.PetMorphEnabled);
+			}
+			if (morphResult != null && morphResult.Superseded)
+			{
+				return;
+			}
 			BeginInvoke(new Action(delegate
 			{
-				_status.Text = detected
+				_status.Text = morphResult != null && !morphResult.Superseded && !morphResult.Injected
+					? "页面已加载，但形态规则注入失败：" + (morphResult.Error ?? "未知错误")
+					: detected
 					? (isAolaPlayPage ? "Flash 插件已启用，已兼容 1×1 心跳探针" : "Flash 插件已启用")
 					: "页面已加载，但 navigator.plugins 尚未识别 Flash";
 			}));

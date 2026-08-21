@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Security;
@@ -11,9 +12,15 @@ namespace AolaLoader;
 
 internal sealed class AolaReceiveLogger : IDisposable
 {
+	private const int MaximumBufferedBytes = 64 * 1024 * 1024;
 	private readonly object _syncRoot = new object();
+	private readonly string _baseDirectory;
+	private Queue<string> _pendingLines = new Queue<string>();
 	private StreamWriter _writer;
+	private int _pendingBytes;
+	private long _discardedRecordCount;
 	private bool _disposed;
+	private bool _retaining;
 	private bool _writeFailureReported;
 
 	public AolaReceiveLogger()
@@ -23,26 +30,15 @@ internal sealed class AolaReceiveLogger : IDisposable
 
 	internal AolaReceiveLogger(string baseDirectory)
 	{
-		try
+		if (string.IsNullOrWhiteSpace(baseDirectory))
 		{
-			if (string.IsNullOrWhiteSpace(baseDirectory))
-			{
-				throw new ArgumentException("日志基础目录不能为空", nameof(baseDirectory));
-			}
-			string directory = Path.Combine(baseDirectory, "logs");
-			Directory.CreateDirectory(directory);
-			LogPath = Path.Combine(directory, "aola-recv-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".jsonl");
-			FileStream stream = new FileStream(LogPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
-			_writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true };
-			AolaHookHostService.PacketReceived += OnPacketReceived;
+			throw new ArgumentException("日志基础目录不能为空", nameof(baseDirectory));
 		}
-		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is SecurityException)
-		{
-			ErrorMessage = ex.Message;
-		}
+		_baseDirectory = baseDirectory;
+		AolaHookHostService.PacketReceived += OnPacketReceived;
 	}
 
-	public string LogPath { get; }
+	public string LogPath { get; private set; }
 
 	public string ErrorMessage { get; private set; }
 
@@ -52,9 +48,146 @@ internal sealed class AolaReceiveLogger : IDisposable
 		{
 			lock (_syncRoot)
 			{
+				return !_disposed;
+			}
+		}
+	}
+
+	public bool IsRetained
+	{
+		get
+		{
+			lock (_syncRoot)
+			{
 				return !_disposed && _writer != null;
 			}
 		}
+	}
+
+	public long DiscardedRecordCount
+	{
+		get
+		{
+			lock (_syncRoot)
+			{
+				return _discardedRecordCount;
+			}
+		}
+	}
+
+	public bool TryRetain(out string logPath, out string errorMessage)
+	{
+		List<string> drainedLines = new List<string>();
+		string[] batch;
+		lock (_syncRoot)
+		{
+			logPath = LogPath;
+			errorMessage = null;
+			if (_disposed)
+			{
+				errorMessage = "接收日志记录器已经关闭。";
+				return false;
+			}
+			if (_writer != null)
+			{
+				return true;
+			}
+			if (_retaining)
+			{
+				errorMessage = "接收日志正在保留，请稍候。";
+				return false;
+			}
+			_retaining = true;
+			batch = DrainPendingLines();
+			drainedLines.AddRange(batch);
+		}
+
+		StreamWriter writer = null;
+		try
+		{
+			string directory = Path.Combine(_baseDirectory, "logs");
+			Directory.CreateDirectory(directory);
+			string path = CreateUniqueLogPath(directory);
+			FileStream stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite);
+			writer = new StreamWriter(stream, new UTF8Encoding(false));
+			while (true)
+			{
+				foreach (string line in batch)
+				{
+					writer.WriteLine(line);
+				}
+				writer.Flush();
+				lock (_syncRoot)
+				{
+					if (_disposed)
+					{
+						_retaining = false;
+						writer.Dispose();
+						errorMessage = "接收日志记录器已经关闭。";
+						return false;
+					}
+					if (_pendingLines.Count == 0)
+					{
+						writer.AutoFlush = true;
+						_writer = writer;
+						LogPath = path;
+						ErrorMessage = null;
+						_writeFailureReported = false;
+						_retaining = false;
+						logPath = path;
+						return true;
+					}
+					batch = DrainPendingLines();
+					drainedLines.AddRange(batch);
+				}
+			}
+		}
+		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is SecurityException)
+		{
+			writer?.Dispose();
+			lock (_syncRoot)
+			{
+				RestoreDrainedLines(drainedLines);
+				_retaining = false;
+				ErrorMessage = ex.Message;
+			}
+			errorMessage = ex.Message;
+			return false;
+		}
+	}
+
+	private string[] DrainPendingLines()
+	{
+		string[] lines = _pendingLines.ToArray();
+		_pendingLines.Clear();
+		_pendingBytes = 0;
+		return lines;
+	}
+
+	private void RestoreDrainedLines(IEnumerable<string> drainedLines)
+	{
+		Queue<string> newerLines = _pendingLines;
+		_pendingLines = new Queue<string>();
+		_pendingBytes = 0;
+		foreach (string line in drainedLines)
+		{
+			BufferLine(line);
+		}
+		foreach (string line in newerLines)
+		{
+			BufferLine(line);
+		}
+	}
+
+	private static string CreateUniqueLogPath(string directory)
+	{
+		string stem = "aola-recv-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+		string path = Path.Combine(directory, stem + ".jsonl");
+		for (int suffix = 1; File.Exists(path); suffix++)
+		{
+			path = Path.Combine(directory, stem + "-" + suffix.ToString(CultureInfo.InvariantCulture) + ".jsonl");
+		}
+		return path;
 	}
 
 	private void OnPacketReceived(AolaPacketEvent packet)
@@ -82,10 +215,16 @@ internal sealed class AolaReceiveLogger : IDisposable
 		}
 
 		string writeError = null;
+		bool reportWriteFailure = false;
 		lock (_syncRoot)
 		{
-			if (_disposed || _writer == null)
+			if (_disposed)
 			{
+				return;
+			}
+			if (_writer == null)
+			{
+				BufferLine(line);
 				return;
 			}
 			try
@@ -98,12 +237,17 @@ internal sealed class AolaReceiveLogger : IDisposable
 				ErrorMessage = ex.Message;
 				_writer.Dispose();
 				_writer = null;
+				BufferLine(line);
+				if (!_writeFailureReported)
+				{
+					_writeFailureReported = true;
+					reportWriteFailure = true;
+				}
 			}
 		}
 
-		if (writeError != null && !_writeFailureReported)
+		if (writeError != null && reportWriteFailure)
 		{
-			_writeFailureReported = true;
 			AolaHookHostService.ReportLocal(new AolaHookStatus
 			{
 				TimestampUtc = DateTime.UtcNow,
@@ -111,6 +255,24 @@ internal sealed class AolaReceiveLogger : IDisposable
 				Message = "接收日志写入失败：" + writeError
 			});
 		}
+	}
+
+	private void BufferLine(string line)
+	{
+		int lineBytes = Encoding.UTF8.GetByteCount(line) + 1;
+		if (lineBytes > MaximumBufferedBytes)
+		{
+			_discardedRecordCount++;
+			return;
+		}
+		while (_pendingLines.Count > 0 && _pendingBytes + lineBytes > MaximumBufferedBytes)
+		{
+			string discarded = _pendingLines.Dequeue();
+			_pendingBytes -= Encoding.UTF8.GetByteCount(discarded) + 1;
+			_discardedRecordCount++;
+		}
+		_pendingLines.Enqueue(line);
+		_pendingBytes += lineBytes;
 	}
 
 	private static JObject CreateRecord(AolaPacketEvent packet)
@@ -184,6 +346,8 @@ internal sealed class AolaReceiveLogger : IDisposable
 			_disposed = true;
 			_writer?.Dispose();
 			_writer = null;
+			_pendingLines.Clear();
+			_pendingBytes = 0;
 		}
 	}
 }

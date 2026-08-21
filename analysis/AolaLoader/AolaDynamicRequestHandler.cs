@@ -17,7 +17,10 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 {
 	private const string MorphMarkerName = "_aolaMorph";
 	private const string MorphFallbackMarkerName = "_aolaMorphFallback";
+	private const int HiddenPetMovieTemplateId = 6025;
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
+	private const string SupportedPetPackageVersion = "2026081331982423";
+	private const string SupportedPosterResourceSuffix = "~1210";
 	private static readonly ConcurrentDictionary<string, ProbeCacheEntry> ProbeCache =
 		new ConcurrentDictionary<string, ProbeCacheEntry>(StringComparer.OrdinalIgnoreCase);
 	private static readonly Regex PosterPathPattern = new Regex(
@@ -26,14 +29,40 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	private static readonly Regex PetMoviePathPattern = new Regex(
 		@"^/play/peticon/movie/type0/petmovie(?<directoryId>\d+)/petmovie(?<fileId>\d+)_(?<part>[0-3])(?<suffix>~[^/]+)?\.swf$",
 		RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+	private static readonly Regex PetPackagePathPattern = new Regex(
+		@"^/play/pet/newpetpackage~(?<version>\d+)\.swf$",
+		RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 	private static readonly int[] KnownPetMovieTokenCounts = { 45, 39, 36, 36 };
 	private readonly byte[][] _themes = new byte[10][];
 	private int _selectedThemeId = -1;
 	private AolaPetMorphRule[] _petMorphRules = Array.Empty<AolaPetMorphRule>();
 	private int _petMorphEnabled;
+	private readonly AolaPetPosterCatalog _posterCatalog;
+	private readonly byte[] _petPackageLiveTemplate;
+	private readonly bool _petMorphLiveBridgeEnabled;
 
-	public AolaThemeRequestHandler(string themeDirectory)
+	public AolaThemeRequestHandler(
+		string themeDirectory,
+		string posterCatalogPath = null,
+		string petPackageLiveTemplatePath = null,
+		bool petMorphLiveBridgeEnabled = true)
 	{
+		_posterCatalog = AolaPetPosterCatalog.Load(posterCatalogPath);
+		_petMorphLiveBridgeEnabled = petMorphLiveBridgeEnabled;
+		if (_petMorphLiveBridgeEnabled &&
+			!string.IsNullOrEmpty(petPackageLiveTemplatePath) &&
+			File.Exists(petPackageLiveTemplatePath))
+		{
+			byte[] template = File.ReadAllBytes(petPackageLiveTemplatePath);
+			if (AolaSwfResponseFilter.IsValidFws(template) &&
+				CountOccurrences(template, Encoding.ASCII.GetBytes("aolaMorphResolveSkinId")) >= 1 &&
+				CountOccurrences(template, Encoding.ASCII.GetBytes("aolaMorphRefresh")) >= 1 &&
+				CountOccurrences(template, Encoding.ASCII.GetBytes("aolaMorphShouldHideBackground")) >= 1 &&
+				CountOccurrences(template, Encoding.ASCII.GetBytes("aolaMorphResolveIconId")) >= 1)
+			{
+				_petPackageLiveTemplate = template;
+			}
+		}
 		for (int themeId = 0; themeId < _themes.Length; themeId++)
 		{
 			string path = Path.Combine(themeDirectory ?? string.Empty, "skin" + themeId + ".swf");
@@ -69,43 +98,114 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	public void SetPetMorphRules(IEnumerable<AolaPetMorphRule> rules, bool enabled)
 	{
 		AolaPetMorphRule[] snapshot = (rules ?? Enumerable.Empty<AolaPetMorphRule>())
-			.Select(rule => new AolaPetMorphRule(rule.Note, rule.OriginalId, rule.BackpackId, rule.PosterId))
+			.Select(rule => new AolaPetMorphRule(
+				rule.Note, rule.OriginalId, rule.BackpackId, rule.PosterSourceId, rule.PosterId,
+				rule.HideOriginalModel, rule.RemoveOriginalBackground, rule.ReplaceBackpackIcon))
 			.ToArray();
 		Volatile.Write(ref _petMorphRules, snapshot);
 		Volatile.Write(ref _petMorphEnabled, enabled ? 1 : 0);
 	}
 
+	public bool IsPetMorphLiveBridgeAvailable => _petPackageLiveTemplate != null;
+
+	public async Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+		IEnumerable<AolaPetMorphRule> rules,
+		bool enabled)
+	{
+		if (!enabled || !_petMorphLiveBridgeEnabled || _petPackageLiveTemplate == null)
+		{
+			return new Dictionary<int, int>();
+		}
+
+		KeyValuePair<int, int>[] candidates = (rules ?? Enumerable.Empty<AolaPetMorphRule>())
+			.Where(rule => rule != null && rule.PosterId > 0)
+			.Select(rule => new KeyValuePair<int, int>(
+				rule.PosterSourceId > 0 ? rule.PosterSourceId : rule.OriginalId,
+				rule.PosterId))
+			.Where(pair => pair.Key > 0 && pair.Value > 0)
+			.GroupBy(pair => pair.Key)
+			.Select(group => group.Last())
+			.ToArray();
+
+		Task<KeyValuePair<int, int>?>[] probes = candidates.Select(async pair =>
+		{
+			if (!_posterCatalog.TryGetBySkinId(pair.Value, out AolaPetPosterCatalogEntry target))
+			{
+				return (KeyValuePair<int, int>?)null;
+			}
+			string url = "https://aola.100bt.com/play/pet/petskin/background/petskinbackground" +
+				target.ResourceId + SupportedPosterResourceSuffix + ".swf";
+			bool available;
+			if (!TryGetCachedProbe(url, out available))
+			{
+				available = await Task.Run(() => ProbeRemoteSwf(url)).ConfigureAwait(false);
+				CacheProbe(url, available);
+			}
+			return available ? pair : (KeyValuePair<int, int>?)null;
+		}).ToArray();
+
+		KeyValuePair<int, int>?[] results = await Task.WhenAll(probes).ConfigureAwait(false);
+		return results.Where(item => item.HasValue)
+			.Select(item => item.Value)
+			.ToDictionary(pair => pair.Key, pair => pair.Value);
+	}
+
 	public string ValidatePetMorphRule(AolaPetMorphRule rule)
 	{
-		if (rule == null || rule.OriginalId <= 0)
+		if (rule == null || (rule.BackpackId <= 0 && rule.PosterId <= 0 &&
+			!rule.HideOriginalModel && !rule.RemoveOriginalBackground && !rule.ReplaceBackpackIcon))
 		{
 			return "原型 ID 无效。";
 		}
-		if (rule.BackpackId > 0)
+		if (rule.RemoveOriginalBackground && rule.OriginalId <= 0)
 		{
-			if (rule.OriginalId < 4400 || rule.BackpackId < 4400)
+			return "移除原背景时必须填写模型源 ID。";
+		}
+		if (rule.ReplaceBackpackIcon && (rule.OriginalId <= 0 || rule.BackpackId <= 0))
+		{
+			return "替换背包头像时必须同时填写模型源 ID 和模型目标 ID。";
+		}
+		if (rule.BackpackId > 0 || rule.HideOriginalModel)
+		{
+			if (rule.OriginalId < 4400 || rule.BackpackId > 0 && rule.BackpackId < 4400)
 			{
 				return "背包动态模型仅支持 ID 大于等于 4400；较旧 ID 使用另一套静态资源格式。";
 			}
-			if (rule.OriginalId.ToString().Length != rule.BackpackId.ToString().Length)
+			if (rule.BackpackId > 0 &&
+				rule.OriginalId.ToString().Length != rule.BackpackId.ToString().Length)
 			{
 				return "背包原型 ID 与替换 ID 的位数必须一致，以保持 SWF 类名长度不变。";
+			}
+			if (rule.HideOriginalModel && rule.BackpackId > 0)
+			{
+				return "隐藏原模型与模型目标 ID 不能同时启用。";
+			}
+			if (rule.HideOriginalModel &&
+				rule.OriginalId.ToString().Length != HiddenPetMovieTemplateId.ToString().Length)
+			{
+				return "隐藏原模型当前仅支持与透明模板同为 4 位数的模型 ID。";
 			}
 		}
 		if (rule.PosterId > 0)
 		{
-			if (!TryGetPosterResourceId(rule.OriginalId, out int originalResourceId))
+			if (!_posterCatalog.IsAvailable)
 			{
-				return "当前海报映射只识别皮肤 ID 5487 和 5940。";
+				return "Poster catalog is unavailable: " + (_posterCatalog.Error ?? "empty catalog");
 			}
-			if (!TryGetPosterResourceId(rule.PosterId, out int replacementResourceId))
+			if (rule.PosterSourceId > 0 &&
+				!_posterCatalog.TryGetBySkinId(rule.PosterSourceId, out _))
 			{
-				return "当前海报替换 ID 只支持皮肤 ID 5487 和 5940。";
+				return "Poster source skin ID is not present in the complete Background catalog.";
 			}
-			if (originalResourceId.ToString().Length != replacementResourceId.ToString().Length)
+			if (!_posterCatalog.TryGetBySkinId(rule.PosterId, out _))
 			{
-				return "海报资源类名长度不一致，不能进行安全的等长替换。";
+				return "Poster target skin ID is not present in the complete Background catalog.";
 			}
+			if (rule.PosterSourceId <= 0 && rule.OriginalId <= 0)
+			{
+				return "模型形态转海报时必须填写模型源 ID。";
+			}
+			return null;
 		}
 		return null;
 	}
@@ -139,6 +239,11 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		{
 			return new RemoteSwfResourceRequestHandler(markedPlan, true);
 		}
+		if (TryCreatePetPackageLiveResponse(request?.Url, out byte[] packageResponse))
+		{
+			disableDefaultHandling = true;
+			return new SwfResourceRequestHandler(packageResponse);
+		}
 		if (Volatile.Read(ref _petMorphEnabled) == 0)
 		{
 			return null;
@@ -157,6 +262,51 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		return plan == null ? null : new RemoteSwfResourceRequestHandler(plan, false);
 	}
 
+	private bool TryCreatePetPackageLiveResponse(string url, out byte[] response)
+	{
+		response = null;
+		if (_petPackageLiveTemplate == null || !TryGetAolaUri(url, out Uri uri))
+		{
+			return false;
+		}
+		Match match = PetPackagePathPattern.Match(uri.AbsolutePath);
+		if (!match.Success ||
+			!string.Equals(match.Groups["version"].Value, SupportedPetPackageVersion, StringComparison.Ordinal))
+		{
+			return false;
+		}
+
+		response = (byte[])_petPackageLiveTemplate.Clone();
+		return true;
+	}
+
+	private static int CountOccurrences(byte[] content, byte[] value)
+	{
+		if (content == null || value == null || value.Length == 0)
+		{
+			return 0;
+		}
+		int count = 0;
+		for (int i = 0; i <= content.Length - value.Length; i++)
+		{
+			bool match = true;
+			for (int j = 0; j < value.Length; j++)
+			{
+				if (content[i + j] != value[j])
+				{
+					match = false;
+					break;
+				}
+			}
+			if (match)
+			{
+				count++;
+				i += value.Length - 1;
+			}
+		}
+		return count;
+	}
+
 	private byte[] CreateSkinResponse(int selectedThemeId, int requestedSkinId)
 	{
 		byte[] source = _themes[selectedThemeId];
@@ -172,7 +322,7 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		return replacements == 0 ? null : response;
 	}
 
-	private static RemoteSwfPlan CreatePosterPlan(
+	private RemoteSwfPlan CreatePosterPlan(
 		AolaPetMorphRule[] rules,
 		Uri requestedUri,
 		int requestedResourceId,
@@ -180,23 +330,24 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	{
 		foreach (AolaPetMorphRule rule in rules)
 		{
-			if (rule.PosterId <= 0 ||
-				!TryGetPosterResourceId(rule.OriginalId, out int originalResourceId) ||
-				originalResourceId != requestedResourceId ||
-				!TryGetPosterResourceId(rule.PosterId, out int replacementResourceId))
+			if (rule.PosterSourceId <= 0 || rule.PosterId <= 0 ||
+				!_posterCatalog.TryGetBySkinId(rule.PosterSourceId, out AolaPetPosterCatalogEntry source) ||
+				!_posterCatalog.TryGetBySkinId(rule.PosterId, out AolaPetPosterCatalogEntry target) ||
+				source.ResourceId != requestedResourceId)
 			{
 				continue;
 			}
 
 			string path = "/play/pet/petskin/background/petskinbackground" +
-				replacementResourceId + suffix + ".swf";
+				target.ResourceId + suffix + ".swf";
 			return new RemoteSwfPlan(
 				requestedUri.AbsoluteUri,
-				BuildRemoteUrl(requestedUri, path, "p-" + originalResourceId + "-" + replacementResourceId),
-				"Background" + replacementResourceId,
-				"Background" + originalResourceId,
-				3,
-				1);
+				BuildRemoteUrl(requestedUri, path, "p-" + source.ResourceId + "-" + target.ResourceId),
+				"Background" + target.ResourceId,
+				"Background" + source.ResourceId,
+				0,
+				1,
+				true);
 		}
 		return null;
 	}
@@ -210,22 +361,30 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	{
 		foreach (AolaPetMorphRule rule in rules)
 		{
-			if (rule.OriginalId != requestedMovieId || rule.BackpackId <= 0)
+			if (rule.OriginalId != requestedMovieId)
 			{
 				continue;
 			}
 
-			int replacementId = rule.BackpackId;
+			int replacementId = rule.HideOriginalModel ? HiddenPetMovieTemplateId : rule.BackpackId;
+			if (replacementId <= 0)
+			{
+				continue;
+			}
 			string path = "/play/peticon/movie/type0/petmovie" + replacementId +
 				"/petmovie" + replacementId + "_" + part + suffix + ".swf";
-			string marker = "m-" + requestedMovieId + "-" + replacementId + "-" + part;
+			string marker = (rule.HideOriginalModel ? "h-" : "m-") +
+				requestedMovieId + "-" + replacementId + "-" + part;
 			return new RemoteSwfPlan(
 				requestedUri.AbsoluteUri,
 				BuildRemoteUrl(requestedUri, path, marker),
 				"PetMovie" + replacementId,
 				"PetMovie" + requestedMovieId,
 				GetExpectedPetMovieTokenCount(replacementId, part),
-				GetPetMovieHdScale(replacementId) / GetPetMovieHdScale(requestedMovieId));
+				rule.HideOriginalModel ? 1 :
+					GetPetMovieHdScale(replacementId) / GetPetMovieHdScale(requestedMovieId),
+				false,
+				rule.HideOriginalModel);
 		}
 		return null;
 	}
@@ -253,10 +412,11 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		}
 
 		string[] parts = marker.Split('-');
-		if (parts.Length == 4 && parts[0] == "m" &&
+		if (parts.Length == 4 && (parts[0] == "m" || parts[0] == "h") &&
 			int.TryParse(parts[1], out int originalMovieId) &&
 			int.TryParse(parts[2], out int replacementMovieId) &&
 			int.TryParse(parts[3], out int markerPart) &&
+			(parts[0] != "h" || replacementMovieId == HiddenPetMovieTemplateId) &&
 			TryGetRequestedPetMovie(url, out _, out int requestedMovieId, out int requestedPart, out string suffix) &&
 			requestedMovieId == replacementMovieId && requestedPart == markerPart)
 		{
@@ -268,7 +428,10 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 				"PetMovie" + replacementMovieId,
 				"PetMovie" + originalMovieId,
 				GetExpectedPetMovieTokenCount(replacementMovieId, markerPart),
-				GetPetMovieHdScale(replacementMovieId) / GetPetMovieHdScale(originalMovieId));
+				parts[0] == "h" ? 1 :
+					GetPetMovieHdScale(replacementMovieId) / GetPetMovieHdScale(originalMovieId),
+				false,
+				parts[0] == "h");
 			return true;
 		}
 
@@ -285,8 +448,9 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 				uri.AbsoluteUri,
 				"Background" + replacementResourceId,
 				"Background" + originalResourceId,
-				3,
-				1);
+				0,
+				1,
+				true);
 			return true;
 		}
 		return false;
@@ -363,22 +527,6 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 			return 0.3;
 		}
 		return 1;
-	}
-
-	private static bool TryGetPosterResourceId(int skinId, out int resourceId)
-	{
-		if (skinId == 5487)
-		{
-			resourceId = 733;
-			return true;
-		}
-		if (skinId == 5940)
-		{
-			resourceId = 984;
-			return true;
-		}
-		resourceId = -1;
-		return false;
 	}
 
 	private static int ReplaceSameLength(byte[] content, byte[] search, byte[] replacement)
@@ -496,7 +644,9 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 			string sourceToken,
 			string targetToken,
 			int expectedCount,
-			double scaleFactor)
+			double scaleFactor,
+			bool structuralClassAdaptation = false,
+			bool makeBitmapsTransparent = false)
 		{
 			OriginalUrl = originalUrl;
 			RemoteUrl = remoteUrl;
@@ -504,6 +654,8 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 			TargetToken = targetToken;
 			ExpectedCount = expectedCount;
 			ScaleFactor = scaleFactor;
+			StructuralClassAdaptation = structuralClassAdaptation;
+			MakeBitmapsTransparent = makeBitmapsTransparent;
 		}
 
 		public string OriginalUrl { get; }
@@ -512,6 +664,8 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		public string TargetToken { get; }
 		public int ExpectedCount { get; }
 		public double ScaleFactor { get; }
+		public bool StructuralClassAdaptation { get; }
+		public bool MakeBitmapsTransparent { get; }
 	}
 
 	private sealed class RemoteSwfResourceRequestHandler : ResourceRequestHandler
@@ -610,7 +764,9 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 				_plan.SourceToken,
 				_plan.TargetToken,
 				_plan.ExpectedCount,
-				_plan.ScaleFactor);
+				_plan.ScaleFactor,
+				_plan.StructuralClassAdaptation,
+				_plan.MakeBitmapsTransparent);
 		}
 	}
 
@@ -643,7 +799,7 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		{
 			HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
 			request.Method = "GET";
-			request.AddRange(0, 7);
+			request.AddRange(0, 16);
 			request.AllowAutoRedirect = true;
 			request.AutomaticDecompression = DecompressionMethods.None;
 			request.Timeout = 5000;
@@ -655,7 +811,7 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 				{
 					return false;
 				}
-				byte[] header = new byte[8];
+				byte[] header = new byte[17];
 				int offset = 0;
 				using (Stream stream = response.GetResponseStream())
 				{
@@ -669,15 +825,8 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 						offset += read;
 					}
 				}
-				if (offset != header.Length || header[0] != 'F' || header[1] != 'W' || header[2] != 'S')
-				{
-					return false;
-				}
-
-				uint declaredLength = BitConverter.ToUInt32(header, 4);
 				long responseLength = GetTotalResponseLength(response);
-				return declaredLength >= 8 && declaredLength <= MaximumSwfBytes &&
-					responseLength == declaredLength;
+				return IsSupportedRemoteSwfHeader(header, offset, responseLength);
 			}
 		}
 		catch (WebException)
@@ -688,6 +837,39 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 		{
 			return false;
 		}
+	}
+
+	internal static bool IsSupportedRemoteSwfHeader(byte[] header, int count, long responseLength)
+	{
+		if (header == null || count < 8 || count > header.Length || responseLength < 8 ||
+			responseLength > MaximumSwfBytes)
+		{
+			return false;
+		}
+		uint declaredLength = BitConverter.ToUInt32(header, 4);
+		if (declaredLength < 8 || declaredLength > MaximumSwfBytes)
+		{
+			return false;
+		}
+		bool isFws = header[0] == 'F' && header[1] == 'W' && header[2] == 'S';
+		bool isCws = header[0] == 'C' && header[1] == 'W' && header[2] == 'S';
+		bool isZws = count >= 17 && header[0] == 'Z' && header[1] == 'W' && header[2] == 'S';
+		if (isFws)
+		{
+			return responseLength == declaredLength;
+		}
+		if (isCws)
+		{
+			return true;
+		}
+		if (!isZws)
+		{
+			return false;
+		}
+		uint compressedLength = BitConverter.ToUInt32(header, 8);
+		uint dictionarySize = BitConverter.ToUInt32(header, 13);
+		return responseLength >= 17 && compressedLength == responseLength - 17 &&
+			dictionarySize > 0 && dictionarySize <= 64 * 1024 * 1024;
 	}
 
 	private static long GetTotalResponseLength(HttpWebResponse response)
