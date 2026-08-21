@@ -6,16 +6,34 @@ namespace AolaSocketHack.Transport;
 internal sealed class FrameBuffer
 {
 	private const int MaximumFrameLength = 4 * 1024 * 1024;
+	private const int DefaultMaximumBufferedBytes = 16 * 1024 * 1024;
 	private readonly List<byte> _bytes = new List<byte>();
+	private readonly int _maximumBufferedBytes;
+
+	public FrameBuffer(int maximumBufferedBytes = DefaultMaximumBufferedBytes)
+	{
+		if (maximumBufferedBytes <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(maximumBufferedBytes));
+		}
+		_maximumBufferedBytes = maximumBufferedBytes;
+	}
 
 	public int Count => _bytes.Count;
 
-	public void Append(byte[] bytes)
+	public bool TryAppend(byte[] bytes)
 	{
-		if (bytes != null && bytes.Length != 0)
+		if (bytes == null || bytes.Length == 0)
 		{
-			_bytes.AddRange(bytes);
+			return true;
 		}
+		if (bytes.Length > _maximumBufferedBytes - _bytes.Count)
+		{
+			Clear();
+			return false;
+		}
+		_bytes.AddRange(bytes);
+		return true;
 	}
 
 	public bool StartsWith(byte[] prefix)
@@ -51,11 +69,28 @@ internal sealed class FrameBuffer
 		return true;
 	}
 
-	public bool TryTakeNullTerminated(out byte[] value)
+	public bool TryTakeNullTerminated(int maximumLength, out byte[] value, out bool exceededLimit)
 	{
+		if (maximumLength <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(maximumLength));
+		}
+		exceededLimit = false;
 		int index = _bytes.IndexOf(0);
 		if (index < 0)
 		{
+			if (_bytes.Count > maximumLength)
+			{
+				exceededLimit = true;
+				Clear();
+			}
+			value = null;
+			return false;
+		}
+		if (index + 1 > maximumLength)
+		{
+			exceededLimit = true;
+			Clear();
 			value = null;
 			return false;
 		}
@@ -64,9 +99,10 @@ internal sealed class FrameBuffer
 		return true;
 	}
 
-	public bool TryTakeFrame(out byte[] frame)
+	public bool TryTakeFrame(out byte[] frame, out bool invalidLength)
 	{
 		frame = null;
+		invalidLength = false;
 		if (_bytes.Count < 4)
 		{
 			return false;
@@ -74,7 +110,8 @@ internal sealed class FrameBuffer
 		uint length = ((uint)_bytes[0] << 24) | ((uint)_bytes[1] << 16) | ((uint)_bytes[2] << 8) | _bytes[3];
 		if (length == 0 || length > MaximumFrameLength)
 		{
-			_bytes.Clear();
+			invalidLength = true;
+			Clear();
 			return false;
 		}
 		long total = 4L + length;
@@ -85,5 +122,14 @@ internal sealed class FrameBuffer
 		frame = _bytes.GetRange(0, (int)total).ToArray();
 		_bytes.RemoveRange(0, (int)total);
 		return true;
+	}
+
+	public void Clear()
+	{
+		for (int index = 0; index < _bytes.Count; index++)
+		{
+			_bytes[index] = 0;
+		}
+		_bytes.Clear();
 	}
 }

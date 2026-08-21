@@ -12,14 +12,16 @@ internal sealed class AolaSidecarSender : IDisposable
 	private readonly long _sourceSocket;
 	private readonly int _processId;
 	private readonly byte[] _loginFrame;
+	private readonly Action<long> _excludeSocket;
 	private readonly AolaProtocolState _protocol = new AolaProtocolState();
 	private Socket _socket;
 
-	public AolaSidecarSender(long sourceSocket, int processId, byte[] loginFrame)
+	public AolaSidecarSender(long sourceSocket, int processId, byte[] loginFrame, Action<long> excludeSocket)
 	{
 		_sourceSocket = sourceSocket;
 		_processId = processId;
 		_loginFrame = loginFrame == null ? throw new ArgumentNullException(nameof(loginFrame)) : (byte[])loginFrame.Clone();
+		_excludeSocket = excludeSocket;
 		AolaPacketEvent login = AolaProtocol.ParseClientFrame(sourceSocket, processId, _loginFrame, _protocol);
 		if (!login.DecodeSucceeded || login.Command != "logIn")
 		{
@@ -92,6 +94,7 @@ internal sealed class AolaSidecarSender : IDisposable
 		};
 		try
 		{
+			_excludeSocket?.Invoke(socket.Handle.ToInt64());
 			socket.Connect(endpoint);
 			ReadPolicyIfPresent(socket);
 			SendAll(socket, _loginFrame);

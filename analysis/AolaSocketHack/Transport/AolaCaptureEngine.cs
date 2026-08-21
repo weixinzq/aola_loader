@@ -9,12 +9,17 @@ using AolaSocketHack.Protocol;
 
 namespace AolaSocketHack.Transport;
 
-internal sealed class AolaCaptureEngine
+internal sealed class AolaCaptureEngine : IDisposable
 {
+	private const int MaximumConnectionBufferedBytes = 16 * 1024 * 1024;
+	private const int MaximumPolicyBytes = 64 * 1024;
 	private static readonly byte[] PolicyPrefix = Encoding.ASCII.GetBytes("<cross-domain-policy>");
+	private static readonly byte[] PolicyRequestPrefix = Encoding.ASCII.GetBytes("<policy-file-request/>");
 	private readonly ConcurrentDictionary<long, ConnectionState> _connections = new ConcurrentDictionary<long, ConnectionState>();
 	private readonly Action<AolaPacketEvent> _publish;
 	private readonly int _processId = Process.GetCurrentProcess().Id;
+	private long _bufferOverflows;
+	private long _protocolErrors;
 
 	public AolaCaptureEngine(Action<AolaPacketEvent> publish)
 	{
@@ -24,10 +29,13 @@ internal sealed class AolaCaptureEngine
 	public void NoteConnect(long socket, int port)
 	{
 		ConnectionState state = _connections.GetOrAdd(socket, key => new ConnectionState());
-		state.LastActivityUtc = DateTime.UtcNow;
-		if (port >= 8000 && port <= 8100)
+		lock (state.SyncRoot)
 		{
-			state.Candidate = true;
+			state.LastActivityUtc = DateTime.UtcNow;
+			if (port >= 8000 && port <= 8100)
+			{
+				state.Candidate = true;
+			}
 		}
 	}
 
@@ -35,7 +43,10 @@ internal sealed class AolaCaptureEngine
 	{
 		if (_connections.TryRemove(socket, out ConnectionState state))
 		{
-			state.ClearSensitiveData();
+			lock (state.SyncRoot)
+			{
+				state.ClearSensitiveData();
+			}
 		}
 	}
 
@@ -49,8 +60,25 @@ internal sealed class AolaCaptureEngine
 		lock (state.SyncRoot)
 		{
 			state.LastActivityUtc = DateTime.UtcNow;
-			state.Outgoing.Append(bytes);
-			while (state.Outgoing.TryTakeFrame(out byte[] frame))
+			if (bytes.Length > MaximumConnectionBufferedBytes - state.Outgoing.Count - state.Incoming.Count || !state.Outgoing.TryAppend(bytes))
+			{
+				System.Threading.Interlocked.Increment(ref _bufferOverflows);
+				return;
+			}
+			if (state.Outgoing.CouldStartWith(PolicyRequestPrefix))
+			{
+				bool policyExceeded = false;
+				if (state.Outgoing.Count < PolicyRequestPrefix.Length || !state.Outgoing.TryTakeNullTerminated(MaximumPolicyBytes, out _, out policyExceeded))
+				{
+					if (policyExceeded)
+					{
+						System.Threading.Interlocked.Increment(ref _protocolErrors);
+					}
+					return;
+				}
+			}
+			bool invalidLength;
+			while (state.Outgoing.TryTakeFrame(out byte[] frame, out invalidLength))
 			{
 				if (!state.Confirmed && AolaProtocol.LooksLikeLoginFrame(frame))
 				{
@@ -71,6 +99,10 @@ internal sealed class AolaCaptureEngine
 					}
 				}
 			}
+			if (invalidLength)
+			{
+				System.Threading.Interlocked.Increment(ref _protocolErrors);
+			}
 		}
 	}
 
@@ -84,15 +116,23 @@ internal sealed class AolaCaptureEngine
 		lock (state.SyncRoot)
 		{
 			state.LastActivityUtc = DateTime.UtcNow;
-			state.Incoming.Append(bytes);
+			if (bytes.Length > MaximumConnectionBufferedBytes - state.Outgoing.Count - state.Incoming.Count || !state.Incoming.TryAppend(bytes))
+			{
+				System.Threading.Interlocked.Increment(ref _bufferOverflows);
+				return;
+			}
 			if (state.Incoming.CouldStartWith(PolicyPrefix))
 			{
 				if (state.Incoming.Count < PolicyPrefix.Length)
 				{
 					return;
 				}
-				if (!state.Incoming.TryTakeNullTerminated(out byte[] policy))
+				if (!state.Incoming.TryTakeNullTerminated(MaximumPolicyBytes, out byte[] policy, out bool policyExceeded))
 				{
+					if (policyExceeded)
+					{
+						System.Threading.Interlocked.Increment(ref _protocolErrors);
+					}
 					return;
 				}
 				state.Candidate = true;
@@ -103,12 +143,61 @@ internal sealed class AolaCaptureEngine
 			{
 				return;
 			}
-			while (state.Incoming.TryTakeFrame(out byte[] frame))
+			bool invalidLength;
+			while (state.Incoming.TryTakeFrame(out byte[] frame, out invalidLength))
 			{
 				state.Confirmed = true;
 				_publish(AolaProtocol.ParseServerFrame(socket, _processId, frame));
 			}
+			if (invalidLength)
+			{
+				System.Threading.Interlocked.Increment(ref _protocolErrors);
+			}
 		}
+	}
+
+	public int CleanupIdle(DateTime cutoffUtc)
+	{
+		int removed = 0;
+		foreach (KeyValuePair<long, ConnectionState> item in _connections)
+		{
+			ConnectionState state = item.Value;
+			if (state.LastActivityUtc >= cutoffUtc || !_connections.TryRemove(item.Key, out ConnectionState removedState))
+			{
+				continue;
+			}
+			lock (removedState.SyncRoot)
+			{
+				removedState.ClearSensitiveData();
+			}
+			removed++;
+		}
+		return removed;
+	}
+
+	public void Dispose()
+	{
+		foreach (long socket in _connections.Keys)
+		{
+			Remove(socket);
+		}
+	}
+
+	public AolaCaptureEngineMetrics GetMetrics()
+	{
+		long bufferedBytes = 0;
+		foreach (ConnectionState state in _connections.Values)
+		{
+			lock (state.SyncRoot)
+			{
+				bufferedBytes += state.Outgoing.Count + state.Incoming.Count;
+			}
+		}
+		return new AolaCaptureEngineMetrics(
+			_connections.Count,
+			bufferedBytes,
+			System.Threading.Interlocked.Read(ref _bufferOverflows),
+			System.Threading.Interlocked.Read(ref _protocolErrors));
 	}
 
 	public bool TryGetSendContext(long requestedSocket, out AolaSendContext context, out string error)
@@ -159,11 +248,18 @@ internal sealed class AolaCaptureEngine
 
 		public void ReplaceLoginFrame(byte[] frame)
 		{
-			ClearSensitiveData();
+			ClearLoginFrame();
 			LoginFrame = frame == null ? null : (byte[])frame.Clone();
 		}
 
 		public void ClearSensitiveData()
+		{
+			Outgoing.Clear();
+			Incoming.Clear();
+			ClearLoginFrame();
+		}
+
+		private void ClearLoginFrame()
 		{
 			if (LoginFrame != null)
 			{
@@ -172,6 +268,22 @@ internal sealed class AolaCaptureEngine
 			}
 		}
 	}
+}
+
+internal sealed class AolaCaptureEngineMetrics
+{
+	public AolaCaptureEngineMetrics(int connections, long bufferedBytes, long bufferOverflows, long protocolErrors)
+	{
+		Connections = connections;
+		BufferedBytes = bufferedBytes;
+		BufferOverflows = bufferOverflows;
+		ProtocolErrors = protocolErrors;
+	}
+
+	public int Connections { get; }
+	public long BufferedBytes { get; }
+	public long BufferOverflows { get; }
+	public long ProtocolErrors { get; }
 }
 
 internal sealed class AolaSendContext

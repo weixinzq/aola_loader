@@ -80,4 +80,20 @@ internal static class WinsockNative
 		}
 		throw new NotSupportedException("不支持的游戏服务器地址族：" + family);
 	}
+
+	internal static int TryGetPeerPort(long socket)
+	{
+		byte[] address = new byte[128];
+		int length = address.Length;
+		if (GetPeerName(new IntPtr(socket), address, ref length) != 0 || length < 4)
+		{
+			return 0;
+		}
+		int family = address[0] | address[1] << 8;
+		if (family != 2 && family != 23)
+		{
+			return 0;
+		}
+		return address[2] << 8 | address[3];
+	}
 }

@@ -8,8 +8,12 @@ namespace AolaSocketHack.Hooking;
 internal sealed class WinsockHooks : IDisposable
 {
 	private const int MaximumCapturedChunk = 16 * 1024 * 1024;
+	private const int MaximumProbeChunk = 4 * 1024;
+	private const int WsaIoPending = 997;
+	private readonly AolaSocketCaptureFilter _filter;
 	private readonly Action<long, byte[]> _sendCaptured;
 	private readonly Action<long, byte[]> _receiveCaptured;
+	private readonly Action<int> _ignored;
 	private readonly Action<long, int> _connected;
 	private readonly Action<long> _closed;
 	private readonly WinsockNative.SendDelegate _sendHandler;
@@ -20,10 +24,12 @@ internal sealed class WinsockHooks : IDisposable
 	private readonly WinsockNative.CloseSocketDelegate _closeHandler;
 	private readonly List<LocalHook> _hooks = new List<LocalHook>();
 
-	public WinsockHooks(Action<long, byte[]> sendCaptured, Action<long, byte[]> receiveCaptured, Action<long, int> connected, Action<long> closed)
+	public WinsockHooks(AolaSocketCaptureFilter filter, Action<long, byte[]> sendCaptured, Action<long, byte[]> receiveCaptured, Action<int> ignored, Action<long, int> connected, Action<long> closed)
 	{
+		_filter = filter ?? throw new ArgumentNullException(nameof(filter));
 		_sendCaptured = sendCaptured;
 		_receiveCaptured = receiveCaptured;
+		_ignored = ignored;
 		_connected = connected;
 		_closed = closed;
 		_sendHandler = SendHook;
@@ -69,18 +75,15 @@ internal sealed class WinsockHooks : IDisposable
 
 	private int SendHook(IntPtr socket, IntPtr buffer, int length, int flags)
 	{
-		byte[] copy = SafeCopy(buffer, length);
+		long handle = socket.ToInt64();
+		SocketCaptureKind kind = SafeClassify(handle);
 		int result = WinsockNative.Send(socket, buffer, length, flags);
 		int error = Marshal.GetLastWin32Error();
 		try
 		{
-			if (result > 0 && copy != null)
+			if (result > 0)
 			{
-				if (result != copy.Length)
-				{
-					Array.Resize(ref copy, result);
-				}
-				_sendCaptured?.Invoke(socket.ToInt64(), copy);
+				CaptureSingle(handle, buffer, result, true, kind);
 			}
 		}
 		catch
@@ -92,17 +95,15 @@ internal sealed class WinsockHooks : IDisposable
 
 	private int RecvHook(IntPtr socket, IntPtr buffer, int length, int flags)
 	{
+		long handle = socket.ToInt64();
+		SocketCaptureKind kind = SafeClassify(handle);
 		int result = WinsockNative.Recv(socket, buffer, length, flags);
 		int error = Marshal.GetLastWin32Error();
 		try
 		{
 			if (result > 0)
 			{
-				byte[] copy = SafeCopy(buffer, result);
-				if (copy != null)
-				{
-					_receiveCaptured?.Invoke(socket.ToInt64(), copy);
-				}
+				CaptureSingle(handle, buffer, result, false, kind);
 			}
 		}
 		catch
@@ -114,22 +115,17 @@ internal sealed class WinsockHooks : IDisposable
 
 	private int WSASendHook(IntPtr socket, IntPtr buffers, uint bufferCount, IntPtr bytesSent, uint flags, IntPtr overlapped, IntPtr completionRoutine)
 	{
-		byte[] copy = SafeCopyBuffers(buffers, bufferCount, null);
+		long handle = socket.ToInt64();
+		SocketCaptureKind kind = SafeClassify(handle);
 		int result = WinsockNative.WSASend(socket, buffers, bufferCount, bytesSent, flags, overlapped, completionRoutine);
 		int error = Marshal.GetLastWin32Error();
 		try
 		{
-			if (copy != null && copy.Length != 0)
+			int? actual = ReadTransferredCount(result, overlapped, bytesSent);
+			bool submittedPending = result != 0 && overlapped != IntPtr.Zero && error == WsaIoPending;
+			if ((actual.HasValue && actual.Value > 0) || submittedPending)
 			{
-				int? actual = ReadTransferredCount(result, overlapped, bytesSent);
-				if (actual.HasValue && actual.Value >= 0 && actual.Value < copy.Length)
-				{
-					Array.Resize(ref copy, actual.Value);
-				}
-				if (copy.Length != 0)
-				{
-					_sendCaptured?.Invoke(socket.ToInt64(), copy);
-				}
+				CaptureBuffers(handle, buffers, bufferCount, actual, true, kind);
 			}
 		}
 		catch
@@ -141,6 +137,8 @@ internal sealed class WinsockHooks : IDisposable
 
 	private int WSARecvHook(IntPtr socket, IntPtr buffers, uint bufferCount, IntPtr bytesReceived, IntPtr flags, IntPtr overlapped, IntPtr completionRoutine)
 	{
+		long handle = socket.ToInt64();
+		SocketCaptureKind kind = SafeClassify(handle);
 		int result = WinsockNative.WSARecv(socket, buffers, bufferCount, bytesReceived, flags, overlapped, completionRoutine);
 		int error = Marshal.GetLastWin32Error();
 		try
@@ -148,11 +146,7 @@ internal sealed class WinsockHooks : IDisposable
 			int? actual = ReadTransferredCount(result, overlapped, bytesReceived);
 			if (actual.HasValue && actual.Value > 0)
 			{
-				byte[] copy = SafeCopyBuffers(buffers, bufferCount, actual.Value);
-				if (copy != null && copy.Length != 0)
-				{
-					_receiveCaptured?.Invoke(socket.ToInt64(), copy);
-				}
+				CaptureBuffers(handle, buffers, bufferCount, actual, false, kind);
 			}
 		}
 		catch
@@ -165,13 +159,15 @@ internal sealed class WinsockHooks : IDisposable
 	private int ConnectHook(IntPtr socket, IntPtr name, int nameLength)
 	{
 		int port = TryReadPort(name, nameLength);
+		long handle = socket.ToInt64();
+		SocketCaptureKind kind = _filter.NoteConnect(handle, port);
 		int result = WinsockNative.Connect(socket, name, nameLength);
 		int error = Marshal.GetLastWin32Error();
 		try
 		{
-			if (result == 0 && port > 0)
+			if ((kind == SocketCaptureKind.Game || kind == SocketCaptureKind.Policy) && port > 0)
 			{
-				_connected?.Invoke(socket.ToInt64(), port);
+				_connected?.Invoke(handle, port);
 			}
 		}
 		catch
@@ -183,9 +179,11 @@ internal sealed class WinsockHooks : IDisposable
 
 	private int CloseSocketHook(IntPtr socket)
 	{
+		long handle = socket.ToInt64();
 		try
 		{
-			_closed?.Invoke(socket.ToInt64());
+			_filter.Remove(handle);
+			_closed?.Invoke(handle);
 		}
 		catch
 		{
@@ -211,6 +209,85 @@ internal sealed class WinsockHooks : IDisposable
 		byte[] result = new byte[length];
 		Marshal.Copy(buffer, result, 0, length);
 		return result;
+	}
+
+	private SocketCaptureKind SafeClassify(long socket)
+	{
+		try
+		{
+			return _filter.ClassifyForIo(socket);
+		}
+		catch
+		{
+			return SocketCaptureKind.Ignore;
+		}
+	}
+
+	private void CaptureSingle(long socket, IntPtr buffer, int length, bool sending, SocketCaptureKind kind)
+	{
+		if (kind == SocketCaptureKind.Ignore)
+		{
+			_ignored?.Invoke(length);
+			return;
+		}
+		if (kind == SocketCaptureKind.Game || kind == SocketCaptureKind.Policy)
+		{
+			Dispatch(socket, SafeCopy(buffer, length), sending);
+			return;
+		}
+		byte[] probe = SafeCopy(buffer, Math.Min(length, MaximumProbeChunk));
+		SocketCaptureKind detected = _filter.ObserveProbe(socket, probe, sending, out byte[] previousProbe);
+		if (detected == SocketCaptureKind.Game || detected == SocketCaptureKind.Policy)
+		{
+			Dispatch(socket, previousProbe, sending);
+			Dispatch(socket, SafeCopy(buffer, length), sending);
+		}
+		else if (detected == SocketCaptureKind.Ignore)
+		{
+			_ignored?.Invoke(length);
+		}
+	}
+
+	private void CaptureBuffers(long socket, IntPtr buffers, uint bufferCount, int? actual, bool sending, SocketCaptureKind kind)
+	{
+		if (kind == SocketCaptureKind.Ignore)
+		{
+			_ignored?.Invoke(actual ?? 0);
+			return;
+		}
+		if (kind == SocketCaptureKind.Game || kind == SocketCaptureKind.Policy)
+		{
+			Dispatch(socket, SafeCopyBuffers(buffers, bufferCount, actual), sending);
+			return;
+		}
+		int? probeMaximum = actual.HasValue ? Math.Min(actual.Value, MaximumProbeChunk) : MaximumProbeChunk;
+		byte[] probe = SafeCopyBuffers(buffers, bufferCount, probeMaximum);
+		SocketCaptureKind detected = _filter.ObserveProbe(socket, probe, sending, out byte[] previousProbe);
+		if (detected == SocketCaptureKind.Game || detected == SocketCaptureKind.Policy)
+		{
+			Dispatch(socket, previousProbe, sending);
+			Dispatch(socket, SafeCopyBuffers(buffers, bufferCount, actual), sending);
+		}
+		else if (detected == SocketCaptureKind.Ignore)
+		{
+			_ignored?.Invoke(actual ?? probe?.Length ?? 0);
+		}
+	}
+
+	private void Dispatch(long socket, byte[] bytes, bool sending)
+	{
+		if (bytes == null || bytes.Length == 0)
+		{
+			return;
+		}
+		if (sending)
+		{
+			_sendCaptured?.Invoke(socket, bytes);
+		}
+		else
+		{
+			_receiveCaptured?.Invoke(socket, bytes);
+		}
 	}
 
 	private static byte[] SafeCopyBuffers(IntPtr buffers, uint bufferCount, int? maximumBytes)

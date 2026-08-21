@@ -24,7 +24,10 @@ public sealed class MainClass : IEntryPoint
 		using (BlockingCollection<CapturedChunk> queue = new BlockingCollection<CapturedChunk>(new ConcurrentQueue<CapturedChunk>(), 4096))
 		{
 			AolaCaptureEngine engine = new AolaCaptureEngine(PublishSafely);
-			Dictionary<long, AolaSidecarSender> senders = new Dictionary<long, AolaSidecarSender>();
+			CaptureRuntimeMetrics metrics = new CaptureRuntimeMetrics();
+			bool diagnosticCaptureAll = string.Equals(Environment.GetEnvironmentVariable("AOLA_CAPTURE_ALL_SOCKETS"), "1", StringComparison.Ordinal);
+			AolaSocketCaptureFilter filter = new AolaSocketCaptureFilter(captureAllSockets: diagnosticCaptureAll);
+			ConcurrentDictionary<long, AolaSidecarSender> senders = new ConcurrentDictionary<long, AolaSidecarSender>();
 			Thread worker = new Thread((ThreadStart)delegate
 			{
 				foreach (CapturedChunk chunk in queue.GetConsumingEnumerable())
@@ -43,14 +46,29 @@ public sealed class MainClass : IEntryPoint
 						{
 							engine.NoteConnect(chunk.Socket, chunk.Port);
 						}
-						else
+						else if (chunk.Direction == CaptureDirection.Close)
 						{
 							engine.Remove(chunk.Socket);
+							lock (senders)
+							{
+								if (senders.TryRemove(chunk.Socket, out AolaSidecarSender closedSender))
+								{
+									closedSender.Dispose();
+								}
+							}
+						}
+						else
+						{
+							engine.CleanupIdle(chunk.EnqueuedUtc.AddMinutes(-30));
 						}
 					}
 					catch (Exception ex)
 					{
 						Report("Warning", "抓包解析异常：" + ex.Message);
+					}
+					finally
+					{
+						metrics.ParserProgress(chunk.EnqueuedUtc);
 					}
 				}
 			});
@@ -59,24 +77,54 @@ public sealed class MainClass : IEntryPoint
 			worker.Start();
 
 			using (WinsockHooks hooks = new WinsockHooks(
-				(socket, bytes) => TryQueue(queue, CaptureDirection.Send, socket, bytes),
-				(socket, bytes) => TryQueue(queue, CaptureDirection.Receive, socket, bytes),
-				(socket, port) => TryQueue(queue, CaptureDirection.Connect, socket, null, port),
-				socket => TryQueue(queue, CaptureDirection.Close, socket, null)))
+				filter,
+				(socket, bytes) => TryQueue(queue, metrics, CaptureDirection.Send, socket, bytes),
+				(socket, bytes) => TryQueue(queue, metrics, CaptureDirection.Receive, socket, bytes),
+				metrics.Ignored,
+				(socket, port) => TryQueue(queue, metrics, CaptureDirection.Connect, socket, null, port),
+				socket => TryQueue(queue, metrics, CaptureDirection.Close, socket, null)))
 			{
 				try
 				{
 					hooks.Install();
-					Report("Info", "Aola Winsock Hook 已安装（抓包 + 独立连接发包模式）");
+					Report("Info", diagnosticCaptureAll
+						? "Aola Winsock Hook 已安装（诊断：全 socket 捕获后筛选）"
+						: "Aola Winsock Hook 已安装（游戏 socket 前置筛选 + 独立连接发包模式）");
+					DateTime nextStatusUtc = DateTime.UtcNow.AddSeconds(5);
+					CaptureRuntimeSnapshot lastStatus = null;
+					AolaCaptureEngineMetrics lastEngineStatus = null;
 					while (_host.Ping())
 					{
+						DateTime now = DateTime.UtcNow;
+						if (now >= nextStatusUtc)
+						{
+							filter.CleanupIdle(now.AddMinutes(-30));
+							TryQueue(queue, metrics, CaptureDirection.Maintenance, 0, null);
+							CaptureRuntimeSnapshot current = metrics.Snapshot();
+							AolaCaptureEngineMetrics engineMetrics = engine.GetMetrics();
+							bool stalled = queue.Count > 0 && (now - current.ParserLastProgressUtc).TotalSeconds >= 5;
+							if (lastStatus == null || HasStatusChanged(lastStatus, current) || HasEngineStatusChanged(lastEngineStatus, engineMetrics) || stalled)
+							{
+								bool newDrops = lastStatus == null ? current.DroppedChunks != 0 : current.DroppedChunks > lastStatus.DroppedChunks;
+								bool newOverflows = lastEngineStatus == null ? engineMetrics.BufferOverflows != 0 : engineMetrics.BufferOverflows > lastEngineStatus.BufferOverflows;
+								Report(stalled || newDrops || newOverflows ? "Warning" : "Info",
+									string.Format("抓包状态：queue={0}/4096, high={1}, captured={2}/{3}B, dropped={4}/{5}B, ignored={6}/{7}B, parserLag={8}ms, connections={9}, buffered={10}B, overflows={11}, protocolErrors={12}{13}",
+										queue.Count, current.QueueHighWatermark, current.CapturedChunks, current.CapturedBytes,
+										current.DroppedChunks, current.DroppedBytes, current.IgnoredChunks, current.IgnoredBytes,
+										current.ParserLagMilliseconds, engineMetrics.Connections, engineMetrics.BufferedBytes,
+										engineMetrics.BufferOverflows, engineMetrics.ProtocolErrors, stalled ? ", parserStalled=true" : string.Empty));
+								lastStatus = current;
+								lastEngineStatus = engineMetrics;
+							}
+							nextStatusUtc = now.AddSeconds(5);
+						}
 						AolaSendRequest request = _host.TakeSendRequest(processId);
 						if (request == null)
 						{
 							Thread.Sleep(50);
 							continue;
 						}
-						HandleSendRequest(engine, senders, request, processId);
+						HandleSendRequest(engine, senders, filter, request, processId);
 					}
 				}
 				catch (Exception ex)
@@ -84,17 +132,29 @@ public sealed class MainClass : IEntryPoint
 					Report("Error", "Aola Hook 运行失败：" + ex.Message);
 				}
 			}
-			foreach (AolaSidecarSender sender in senders.Values)
-			{
-				sender.Dispose();
-			}
 			queue.CompleteAdding();
-			worker.Join(2000);
+			bool workerStopped = worker.Join(2000);
+			lock (senders)
+			{
+				foreach (AolaSidecarSender sender in senders.Values)
+				{
+					sender.Dispose();
+				}
+				senders.Clear();
+			}
+			if (workerStopped)
+			{
+				engine.Dispose();
+			}
+			else
+			{
+				Report("Warning", "抓包解析线程未在卸载等待期内停止；进程退出时释放剩余分析状态");
+			}
 		}
 		Report("Info", "Aola Winsock Hook 已卸载");
 	}
 
-	private void HandleSendRequest(AolaCaptureEngine engine, Dictionary<long, AolaSidecarSender> senders, AolaSendRequest request, int processId)
+	private void HandleSendRequest(AolaCaptureEngine engine, ConcurrentDictionary<long, AolaSidecarSender> senders, AolaSocketCaptureFilter filter, AolaSendRequest request, int processId)
 	{
 		AolaSendContext context = null;
 		AolaSendResult result = new AolaSendResult
@@ -110,26 +170,32 @@ public sealed class MainClass : IEntryPoint
 				throw new InvalidOperationException(error);
 			}
 			result.SocketHandle = context.SourceSocket;
-			if (!senders.TryGetValue(context.SourceSocket, out AolaSidecarSender sender) || !sender.Matches(context.LoginFrame))
+			lock (senders)
 			{
-				if (sender != null)
+				if (!senders.TryGetValue(context.SourceSocket, out AolaSidecarSender sender) || !sender.Matches(context.LoginFrame))
 				{
-					sender.Dispose();
+					if (sender != null)
+					{
+						sender.Dispose();
+					}
+					sender = new AolaSidecarSender(context.SourceSocket, processId, context.LoginFrame, filter.MarkSidecar);
+					senders[context.SourceSocket] = sender;
 				}
-				sender = new AolaSidecarSender(context.SourceSocket, processId, context.LoginFrame);
-				senders[context.SourceSocket] = sender;
+				AolaPacketEvent packet = sender.Send(request);
+				PublishSafely(packet);
 			}
-			AolaPacketEvent packet = sender.Send(request);
-			PublishSafely(packet);
 			result.Succeeded = true;
 			result.Message = string.Format("已发送 ext={0}, cmd={1}", request.ExtensionId, request.Command);
 		}
 		catch (Exception ex)
 		{
-			if (result.SocketHandle != 0 && senders.TryGetValue(result.SocketHandle, out AolaSidecarSender sender))
+			lock (senders)
 			{
-				sender.Dispose();
-				senders.Remove(result.SocketHandle);
+				if (result.SocketHandle != 0 && senders.TryGetValue(result.SocketHandle, out AolaSidecarSender sender))
+				{
+					sender.Dispose();
+					senders.TryRemove(result.SocketHandle, out _);
+				}
 			}
 			result.Succeeded = false;
 			result.Message = "发送失败：" + ex.Message;
@@ -178,14 +244,45 @@ public sealed class MainClass : IEntryPoint
 		}
 	}
 
-	private static void TryQueue(BlockingCollection<CapturedChunk> queue, CaptureDirection direction, long socket, byte[] bytes, int port = 0)
+	private static bool HasStatusChanged(CaptureRuntimeSnapshot previous, CaptureRuntimeSnapshot current)
+	{
+		return previous.CapturedChunks != current.CapturedChunks ||
+			previous.IgnoredChunks != current.IgnoredChunks ||
+			previous.DroppedChunks != current.DroppedChunks ||
+			previous.QueueHighWatermark != current.QueueHighWatermark;
+	}
+
+	private static bool HasEngineStatusChanged(AolaCaptureEngineMetrics previous, AolaCaptureEngineMetrics current)
+	{
+		return previous == null || previous.Connections != current.Connections ||
+			previous.BufferedBytes != current.BufferedBytes ||
+			previous.BufferOverflows != current.BufferOverflows ||
+			previous.ProtocolErrors != current.ProtocolErrors;
+	}
+
+	private static void TryQueue(BlockingCollection<CapturedChunk> queue, CaptureRuntimeMetrics metrics, CaptureDirection direction, long socket, byte[] bytes, int port = 0)
 	{
 		try
 		{
-			queue.TryAdd(new CapturedChunk(direction, socket, bytes, port));
+			if (queue.TryAdd(new CapturedChunk(direction, socket, bytes, port)))
+			{
+				if (bytes != null)
+				{
+					metrics.Captured(bytes.Length, queue.Count);
+				}
+				return;
+			}
+			if (bytes != null)
+			{
+				metrics.Dropped(bytes.Length);
+			}
 		}
 		catch
 		{
+			if (bytes != null)
+			{
+				metrics.Dropped(bytes.Length);
+			}
 		}
 	}
 
@@ -194,7 +291,8 @@ public sealed class MainClass : IEntryPoint
 		Send,
 		Receive,
 		Connect,
-		Close
+		Close,
+		Maintenance
 	}
 
 	private sealed class CapturedChunk
@@ -205,6 +303,7 @@ public sealed class MainClass : IEntryPoint
 			Socket = socket;
 			Bytes = bytes;
 			Port = port;
+			EnqueuedUtc = DateTime.UtcNow;
 		}
 
 		public CaptureDirection Direction { get; }
@@ -214,5 +313,7 @@ public sealed class MainClass : IEntryPoint
 		public byte[] Bytes { get; }
 
 		public int Port { get; }
+
+		public DateTime EnqueuedUtc { get; }
 	}
 }

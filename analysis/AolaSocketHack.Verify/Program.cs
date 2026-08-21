@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using AolaSocketHack.Contracts;
+using AolaSocketHack.Hooking;
 using AolaSocketHack.Protocol;
 using AolaSocketHack.Transport;
 using Newtonsoft.Json.Linq;
@@ -15,6 +16,16 @@ internal static class Program
 {
 	private static int Main(string[] args)
 	{
+		if (!VerifyCaptureBoundaries())
+		{
+			Console.Error.WriteLine("Capture boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("Capture boundary self-test: PASS");
+		if (args.Length == 1 && string.Equals(args[0], "--self-test", StringComparison.Ordinal))
+		{
+			return 0;
+		}
 		if (args.Length < 2)
 		{
 			Console.Error.WriteLine("Usage: AolaSocketHack.Verify <tshark.exe> <capture.pcapng> [tcp.stream]");
@@ -101,6 +112,68 @@ internal static class Program
 		bool passed = client.Length == 12373 && server.Length == 286678 && sent == 172 && received == 423 && policies == 1 && exportable == 164 && failures == 0 && exportsValid && loginRedacted && innerPlaintextValid && activeSendValid;
 		Console.WriteLine(passed ? "Aola PCAP replay: PASS" : "Aola PCAP replay: FAIL");
 		return passed ? 0 : 1;
+	}
+
+	private static bool VerifyCaptureBoundaries()
+	{
+		AolaSocketCaptureFilter ports = new AolaSocketCaptureFilter(socket => 0);
+		if (ports.NoteConnect(1, 8000) != SocketCaptureKind.Game ||
+			ports.NoteConnect(2, 8050) != SocketCaptureKind.Game ||
+			ports.NoteConnect(3, 8100) != SocketCaptureKind.Game ||
+			ports.NoteConnect(4, 80) != SocketCaptureKind.Ignore)
+		{
+			return false;
+		}
+
+		int peerQueries = 0;
+		AolaSocketCaptureFilter established = new AolaSocketCaptureFilter(socket =>
+		{
+			peerQueries++;
+			return 8007;
+		});
+		if (established.ClassifyForIo(5) != SocketCaptureKind.Game || established.ClassifyForIo(5) != SocketCaptureKind.Game || peerQueries != 1)
+		{
+			return false;
+		}
+
+		ports.Remove(1);
+		if (ports.NoteConnect(1, 443) != SocketCaptureKind.Ignore)
+		{
+			return false;
+		}
+		ports.MarkSidecar(6);
+		if (ports.ClassifyForIo(6) != SocketCaptureKind.Ignore)
+		{
+			return false;
+		}
+
+		AolaSocketCaptureFilter policy = new AolaSocketCaptureFilter(socket => 0);
+		if (policy.ClassifyForIo(7) != SocketCaptureKind.Unknown ||
+			policy.ObserveProbe(7, System.Text.Encoding.ASCII.GetBytes("<cross-domain-"), false, out byte[] previous) != SocketCaptureKind.Unknown ||
+			policy.ObserveProbe(7, System.Text.Encoding.ASCII.GetBytes("policy>"), false, out previous) != SocketCaptureKind.Policy ||
+			previous == null || previous.Length == 0)
+		{
+			return false;
+		}
+
+		AolaSocketCaptureFilter bounded = new AolaSocketCaptureFilter(socket => 0);
+		bounded.ClassifyForIo(8);
+		if (bounded.ObserveProbe(8, new byte[4096], true, out _) != SocketCaptureKind.Ignore)
+		{
+			return false;
+		}
+
+		FrameBuffer buffer = new FrameBuffer(16);
+		if (!buffer.TryAppend(new byte[16]) || buffer.TryAppend(new byte[1]) || buffer.Count != 0)
+		{
+			return false;
+		}
+		byte[] invalidFrame = { 0xff, 0xff, 0xff, 0xff };
+		if (!buffer.TryAppend(invalidFrame) || buffer.TryTakeFrame(out _, out bool invalidLength) || !invalidLength || buffer.Count != 0)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	private static bool VerifyActiveSend(byte[] client)
