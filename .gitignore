@@ -5,11 +5,13 @@
 # Public repository entry points and build automation.
 !/.gitignore
 !/README.md
+!/PROJECT_CONTEXT.md
 !/AolaLoader.sln
 !/.github/**
 
 # Maintained source and documentation.
 !/doc/**
+!/task/update/restruct-baseline-20260821.md
 !/analysis/Directory.Build.props
 !/analysis/AolaLoader/**
 !/analysis/AolaSocketHack/**
