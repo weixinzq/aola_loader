@@ -14,7 +14,7 @@ OwnerPaths: `analysis/AolaLoader/Settings/**`, `analysis/AolaLoader/Features/*/*
 
 ## 公开契约
 
-`ISettingsSectionStore.Load<T>(key, defaults, migrate, validate)` 返回防御性快照；`Save<T>(key, value)` 返回明确结果并保留其他 Section。容器使用 `DocumentVersion: 1`，每个 Section 自有 `Version`。`LegacySettingsMigrator` 迁移 theme、petMorph，并建立默认 battle Section。
+`ISettingsSectionStore.Load<T>(key, codec)` 返回防御性快照；`Save<T>(key, value, codec)` 返回明确结果并保留其他 Section。模块拥有的 `ISettingsSectionCodec<T>` 提供默认值、Section 版本迁移、规范化和序列化。容器使用 `DocumentVersion: 1`，每个 Section 自有 `Version`。`LegacySettingsMigrator` 迁移 theme、petMorph，并建立默认 battle Section。
 
 ## 输入与输出
 
@@ -50,7 +50,7 @@ UTF-8 无 BOM；设置中不得存储 SID、登录帧、账号密码或浏览器
 
 ## 验证入口
 
-无文件、SchemaVersion 5 迁移、缺字段、单 Section 损坏、未知内容保留、写入中断、无 BOM、Theme/PetMorph 独立更新。
+`AolaSocketHack.Verify --self-test` 覆盖无文件、SchemaVersion 5 迁移、缺字段、单 Section 损坏、未知内容保留、写入中断、无 BOM、Theme/PetMorph 独立更新和防御性快照。Theme 强类型 codec 验证版本拒绝、ID 规范化和旧值迁移；PetMorph 强类型 codec 验证缺失字段默认值、无效规则过滤、损坏字段拒绝、规则内未知字段保留，以及 Theme 与 PetMorph 按任意顺序保存时互不覆盖。
 
 ## 完成标准
 
@@ -58,5 +58,4 @@ UTF-8 无 BOM；设置中不得存储 SID、登录帧、账号密码或浏览器
 
 ## 已知限制
 
-当前 `AolaSettingsStore` 是 SchemaVersion 5 整体 DTO，直接 `File.WriteAllText`，没有原子替换和 Section 隔离。
-
+阶段 5 已把 Theme 和 PetMorph 的生产读取/保存分别接入模块自有 `ThemeSettingsCodec` 与 `PetMorphSettingsCodec`；启动会把旧 SchemaVersion 5 原子迁移为 Section 容器，两个模块只写自己的 Section。中央 `AolaAppSettings`、规则数据类和临时 `AolaSettingsStore` 兼容桥已移除，不再存在新旧双写路径。Battle Section 正式边界和主窗体协调器仍待后续批次，因此模块整体继续标记为 `Target`。

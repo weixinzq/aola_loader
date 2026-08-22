@@ -14,7 +14,7 @@ OwnerPaths: `analysis/AolaLoader/BrowserHost/**`
 
 ## 公开契约
 
-`IBrowserSession` 提供当前地址、导航、刷新、页面/主 frame 就绪事件、关闭状态和脚本执行；`IPageBridge` 提供命名桥操作与结构化状态推送，并区分桥未安装、页面未就绪、失败和超时。
+`IBrowserSession` 提供当前地址、导航、刷新、页面/主 frame 生命周期、关闭状态和结构化脚本执行结果；`IPageBridge` 通过 `PageBridgeRequest` 调用命名操作，通过 `PageFeatureStatePush` 推送带 revision 的结构化状态，并区分桥未安装、页面未就绪、调用失败、超时、取消和浏览器关闭。所有 JSON 值使用防御性副本。
 
 ## 输入与输出
 
@@ -50,7 +50,7 @@ Cef 回调按框架线程规则进入；对外事件不承诺 UI 线程。会话
 
 ## 验证入口
 
-导航/刷新、主 frame 就绪、桥四类失败、关闭取消、事件退订，以及默认页面启动/关闭/新进程实测。
+`AolaSocketHack.Verify --self-test` 当前验证导航/刷新、主 frame 生命周期、订阅者异常隔离、脚本结果、桥失败分类、状态 revision、防御性副本和关闭语义。生产适配批次继续验证未完成调用取消、事件退订，以及默认页面启动/关闭/新进程实测。
 
 ## 完成标准
 
@@ -58,5 +58,5 @@ Cef 回调按框架线程规则进入；对外事件不承诺 UI 线程。会话
 
 ## 已知限制
 
-当前 Cef 初始化、浏览器控件、frame 回调和部分脚本调用仍在 `AolaMainForm`；原任务目录示例遗漏了本规格，依据核心模块 8.2 与目标模块图补齐。
+阶段 2 已实现 `IBrowserSession`、页面/脚本结果、`IPageBridge` 和手动测试替身。当前 Cef 初始化、浏览器控件、frame 回调和 `AolaPetMorphLiveBridge` 仍在旧生产路径；Cef 适配器与消费者迁移尚未开始，因此模块整体继续标记为 `Target`。原任务目录示例遗漏了本规格，依据核心模块 8.2 与目标模块图补齐。
 

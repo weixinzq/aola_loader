@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using AolaLoader.PacketHost;
+using AolaLoader.UI.Packets;
 using AolaSocketHack.Contracts;
 using AolaSocketHack.Protocol;
 using Newtonsoft.Json;
@@ -20,9 +22,12 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private readonly TextBox _sendInput = new TextBox();
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("等待奥拉星发送消息");
 	private readonly List<AolaPacketEvent> _packets = new List<AolaPacketEvent>();
+	private readonly IAolaPacketEventSource _packetEventSource;
 
-	public AolaPacketsForm()
+	public AolaPacketsForm(IAolaPacketEventSource packetEventSource)
 	{
+		_packetEventSource = packetEventSource ??
+			throw new ArgumentNullException(nameof(packetEventSource));
 		Text = "奥拉星抓包 / 发包";
 		StartPosition = FormStartPosition.CenterParent;
 		MinimumSize = new Size(920, 620);
@@ -92,22 +97,22 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		toolbar.Dock = DockStyle.Top;
 		statusStrip.Dock = DockStyle.Bottom;
 
-		AolaHookHostService.PacketReceived += OnPacketReceived;
-		AolaHookHostService.StatusReceived += OnStatusReceived;
-		AolaHookHostService.SendCompleted += OnSendCompleted;
+		_packetEventSource.PacketReceived += OnPacketReceived;
+		_packetEventSource.StatusReceived += OnStatusReceived;
+		_packetEventSource.SendCompleted += OnSendCompleted;
 	}
 
 	protected override void OnFormClosed(FormClosedEventArgs e)
 	{
-		AolaHookHostService.PacketReceived -= OnPacketReceived;
-		AolaHookHostService.StatusReceived -= OnStatusReceived;
-		AolaHookHostService.SendCompleted -= OnSendCompleted;
+		_packetEventSource.PacketReceived -= OnPacketReceived;
+		_packetEventSource.StatusReceived -= OnStatusReceived;
+		_packetEventSource.SendCompleted -= OnSendCompleted;
 		base.OnFormClosed(e);
 	}
 
 	private void OnPacketReceived(AolaPacketEvent packet)
 	{
-		if (packet == null || packet.Direction != "发送" || IsDisposed)
+		if (!SendPacketVisibility.IsVisible(packet) || IsDisposed)
 		{
 			return;
 		}
@@ -246,7 +251,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 			{
 				request.ProcessId = target?.ProcessId ?? 0;
 				request.SocketHandle = target?.SocketHandle ?? 0;
-				AolaHookHostService.QueueSend(request);
+				_packetEventSource.QueueSend(request);
 			}
 			_status.Text = string.Format("已排队 {0} 条消息，等待独立游戏连接发送", requests.Count);
 		}

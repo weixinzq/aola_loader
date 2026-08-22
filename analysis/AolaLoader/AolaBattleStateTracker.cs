@@ -1,19 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using AolaLoader.Features.Battle.State;
+using AolaLoader.PacketHost;
 using AolaSocketHack.Contracts;
 
 namespace AolaLoader;
 
-internal sealed class AolaBattleStateTracker : IDisposable
+internal sealed class AolaBattleStateTracker : IBattleStateSource
 {
 	private readonly object _syncRoot = new object();
+	private readonly IAolaPacketEventSource _packetEventSource;
 	private AolaBattleSnapshot _snapshot = new AolaBattleSnapshot();
 	private bool _disposed;
 
-	public AolaBattleStateTracker()
+	public AolaBattleStateTracker(IAolaPacketEventSource packetEventSource)
 	{
-		AolaHookHostService.PacketReceived += OnPacketReceived;
+		_packetEventSource = packetEventSource ??
+			throw new ArgumentNullException(nameof(packetEventSource));
+		_packetEventSource.PacketReceived += OnPacketReceived;
 	}
 
 	public event Action<AolaBattleSnapshot> SnapshotChanged;
@@ -181,7 +186,7 @@ internal sealed class AolaBattleStateTracker : IDisposable
 
 	public void Dispose()
 	{
-		AolaHookHostService.PacketReceived -= OnPacketReceived;
+		_packetEventSource.PacketReceived -= OnPacketReceived;
 		lock (_syncRoot)
 		{
 			_disposed = true;

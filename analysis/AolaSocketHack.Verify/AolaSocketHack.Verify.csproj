@@ -10,5 +10,62 @@
   <ItemGroup>
     <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
     <ProjectReference Include="..\AolaSocketHack\AolaSocketHack.csproj" />
+    <PackageReference Include="SharpCompress" Version="0.50.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AolaLoader\PacketHost\IAolaPacketEventSource.cs" Link="PacketHost\IAolaPacketEventSource.cs" />
+    <Compile Include="..\AolaLoader\PacketHost\PacketEventDispatch.cs" Link="PacketHost\PacketEventDispatch.cs" />
+    <Compile Include="..\AolaLoader\PacketHost\AolaHookHostAdapter.cs" Link="PacketHost\AolaHookHostAdapter.cs" />
+    <Compile Include="..\AolaLoader\PacketHost\Testing\ManualAolaPacketEventSource.cs" Link="PacketHost\Testing\ManualAolaPacketEventSource.cs" />
+    <Compile Include="..\AolaLoader\AolaReceiveLogger.cs" Link="PacketHost\Consumers\AolaReceiveLogger.cs" />
+    <Compile Include="..\AolaLoader\UI\Packets\SendPacketVisibility.cs" Link="PacketHost\Consumers\SendPacketVisibility.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AolaLoader\Settings\ISettingsSectionStore.cs" Link="Settings\ISettingsSectionStore.cs" />
+    <Compile Include="..\AolaLoader\Settings\AtomicSettingsWriter.cs" Link="Settings\AtomicSettingsWriter.cs" />
+    <Compile Include="..\AolaLoader\Settings\LegacySettingsMigrator.cs" Link="Settings\LegacySettingsMigrator.cs" />
+    <Compile Include="..\AolaLoader\Settings\JsonSettingsSectionStore.cs" Link="Settings\JsonSettingsSectionStore.cs" />
+    <Compile Include="..\AolaLoader\Features\Theme\Settings\ThemeSettings.cs" Link="Features\Theme\Settings\ThemeSettings.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Settings\PetMorphSettings.cs" Link="Features\PetMorph\Settings\PetMorphSettings.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AolaLoader\ResourceInterception\Contracts\ResourceRequestContext.cs" Link="ResourceInterception\Contracts\ResourceRequestContext.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Contracts\IResourceInterceptionRule.cs" Link="ResourceInterception\Contracts\IResourceInterceptionRule.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Contracts\ResourceInterceptionPlan.cs" Link="ResourceInterception\Contracts\ResourceInterceptionPlan.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Contracts\ResourceResponseTransformation.cs" Link="ResourceInterception\Contracts\ResourceResponseTransformation.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Contracts\RemoteResourceProbe.cs" Link="ResourceInterception\Contracts\RemoteResourceProbe.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Contracts\RemoteResourceFetch.cs" Link="ResourceInterception\Contracts\RemoteResourceFetch.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Testing\ResourceInterceptionTestDoubles.cs" Link="ResourceInterception\Testing\ResourceInterceptionTestDoubles.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\ResourceRuleEvaluation.cs" Link="ResourceInterception\Pipeline\ResourceRuleEvaluation.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\ResourceRulePipeline.cs" Link="ResourceInterception\Pipeline\ResourceRulePipeline.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\BoundedResourceResponseProcessor.cs" Link="ResourceInterception\Pipeline\BoundedResourceResponseProcessor.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\SwfResponseHeaderValidator.cs" Link="ResourceInterception\Pipeline\SwfResponseHeaderValidator.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\CachingRemoteResourceProbe.cs" Link="ResourceInterception\Pipeline\CachingRemoteResourceProbe.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\HttpSwfRemoteResourceProbe.cs" Link="ResourceInterception\Pipeline\HttpSwfRemoteResourceProbe.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\RemoteResourcePlanExecutor.cs" Link="ResourceInterception\Pipeline\RemoteResourcePlanExecutor.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\HttpRemoteResourceFetcher.cs" Link="ResourceInterception\Pipeline\HttpRemoteResourceFetcher.cs" />
+    <Compile Include="..\AolaLoader\Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" Link="Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" />
+    <Compile Include="..\AolaLoader\AolaPetMorphRule.cs" Link="Features\PetMorph\AolaPetMorphRule.cs" />
+    <Compile Include="..\AolaLoader\AolaSwfClassAdapter.cs" Link="ResourceInterception\Transformers\AolaSwfClassAdapter.cs" />
+    <Compile Include="..\AolaLoader\AolaSwfBitmapScaler.cs" Link="ResourceInterception\Transformers\AolaSwfBitmapScaler.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Transformers\AolaSwfResourceTransformer.cs" Link="ResourceInterception\Transformers\AolaSwfResourceTransformer.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetMovieResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetMovieResourceRule.cs" />
+    <Compile Include="..\AolaLoader\AolaPetPosterCatalog.cs" Link="Features\PetMorph\AolaPetPosterCatalog.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AolaLoader\BrowserHost\Contracts\IBrowserSession.cs" Link="BrowserHost\Contracts\IBrowserSession.cs" />
+    <Compile Include="..\AolaLoader\BrowserHost\Contracts\BrowserScriptContracts.cs" Link="BrowserHost\Contracts\BrowserScriptContracts.cs" />
+    <Compile Include="..\AolaLoader\BrowserHost\Contracts\IPageBridge.cs" Link="BrowserHost\Contracts\IPageBridge.cs" />
+    <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualBrowserSession.cs" Link="BrowserHost\Testing\ManualBrowserSession.cs" />
+    <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualPageBridge.cs" Link="BrowserHost\Testing\ManualPageBridge.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AolaLoader\AolaBattleModels.cs" Link="Battle\AolaBattleModels.cs" />
+    <Compile Include="..\AolaLoader\AolaBattlePacketParser.cs" Link="Battle\AolaBattlePacketParser.cs" />
+    <Compile Include="..\AolaLoader\AolaBattleStateTracker.cs" Link="Battle\AolaBattleStateTracker.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\State\IBattleStateSource.cs" Link="Battle\State\IBattleStateSource.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\State\Testing\ManualBattleStateSource.cs" Link="Battle\State\Testing\ManualBattleStateSource.cs" />
   </ItemGroup>
 </Project>

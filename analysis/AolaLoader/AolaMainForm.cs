@@ -8,6 +8,10 @@ using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AolaLoader.Features.PetMorph.Settings;
+using AolaLoader.Features.Theme.Settings;
+using AolaLoader.PacketHost;
+using AolaLoader.Settings;
 using AolaSocketHack.Contracts;
 using CefSharp;
 using CefSharp.WinForms;
@@ -23,9 +27,13 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("正在初始化奥拉星登录页面");
 	private readonly Timer _injectTimer = new Timer();
 	private readonly List<Form> _childrenVisibleBeforeMinimize = new List<Form>();
-	private readonly AolaSettingsStore _settingsStore;
-	private readonly AolaAppSettings _settings;
+	private readonly ISettingsSectionStore _sectionSettingsStore;
+	private readonly ThemeSettingsCodec _themeSettingsCodec = new ThemeSettingsCodec();
+	private readonly PetMorphSettingsCodec _petMorphSettingsCodec = new PetMorphSettingsCodec();
+	private ThemeSettings _themeSettings;
+	private PetMorphSettings _petMorphSettings;
 	private readonly AolaHookController _hookController;
+	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly AolaReceiveLogger _receiveLogger;
 	private readonly AolaBattleStateTracker _battleTracker;
 	private readonly AolaThemeRequestHandler _themeRequestHandler;
@@ -45,14 +53,21 @@ internal sealed class AolaMainForm : AolaFormBase
 		StartPosition = FormStartPosition.CenterScreen;
 		MinimumSize = new Size(960, 640);
 		Size = new Size(1200, 800);
-		_settingsStore = new AolaSettingsStore(Path.Combine(
+		string settingsPath = Path.Combine(
 			AppDomain.CurrentDomain.BaseDirectory,
-			"settings.json"));
-		_settings = _settingsStore.Load();
+			"settings.json");
+		_sectionSettingsStore = new JsonSettingsSectionStore(settingsPath);
+		_themeSettings = _sectionSettingsStore.Load(
+			ThemeSettingsCodec.SectionKey,
+			_themeSettingsCodec).Value;
+		_petMorphSettings = _sectionSettingsStore.Load(
+			PetMorphSettingsCodec.SectionKey,
+			_petMorphSettingsCodec).Value;
 		InitializeCef();
 		_hookController = new AolaHookController();
-		_receiveLogger = new AolaReceiveLogger();
-		_battleTracker = new AolaBattleStateTracker();
+		_packetEventSource = new AolaHookHostAdapter();
+		_receiveLogger = new AolaReceiveLogger(_packetEventSource);
+		_battleTracker = new AolaBattleStateTracker(_packetEventSource);
 
 		MenuStrip menuStrip = BuildMenu();
 		ToolStrip toolbar = BuildToolbar();
@@ -70,11 +85,11 @@ internal sealed class AolaMainForm : AolaFormBase
 			"Resources",
 			"Patches",
 			"newpetpackage-morph-live.fws.swf"),
-			_settings.PetMorphLiveBridgeEnabled);
+			_petMorphSettings.LiveBridgeEnabled);
 		UpdateThemeSelection(ApplySavedTheme(_themeRequestHandler));
 		_themeRequestHandler.SetPetMorphRules(
-			ToMorphRules(_settings.PetMorphRules),
-			_settings.PetMorphEnabled);
+			ToMorphRules(_petMorphSettings.Rules),
+			_petMorphSettings.Enabled);
 		_browser = new ChromiumWebBrowser(DefaultUrl)
 		{
 			Dock = DockStyle.Fill,
@@ -95,7 +110,7 @@ internal sealed class AolaMainForm : AolaFormBase
 
 		_injectTimer.Interval = 750;
 		_injectTimer.Tick += delegate { EnsureHookInjected(); };
-		AolaHookHostService.StatusReceived += HookStatusReceived;
+		_packetEventSource.StatusReceived += HookStatusReceived;
 		Shown += delegate
 		{
 			ShowPackets();
@@ -107,7 +122,7 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	protected override void OnFormClosed(FormClosedEventArgs e)
 	{
-		AolaHookHostService.StatusReceived -= HookStatusReceived;
+		_packetEventSource.StatusReceived -= HookStatusReceived;
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
 		_petMorphForm?.Dispose();
@@ -115,6 +130,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetsForm?.Close();
 		_battleTracker.Dispose();
 		_receiveLogger.Dispose();
+		_packetEventSource.Dispose();
 		_hookController.Dispose();
 		_browser.Dispose();
 		base.OnFormClosed(e);
@@ -228,8 +244,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		{
 			_themeRequestHandler.SelectedThemeId = themeId == 0 ? -1 : themeId;
 			UpdateThemeSelection(themeId);
-			_settings.SelectedThemeId = themeId;
-			if (TrySaveSettings())
+			if (TrySaveThemeSettings(themeId))
 			{
 				_status.Text = themeId == 0
 					? "已恢复默认主题并保存；刷新页面后生效"
@@ -245,7 +260,7 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private int ApplySavedTheme(AolaThemeRequestHandler handler)
 	{
-		int themeId = _settings.SelectedThemeId;
+		int themeId = _themeSettings.SelectedThemeId;
 		if (themeId < 0 || themeId >= _themeItems.Count)
 		{
 			return 0;
@@ -266,9 +281,9 @@ internal sealed class AolaMainForm : AolaFormBase
 		}
 	}
 
-	private static AolaPetMorphRule[] ToMorphRules(IEnumerable<AolaPetMorphRuleData> data)
+	private static AolaPetMorphRule[] ToMorphRules(IEnumerable<PetMorphRuleSettings> data)
 	{
-		return (data ?? Enumerable.Empty<AolaPetMorphRuleData>())
+		return (data ?? Enumerable.Empty<PetMorphRuleSettings>())
 			.Where(item => item != null && (item.OriginalId > 0 || item.PosterSourceId > 0))
 			.Select(item => new AolaPetMorphRule(
 				item.Note ?? string.Empty,
@@ -282,18 +297,34 @@ internal sealed class AolaMainForm : AolaFormBase
 			.ToArray();
 	}
 
-	private bool TrySaveSettings()
+	private bool TrySavePetMorphSettings()
 	{
-		try
+		SettingsSectionSaveResult result = _sectionSettingsStore.Save(
+			PetMorphSettingsCodec.SectionKey,
+			_petMorphSettings,
+			_petMorphSettingsCodec);
+		if (!result.Succeeded)
 		{
-			_settingsStore.Save(_settings);
-			return true;
-		}
-		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is JsonException)
-		{
-			_status.Text = "设置保存失败：" + ex.Message;
+			_status.Text = "形态设置保存失败：" + result.Error;
 			return false;
 		}
+		return true;
+	}
+
+	private bool TrySaveThemeSettings(int themeId)
+	{
+		ThemeSettings candidate = _themeSettingsCodec.Normalize(new ThemeSettings(themeId));
+		SettingsSectionSaveResult result = _sectionSettingsStore.Save(
+			ThemeSettingsCodec.SectionKey,
+			candidate,
+			_themeSettingsCodec);
+		if (!result.Succeeded)
+		{
+			_status.Text = "主题设置保存失败：" + result.Error;
+			return false;
+		}
+		_themeSettings = candidate;
+		return true;
 	}
 
 	private void UpdateThemeSelection(int themeId)
@@ -311,8 +342,8 @@ internal sealed class AolaMainForm : AolaFormBase
 			_petMorphForm = new AolaPetMorphForm(
 				_themeRequestHandler.ValidatePetMorphRule,
 				ApplyPetMorphRules,
-				ToMorphRules(_settings.PetMorphRules),
-				_settings.PetMorphEnabled);
+				ToMorphRules(_petMorphSettings.Rules),
+				_petMorphSettings.Enabled);
 			_petMorphForm.FormClosed += delegate { _petMorphForm = null; };
 			_petMorphForm.Show();
 		}
@@ -327,21 +358,19 @@ internal sealed class AolaMainForm : AolaFormBase
 	private async void ApplyPetMorphRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
 	{
 		_themeRequestHandler.SetPetMorphRules(rules, enabled);
-		_settings.PetMorphRules = (rules ?? Array.Empty<AolaPetMorphRule>())
-			.Select(rule => new AolaPetMorphRuleData
-			{
-				Note = rule.Note,
-				OriginalId = rule.OriginalId,
-				BackpackId = rule.BackpackId,
-				PosterSourceId = rule.PosterSourceId,
-				PosterId = rule.PosterId,
-				HideOriginalModel = rule.HideOriginalModel,
-				RemoveOriginalBackground = rule.RemoveOriginalBackground,
-				ReplaceBackpackIcon = rule.ReplaceBackpackIcon
-			})
-			.ToList();
-		_settings.PetMorphEnabled = enabled;
-		if (!TrySaveSettings())
+		_petMorphSettings = _petMorphSettingsCodec.Normalize(new PetMorphSettings(
+			enabled,
+			_petMorphSettings.LiveBridgeEnabled,
+			(rules ?? Array.Empty<AolaPetMorphRule>()).Select(rule => new PetMorphRuleSettings(
+				rule.Note,
+				rule.OriginalId,
+				rule.BackpackId,
+				rule.PosterSourceId,
+				rule.PosterId,
+				rule.HideOriginalModel,
+				rule.RemoveOriginalBackground,
+				rule.ReplaceBackpackIcon))));
+		if (!TrySavePetMorphSettings())
 		{
 			return;
 		}
@@ -534,7 +563,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	{
 		if (_packetsForm == null || _packetsForm.IsDisposed)
 		{
-			_packetsForm = new AolaPacketsForm();
+			_packetsForm = new AolaPacketsForm(_packetEventSource);
 			_packetsForm.FormClosed += delegate { _packetsForm = null; };
 			_packetsForm.Show();
 		}
@@ -652,8 +681,8 @@ internal sealed class AolaMainForm : AolaFormBase
 			{
 				morphResult = await PushPetMorphRulesAsync(
 					e.Frame,
-					ToMorphRules(_settings.PetMorphRules),
-					_settings.PetMorphEnabled);
+					ToMorphRules(_petMorphSettings.Rules),
+					_petMorphSettings.Enabled);
 			}
 			if (morphResult != null && morphResult.Superseded)
 			{

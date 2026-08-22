@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using CefSharp;
+using AolaLoader.ResourceInterception.Pipeline;
 
 namespace AolaLoader;
 
@@ -151,16 +152,7 @@ internal sealed class AolaSwfResponseFilter : IResponseFilter
 
 	internal static bool IsValidFws(byte[] content)
 	{
-		if (content == null || content.Length < 8 || content.Length > MaximumSwfBytes ||
-			content[0] != (byte)'F' || content[1] != (byte)'W' || content[2] != (byte)'S')
-		{
-			return false;
-		}
-		uint declaredLength = (uint)(content[4] |
-			content[5] << 8 |
-			content[6] << 16 |
-			content[7] << 24);
-		return declaredLength == content.Length;
+		return SwfResponseHeaderValidator.IsValidCompleteFws(content, MaximumSwfBytes);
 	}
 
 	private FilterStatus WriteOutput(Stream dataOut, out long dataOutWritten)

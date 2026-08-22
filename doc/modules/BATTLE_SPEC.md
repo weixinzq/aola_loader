@@ -14,7 +14,7 @@ State 不依赖 WinForms/CefSharp，不过滤网络捕获，不修改协议消�
 
 ## 公开契约
 
-`IBattleStateSource` 提供 `CurrentSnapshot` 和 `SnapshotChanged`；快照包含战斗生命周期、双方、全部宠物、最终六维、HP 和技能 PP/CD。未来 `IBattlePresentationRule` 只生成资源/表现计划，不消费或改写协议。
+`IBattleStateSource` 提供 `CurrentSnapshot`、`SnapshotChanged` 和生命周期释放；当前契约位于 `Features/Battle/State`。快照包含战斗生命周期、双方、全部宠物、最终六维、HP 和技能 PP/CD。未来 `IBattlePresentationRule` 只生成资源/表现计划，不消费或改写协议。
 
 ## 输入与输出
 
@@ -50,7 +50,7 @@ PacketHost 事件可在后台线程；State 在锁内更新、锁外发布快照
 
 ## 验证入口
 
-2303/2304 完整 roster、2401 保留、后续更新、UQI/槽位合并、结束命令、全部场下宠物、最终值和 PP/CD、晚开窗口、Dispose。
+`BattleState contract self-test` 验证初始值、读取值、发布值和逐订阅者通知均为防御性深复制，覆盖全部场下宠物、最终六维、PP/CD、订阅者异常隔离、晚开读取缓存与 Dispose；同时用手动 PacketHost 验证生产 Tracker 只处理接收方向、发布结束快照并在释放后停止消费。2303/2304 完整 roster、2401 保留、后续更新、UQI/槽位合并和结束命令仍由现有 Tracker/解析回归覆盖。
 
 ## 完成标准
 
@@ -58,5 +58,4 @@ State/UI/Presentation 物理边界清晰，Tracker 只依赖 PacketHost，F3 与
 
 ## 已知限制
 
-当前 tracker 直接订阅静态 IPC，文件平铺；头像 provider 仍生成占位图，战斗 Presentation 尚未实现。
-
+ContractVersion 1 已冻结；阶段 4 已让生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不再直接订阅静态 IPC。文件仍平铺，头像 provider 仍生成占位图，战斗 Presentation 尚未实现，真实战斗运行回归仍待完成。

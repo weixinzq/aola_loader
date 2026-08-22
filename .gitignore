@@ -12,6 +12,23 @@
 # Maintained source and documentation.
 !/doc/**
 !/task/update/restruct-baseline-20260821.md
+!/task/update/restruct-packet-host-20260822.md
+!/task/update/restruct-settings-20260822.md
+!/task/update/restruct-resource-contracts-20260822.md
+!/task/update/restruct-browser-contracts-20260822.md
+!/task/update/restruct-battle-state-contract-20260822.md
+!/task/update/restruct-resource-pipeline-core-20260822.md
+!/task/update/restruct-theme-rule-20260822.md
+!/task/update/restruct-pet-package-rule-20260822.md
+!/task/update/restruct-petmovie-rule-20260822.md
+!/task/update/restruct-poster-rule-20260822.md
+!/task/update/restruct-packet-host-receive-logger-20260822.md
+!/task/update/restruct-packet-host-battle-tracker-20260822.md
+!/task/update/restruct-packet-host-packets-form-20260822.md
+!/task/update/restruct-packet-host-main-status-20260822.md
+!/task/update/restruct-settings-theme-codec-20260822.md
+!/task/update/restruct-settings-theme-production-20260822.md
+!/task/update/restruct-settings-petmorph-production-20260822.md
 !/analysis/Directory.Build.props
 !/analysis/AolaLoader/**
 !/analysis/AolaSocketHack/**

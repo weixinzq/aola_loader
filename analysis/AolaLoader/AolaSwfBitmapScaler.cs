@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using AolaLoader.ResourceInterception.Pipeline;
 
 namespace AolaLoader;
 
@@ -19,7 +20,7 @@ internal static class AolaSwfBitmapScaler
 	public static bool TryScaleFws(byte[] content, double factor, out byte[] scaled)
 	{
 		scaled = null;
-		if (!AolaSwfResponseFilter.IsValidFws(content) ||
+		if (!SwfResponseHeaderValidator.IsValidCompleteFws(content) ||
 			double.IsNaN(factor) || double.IsInfinity(factor) || factor <= 0.1 || factor > 10)
 		{
 			return false;
@@ -99,7 +100,7 @@ internal static class AolaSwfBitmapScaler
 	public static bool TryMakeTransparentFws(byte[] content, out byte[] transparent)
 	{
 		transparent = null;
-		if (!AolaSwfResponseFilter.IsValidFws(content))
+		if (!SwfResponseHeaderValidator.IsValidCompleteFws(content))
 		{
 			return false;
 		}
@@ -148,7 +149,7 @@ internal static class AolaSwfBitmapScaler
 			transparent = output.ToArray();
 		}
 		WriteUInt32(transparent, 4, (uint)transparent.Length);
-		return AolaSwfResponseFilter.IsValidFws(transparent);
+		return SwfResponseHeaderValidator.IsValidCompleteFws(transparent);
 	}
 
 	private static bool TryMakeLosslessBitmapTransparent(byte[] body, out byte[] transparentBody)

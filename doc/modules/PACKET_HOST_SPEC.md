@@ -1,6 +1,6 @@
 # PacketHost
 
-Status: Target  
+Status: Implemented, runtime pending
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/PacketHost/**`
 
@@ -50,7 +50,7 @@ WinForms、CefSharp、Settings、战斗解析器、日志实现和敏感注入�
 
 ## 验证入口
 
-事件转发、异常隔离、Dispose 后静默、结构化发送、UI marshal 消费示例、源码守卫。
+`AolaSocketHack.Verify --self-test` 验证事件转发、异常隔离、Dispose 后静默、结构化发送，ReceiveLogger 的仅接收过滤、UTF-8 无 BOM、解密参数/原始帧记录和释放后停止写入，Battle tracker 的接收方向过滤、快照发布和释放后停止消费，以及 PacketsForm 使用的精确“发送”方向可见性策略。源码守卫要求三个静态事件只允许出现在 `AolaHookHostAdapter`；PCAP 回放继续验证严格导出格式和主动发送。UI marshal 保留现有 `InvokeRequired/BeginInvoke` 路径，并在真实窗口验证时复核。
 
 ## 完成标准
 
@@ -58,5 +58,4 @@ logger、Battle tracker、PacketsForm 和主窗状态全部迁移；除适配器
 
 ## 已知限制
 
-当前四类宿主消费者仍直接访问 `AolaHookHostService` 静态事件。
-
+阶段 4 已完成四类消费者迁移：`AolaReceiveLogger`、`AolaBattleStateTracker`、`AolaPacketsForm` 和主窗状态均使用共享 `IAolaPacketEventSource`；只有 `AolaHookHostAdapter` 直接订阅静态 IPC 事件。构建、自测、源码守卫和 PCAP/主动发送基线已通过。尚未启动真实 WinForms/Flash 会话验证后台状态更新、窗口关闭和重新打开，因此标记为 `Implemented, runtime pending`；适配器的最终创建位置仍将在 CompositionRoot 阶段收口。

@@ -16,6 +16,36 @@ internal static class Program
 {
 	private static int Main(string[] args)
 	{
+		if (!PacketHostBoundaryVerifier.Verify())
+		{
+			Console.Error.WriteLine("PacketHost boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("PacketHost boundary self-test: PASS");
+		if (!SettingsBoundaryVerifier.Verify())
+		{
+			Console.Error.WriteLine("Settings boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("Settings boundary self-test: PASS");
+		if (!ResourceInterceptionContractVerifier.Verify())
+		{
+			Console.Error.WriteLine("ResourceInterception contract self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("ResourceInterception contract self-test: PASS");
+		if (!BrowserHostContractVerifier.Verify())
+		{
+			Console.Error.WriteLine("BrowserHost contract self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("BrowserHost contract self-test: PASS");
+		if (!BattleStateContractVerifier.Verify())
+		{
+			Console.Error.WriteLine("BattleState contract self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("BattleState contract self-test: PASS");
 		if (!VerifyCaptureBoundaries())
 		{
 			Console.Error.WriteLine("Capture boundary self-test: FAIL");
@@ -116,6 +146,14 @@ internal static class Program
 
 	private static bool VerifyCaptureBoundaries()
 	{
+		if (!WinsockHooks.ShouldCaptureWsaSend(0, 0, new IntPtr(1)) ||
+			!WinsockHooks.ShouldCaptureWsaSend(-1, 997, new IntPtr(1)) ||
+			WinsockHooks.ShouldCaptureWsaSend(-1, 997, IntPtr.Zero) ||
+			WinsockHooks.ShouldCaptureWsaSend(-1, 10035, new IntPtr(1)))
+		{
+			return false;
+		}
+
 		AolaSocketCaptureFilter ports = new AolaSocketCaptureFilter(socket => 0);
 		if (ports.NoteConnect(1, 8000) != SocketCaptureKind.Game ||
 			ports.NoteConnect(2, 8050) != SocketCaptureKind.Game ||

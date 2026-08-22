@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Security;
 using System.Text;
+using AolaLoader.PacketHost;
 using AolaSocketHack.Contracts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,6 +15,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 {
 	private const int MaximumBufferedBytes = 64 * 1024 * 1024;
 	private readonly object _syncRoot = new object();
+	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly string _baseDirectory;
 	private Queue<string> _pendingLines = new Queue<string>();
 	private StreamWriter _writer;
@@ -23,19 +25,21 @@ internal sealed class AolaReceiveLogger : IDisposable
 	private bool _retaining;
 	private bool _writeFailureReported;
 
-	public AolaReceiveLogger()
-		: this(AppDomain.CurrentDomain.BaseDirectory)
+	public AolaReceiveLogger(IAolaPacketEventSource packetEventSource)
+		: this(packetEventSource, AppDomain.CurrentDomain.BaseDirectory)
 	{
 	}
 
-	internal AolaReceiveLogger(string baseDirectory)
+	internal AolaReceiveLogger(IAolaPacketEventSource packetEventSource, string baseDirectory)
 	{
+		_packetEventSource = packetEventSource ??
+			throw new ArgumentNullException(nameof(packetEventSource));
 		if (string.IsNullOrWhiteSpace(baseDirectory))
 		{
 			throw new ArgumentException("日志基础目录不能为空", nameof(baseDirectory));
 		}
 		_baseDirectory = baseDirectory;
-		AolaHookHostService.PacketReceived += OnPacketReceived;
+		_packetEventSource.PacketReceived += OnPacketReceived;
 	}
 
 	public string LogPath { get; private set; }
@@ -336,7 +340,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 
 	public void Dispose()
 	{
-		AolaHookHostService.PacketReceived -= OnPacketReceived;
+		_packetEventSource.PacketReceived -= OnPacketReceived;
 		lock (_syncRoot)
 		{
 			if (_disposed)

@@ -121,10 +121,9 @@ internal sealed class WinsockHooks : IDisposable
 		int error = Marshal.GetLastWin32Error();
 		try
 		{
-			int? actual = ReadTransferredCount(result, overlapped, bytesSent);
-			bool submittedPending = result != 0 && overlapped != IntPtr.Zero && error == WsaIoPending;
-			if ((actual.HasValue && actual.Value > 0) || submittedPending)
+			if (ShouldCaptureWsaSend(result, error, overlapped))
 			{
+				int? actual = ReadTransferredCount(result, bytesSent);
 				CaptureBuffers(handle, buffers, bufferCount, actual, true, kind);
 			}
 		}
@@ -143,7 +142,7 @@ internal sealed class WinsockHooks : IDisposable
 		int error = Marshal.GetLastWin32Error();
 		try
 		{
-			int? actual = ReadTransferredCount(result, overlapped, bytesReceived);
+			int? actual = ReadTransferredCount(result, bytesReceived);
 			if (actual.HasValue && actual.Value > 0)
 			{
 				CaptureBuffers(handle, buffers, bufferCount, actual, false, kind);
@@ -191,9 +190,15 @@ internal sealed class WinsockHooks : IDisposable
 		return WinsockNative.CloseSocket(socket);
 	}
 
-	private static int? ReadTransferredCount(int result, IntPtr overlapped, IntPtr countPointer)
+	internal static bool ShouldCaptureWsaSend(int result, int error, IntPtr overlapped)
 	{
-		if (result != 0 || overlapped != IntPtr.Zero || countPointer == IntPtr.Zero)
+		return result == 0 ||
+			result != 0 && overlapped != IntPtr.Zero && error == WsaIoPending;
+	}
+
+	private static int? ReadTransferredCount(int result, IntPtr countPointer)
+	{
+		if (result != 0 || countPointer == IntPtr.Zero)
 		{
 			return null;
 		}
