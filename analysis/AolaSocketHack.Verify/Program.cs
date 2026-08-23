@@ -47,6 +47,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("ChildWindowCoordinator boundary self-test: PASS");
+		if (!MainFormCompositionGuardVerifier.Verify())
+		{
+			Console.Error.WriteLine("MainForm composition guard: FAIL");
+			return 1;
+		}
+		Console.WriteLine("MainForm composition guard: PASS");
 		if (!ResourceInterceptionContractVerifier.Verify())
 		{
 			Console.Error.WriteLine("ResourceInterception contract self-test: FAIL");

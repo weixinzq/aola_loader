@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using AolaLoader.AppShell;
 using CefSharp;
 
 namespace AolaLoader;
@@ -33,7 +34,10 @@ internal static class Program
 			Application.SetCompatibleTextRenderingDefault(false);
 			try
 			{
-				Application.Run(new AolaMainForm());
+				using (AolaCompositionRoot root = new AolaCompositionRoot())
+				{
+					Application.Run(root.MainForm);
+				}
 			}
 			finally
 			{

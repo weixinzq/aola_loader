@@ -9,86 +9,60 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.AppShell;
-using AolaLoader.BrowserHost;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.PetMorph.Coordination;
-using AolaLoader.Features.PetMorph.Settings;
 using AolaLoader.Features.Theme.Coordination;
-using AolaLoader.Features.Theme.Settings;
 using AolaLoader.PacketHost;
-using AolaLoader.Settings;
 using AolaSocketHack.Contracts;
 using CefSharp;
 using CefSharp.WinForms;
-using Newtonsoft.Json;
 
 namespace AolaLoader;
 
 internal sealed class AolaMainForm : AolaFormBase
 {
-	private const string DefaultUrl = "https://aola.100bt.com/play/play.html";
+	internal const string DefaultUrl = "https://aola.100bt.com/play/play.html";
 	private readonly ToolStripTextBox _address = new ToolStripTextBox();
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("正在初始化奥拉星登录页面");
 	private readonly System.Windows.Forms.Timer _injectTimer = new System.Windows.Forms.Timer();
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
-	private readonly ISettingsSectionStore _sectionSettingsStore;
 	private readonly IThemeCoordinator _themeCoordinator;
 	private readonly IPetMorphCoordinator _petMorphCoordinator;
 	private readonly AolaHookController _hookController;
 	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly AolaReceiveLogger _receiveLogger;
 	private readonly AolaBattleStateTracker _battleTracker;
-	private readonly AolaThemeRequestHandler _themeRequestHandler;
 	private readonly ChromiumWebBrowser _browser;
 	private readonly IBrowserSession _browserSession;
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private ToolStripMenuItem _themeMenu;
 	private bool _mainWindowMinimized;
 
-	public AolaMainForm()
+	internal AolaMainForm(
+		ChromiumWebBrowser browser,
+		IBrowserSession browserSession,
+		AolaHookController hookController,
+		IAolaPacketEventSource packetEventSource,
+		AolaReceiveLogger receiveLogger,
+		AolaBattleStateTracker battleTracker,
+		IThemeCoordinator themeCoordinator,
+		IPetMorphCoordinator petMorphCoordinator,
+		IChildWindowCoordinator childWindowCoordinator)
 	{
+		_browser = browser ?? throw new ArgumentNullException(nameof(browser));
+		_browserSession = browserSession ?? throw new ArgumentNullException(nameof(browserSession));
+		_hookController = hookController ?? throw new ArgumentNullException(nameof(hookController));
+		_packetEventSource = packetEventSource ?? throw new ArgumentNullException(nameof(packetEventSource));
+		_receiveLogger = receiveLogger ?? throw new ArgumentNullException(nameof(receiveLogger));
+		_battleTracker = battleTracker ?? throw new ArgumentNullException(nameof(battleTracker));
+		_themeCoordinator = themeCoordinator ?? throw new ArgumentNullException(nameof(themeCoordinator));
+		_petMorphCoordinator = petMorphCoordinator ?? throw new ArgumentNullException(nameof(petMorphCoordinator));
+		_childWindowCoordinator = childWindowCoordinator ?? throw new ArgumentNullException(nameof(childWindowCoordinator));
+
 		Text = "Aola Loader";
 		StartPosition = FormStartPosition.CenterScreen;
 		MinimumSize = new Size(960, 640);
 		Size = new Size(1200, 800);
-		string settingsPath = Path.Combine(
-			AppDomain.CurrentDomain.BaseDirectory,
-			"settings.json");
-		_sectionSettingsStore = new JsonSettingsSectionStore(settingsPath);
-		PetMorphSettingsCodec petMorphSettingsCodec = new PetMorphSettingsCodec();
-		PetMorphSettings initialPetMorph = _sectionSettingsStore.Load(
-			PetMorphSettingsCodec.SectionKey,
-			petMorphSettingsCodec).Value;
-		InitializeCef();
-		_hookController = new AolaHookController();
-		_packetEventSource = new AolaHookHostAdapter();
-		_receiveLogger = new AolaReceiveLogger(_packetEventSource);
-		_battleTracker = new AolaBattleStateTracker(_packetEventSource);
-		_themeRequestHandler = new AolaThemeRequestHandler(Path.Combine(
-			AppDomain.CurrentDomain.BaseDirectory,
-			"Resources",
-			"Themes"), Path.Combine(
-			AppDomain.CurrentDomain.BaseDirectory,
-			"Resources",
-			"Data",
-			"pet-poster-catalog.json"), Path.Combine(
-			AppDomain.CurrentDomain.BaseDirectory,
-			"Resources",
-			"Patches",
-			"newpetpackage-morph-live.fws.swf"),
-			initialPetMorph.LiveBridgeEnabled);
-		_themeCoordinator = new ThemeCoordinator(
-			_sectionSettingsStore,
-			new ThemeSettingsCodec(),
-			_themeRequestHandler);
-		_petMorphCoordinator = new PetMorphCoordinator(
-			_sectionSettingsStore,
-			petMorphSettingsCodec,
-			_themeRequestHandler,
-			new AolaBrowserPetMorphPushBridge(
-				() => _browser.GetMainFrame(),
-				new AolaPetMorphLiveBridge()));
-		_childWindowCoordinator = new ChildWindowCoordinator();
 
 		MenuStrip menuStrip = BuildMenu();
 		ToolStrip toolbar = BuildToolbar();
@@ -98,12 +72,6 @@ internal sealed class AolaMainForm : AolaFormBase
 			_themeCoordinator.Current.SelectedThemeId);
 		UpdateThemeSelection(restoredTheme.RuleApplied ? restoredTheme.AppliedThemeId : 0);
 		_petMorphCoordinator.RestoreFromSavedSettings();
-		_browser = new ChromiumWebBrowser(DefaultUrl)
-		{
-			Dock = DockStyle.Fill,
-			RequestHandler = _themeRequestHandler
-		};
-		_browserSession = new AolaBrowserSession(_browser);
 		_browserSession.PageLifecycleChanged += OnBrowserLifecycleChanged;
 		_browser.FrameLoadEnd += BrowserFrameLoadEnd;
 
@@ -134,12 +102,6 @@ internal sealed class AolaMainForm : AolaFormBase
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
 		_childWindowCoordinator.Dispose();
-		_battleTracker.Dispose();
-		_receiveLogger.Dispose();
-		_packetEventSource.Dispose();
-		_hookController.Dispose();
-		_browserSession.Dispose();
-		_browser.Dispose();
 		base.OnFormClosed(e);
 	}
 
@@ -306,45 +268,6 @@ internal sealed class AolaMainForm : AolaFormBase
 		return requestedMappings > 0
 			? "形态规则已热推送；背包模块打开后自动应用，不需要刷新登录器"
 			: "形态规则已热推送；当前没有需要桥接的背景、头像或海报映射";
-	}
-
-	private static void InitializeCef()
-	{
-		if (Cef.IsInitialized)
-		{
-			return;
-		}
-		string flashPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "runtime", "pepflashplayer.dll");
-		if (!File.Exists(flashPath))
-		{
-			throw new FileNotFoundException("找不到 PPAPI Flash 运行库", flashPath);
-		}
-		CefSharpSettings.SubprocessExitIfParentProcessClosed = true;
-		CefSettings settings = new CefSettings
-		{
-			CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache"),
-			LogFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cef.log"),
-			LogSeverity = LogSeverity.Warning,
-			WindowlessRenderingEnabled = true
-		};
-		settings.CefCommandLineArgs["ppapi-flash-version"] = "99.0.0.999";
-		settings.CefCommandLineArgs["ppapi-flash-path"] = flashPath;
-		settings.CefCommandLineArgs["allow-outdated-plugins"] = "1";
-		settings.CefCommandLineArgs["always-authorize-plugins"] = "1";
-		settings.CefCommandLineArgs["plugin-policy"] = "allow";
-		settings.CefCommandLineArgs["enable-features"] = "RunAllFlashInAllowMode";
-		settings.CefCommandLineArgs["disable-features"] = "PreferHtmlOverPlugins";
-		settings.SetOffScreenRenderingBestPerformanceArgs();
-		if (!Cef.Initialize(settings))
-		{
-			throw new InvalidOperationException("CEF 初始化失败");
-		}
-		IRequestContext context = Cef.GetGlobalRequestContext();
-		Cef.UIThreadTaskFactory.StartNew(delegate
-		{
-			context.SetPreference("profile.default_content_setting_values.plugins", 1, out string _);
-			context.SetPreference("plugins.run_all_flash_in_allow_mode", true, out string _);
-		});
 	}
 
 	private ToolStrip BuildToolbar()
