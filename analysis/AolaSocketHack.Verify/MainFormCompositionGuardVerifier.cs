@@ -28,6 +28,19 @@ internal static class MainFormCompositionGuardVerifier
 		"InitializeCef("
 	};
 
+	private static readonly string[] ForbiddenTypeReferences =
+	{
+		"AolaProtocol",
+		"AolaBattlePacketParser",
+		"AolaSwf",
+		"AolaPetPosterCatalog",
+		"AolaHookHostService",
+		"AolaCapture",
+		"JsonSettingsSectionStore",
+		"LegacySettingsMigrator",
+		"EasyHook"
+	};
+
 	public static bool Verify()
 	{
 		string repositoryRoot = FindRepositoryRoot();
@@ -54,6 +67,15 @@ internal static class MainFormCompositionGuardVerifier
 			{
 				Console.Error.WriteLine("MainForm composition guard rejected " + mainFormPath +
 					" because it constructs " + forbidden + ".");
+				return false;
+			}
+		}
+		foreach (string forbidden in ForbiddenTypeReferences)
+		{
+			if (source.IndexOf(forbidden, StringComparison.Ordinal) >= 0)
+			{
+				Console.Error.WriteLine("MainForm composition guard rejected " + mainFormPath +
+					" because it references " + forbidden + ".");
 				return false;
 			}
 		}

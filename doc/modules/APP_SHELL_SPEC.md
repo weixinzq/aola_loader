@@ -60,4 +60,4 @@ AppShell 不拥有功能设置，只调用各协调器的加载/保存入口。�
 
 ## 已知限制
 
-阶段 6 已提供 `AolaBrowserSession`、`ChildWindowCoordinator` 与 `AolaCompositionRoot`：`Program.Main` 只做进程初始化、创建 CompositionRoot、运行主窗体并最终释放；长期服务（设置、PacketHost 适配器、接收日志、战斗 tracker、Cef 请求适配器、主题/形态协调器、浏览器与会话、子窗口协调器）全部由组合根构造，主窗体构造函数只接收已构造依赖，不再创建业务服务。新增 `MainForm composition guard` 源码守卫，禁止主窗体构造长期服务与 Cef 基础设施。真实启动、登录、主题/形态与子窗口路径仍需阶段 9 实机验证，本契约整体继续标记为 `Target`。
+阶段 6 已提供 `AolaBrowserSession`、`ChildWindowCoordinator` 与 `AolaCompositionRoot`：`Program.Main` 只做进程初始化、创建 CompositionRoot、运行主窗体并最终释放；长期服务全部由组合根构造，主窗体构造函数只接收已构造依赖。`AolaMainForm` 目前只保留控件布局、菜单/工具栏命令、状态呈现与命令转发，另保留两项已记录的运行集成：Hook 注入轮询（`EnsureHookInjected`，状态呈现的一部分）与 `FrameLoadEnd` 的 Flash 兼容探针/形态推送；这两项的服务化归属在后续阶段评估。`MainForm composition guard` 同时禁止主窗体构造长期服务/Cef 基础设施，以及引用协议解析、SWF 转换、设置 JSON 实现、`AolaHookHostService` 静态事件和 EasyHook 类型。真实启动、登录、主题/形态与子窗口路径仍需阶段 9 实机验证，本契约整体继续标记为 `Target`。
