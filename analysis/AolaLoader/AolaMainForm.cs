@@ -9,6 +9,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AolaLoader.BrowserHost;
+using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.Settings;
 using AolaLoader.Features.Theme.Coordination;
@@ -39,6 +41,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly AolaBattleStateTracker _battleTracker;
 	private readonly AolaThemeRequestHandler _themeRequestHandler;
 	private readonly ChromiumWebBrowser _browser;
+	private readonly IBrowserSession _browserSession;
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private AolaPacketsForm _packetsForm;
 	private AolaBattleAssistantForm _battleAssistantForm;
@@ -103,9 +106,9 @@ internal sealed class AolaMainForm : AolaFormBase
 			Dock = DockStyle.Fill,
 			RequestHandler = _themeRequestHandler
 		};
-		_browser.AddressChanged += BrowserAddressChanged;
+		_browserSession = new AolaBrowserSession(_browser);
+		_browserSession.PageLifecycleChanged += OnBrowserLifecycleChanged;
 		_browser.FrameLoadEnd += BrowserFrameLoadEnd;
-		_browser.LoadError += BrowserLoadError;
 
 		Controls.Add(_browser);
 		Controls.Add(statusStrip);
@@ -140,6 +143,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_receiveLogger.Dispose();
 		_packetEventSource.Dispose();
 		_hookController.Dispose();
+		_browserSession.Dispose();
 		_browser.Dispose();
 		base.OnFormClosed(e);
 	}
@@ -398,7 +402,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_address.Text = DefaultUrl;
 		back.Click += delegate { if (_browser.CanGoBack) _browser.Back(); };
 		forward.Click += delegate { if (_browser.CanGoForward) _browser.Forward(); };
-		refresh.Click += delegate { _browser.Reload(); };
+		refresh.Click += delegate { _browserSession.Refresh(BrowserRefreshMode.Normal); };
 		go.Click += delegate { Navigate(); };
 		_address.KeyDown += delegate(object sender, KeyEventArgs e)
 		{
@@ -438,12 +442,13 @@ internal sealed class AolaMainForm : AolaFormBase
 	private void Navigate()
 	{
 		string address = _address.Text.Trim();
-		if (!Uri.TryCreate(address, UriKind.Absolute, out Uri uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+		if (!Uri.TryCreate(address, UriKind.Absolute, out Uri uri) ||
+			(uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
 		{
 			MessageBox.Show(this, "请输入有效的 HTTP/HTTPS 地址。", "地址无效", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 			return;
 		}
-		_browser.Load(uri.AbsoluteUri);
+		_browserSession.Navigate(uri.AbsoluteUri);
 	}
 
 	private void ShowPackets()
@@ -513,22 +518,24 @@ internal sealed class AolaMainForm : AolaFormBase
 		return 0;
 	}
 
-	private void BrowserAddressChanged(object sender, AddressChangedEventArgs e)
+	private void OnBrowserLifecycleChanged(BrowserPageLifecycleEvent value)
 	{
 		if (IsDisposed)
 		{
 			return;
 		}
-		BeginInvoke(new Action(delegate { _address.Text = e.Address; }));
-	}
-
-	private void BrowserLoadError(object sender, LoadErrorEventArgs e)
-	{
-		if (e.ErrorCode == CefErrorCode.Aborted || IsDisposed)
+		BeginInvoke(new Action(delegate
 		{
-			return;
-		}
-		BeginInvoke(new Action(delegate { _status.Text = "页面加载失败：" + e.ErrorText; }));
+			switch (value.Kind)
+			{
+				case BrowserPageLifecycleKind.NavigationStarted:
+					_address.Text = value.Address;
+					break;
+				case BrowserPageLifecycleKind.NavigationFailed:
+					_status.Text = "页面加载失败：" + value.Error;
+					break;
+			}
+		}));
 	}
 
 	private async void BrowserFrameLoadEnd(object sender, FrameLoadEndEventArgs e)
