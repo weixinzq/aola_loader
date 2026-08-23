@@ -27,6 +27,7 @@
     <Compile Include="..\AolaLoader\Settings\JsonSettingsSectionStore.cs" Link="Settings\JsonSettingsSectionStore.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\Settings\ThemeSettings.cs" Link="Features\Theme\Settings\ThemeSettings.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Settings\PetMorphSettings.cs" Link="Features\PetMorph\Settings\PetMorphSettings.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\Settings\BattleSettings.cs" Link="Features\Battle\Settings\BattleSettings.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AolaLoader\ResourceInterception\Contracts\ResourceRequestContext.cs" Link="ResourceInterception\Contracts\ResourceRequestContext.cs" />

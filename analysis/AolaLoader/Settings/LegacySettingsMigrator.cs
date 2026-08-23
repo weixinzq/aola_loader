@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using AolaLoader.Features.Battle.Settings;
 using Newtonsoft.Json.Linq;
 
 namespace AolaLoader.Settings;
 
 internal sealed class LegacySettingsMigrator
 {
+	private static readonly BattleSettingsCodec BattleCodec = new BattleSettingsCodec();
+
 	private static readonly HashSet<string> LegacyFieldNames = new HashSet<string>(StringComparer.Ordinal)
 	{
 		"SchemaVersion",
@@ -66,24 +69,11 @@ internal sealed class LegacySettingsMigrator
 				["LiveBridgeEnabled"] = liveBridgeEnabled,
 				["Rules"] = rules
 			},
-			["battle"] = CreateDefaultBattleSection()
+			["battle"] = BattleCodec.Serialize(BattleCodec.CreateDefault())
 		};
 
 		migrated = result;
 		return true;
-	}
-
-	private static JObject CreateDefaultBattleSection()
-	{
-		return new JObject
-		{
-			["Version"] = 1,
-			["HideDamageNumbers"] = false,
-			["HideHealingNumbers"] = false,
-			["SkipPetAttackActions"] = false,
-			["FightSkillEffect"] = 0,
-			["MorphRules"] = new JArray()
-		};
 	}
 
 	private static bool TryReadInteger(
@@ -176,4 +166,3 @@ internal sealed class LegacySettingsMigrator
 		}
 	}
 }
-

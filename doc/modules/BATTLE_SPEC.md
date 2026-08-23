@@ -58,4 +58,4 @@ State/UI/Presentation 物理边界清晰，Tracker 只依赖 PacketHost，F3 与
 
 ## 已知限制
 
-ContractVersion 1 已冻结；阶段 4 已让生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不再直接订阅静态 IPC。文件仍平铺，头像 provider 仍生成占位图，战斗 Presentation 尚未实现，真实战斗运行回归仍待完成。
+ContractVersion 1 已冻结；阶段 4 已让生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不再直接订阅静态 IPC。阶段 5 已建立 `battle` Section 正式边界：`BattleSettings`/`BattleSettingsCodec`（Version 1，只含默认禁用的预留表现字段），旧 SchemaVersion 5 迁移与 Section store 均使用该 codec；当前没有 Battle 设置消费者，未实现任何表现功能。文件仍平铺，头像 provider 仍生成占位图，战斗 Presentation 尚未实现，真实战斗运行回归仍待完成。

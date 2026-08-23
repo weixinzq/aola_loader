@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using AolaLoader.Features.Battle.Settings;
 using AolaLoader.Features.PetMorph.Settings;
 using AolaLoader.Features.Theme.Settings;
 using AolaLoader.Settings;
@@ -21,6 +22,7 @@ internal static class SettingsBoundaryVerifier
 			return VerifyMissingAndRoundTrip(root) &&
 				VerifyTypedThemeSettingsAndLegacyMigration(root) &&
 				VerifyTypedPetMorphSettings(root) &&
+				VerifyTypedBattleSettings(root) &&
 				VerifyProductionThemeAndPetMorphMigration(root) &&
 				VerifyUnknownContentAndIndependentUpdates(root) &&
 				VerifyCorruptSectionIsolation(root) &&
@@ -116,6 +118,292 @@ internal static class SettingsBoundaryVerifier
 		return invalid.UsedDefault && !string.IsNullOrWhiteSpace(invalid.Error) &&
 			!invalid.Value.Enabled && invalid.Value.LiveBridgeEnabled &&
 			before.SequenceEqual(File.ReadAllBytes(invalidPath));
+	}
+
+	private static bool VerifyTypedBattleSettings(string root)
+	{
+		BattleSettingsCodec codec = new BattleSettingsCodec();
+		ThemeSettingsCodec themeCodec = new ThemeSettingsCodec();
+
+		// 无文件时返回禁用默认值。
+		string missingPath = Path.Combine(root, "typed-battle-missing.json");
+		SettingsSectionLoadResult<BattleSettings> missing =
+			new JsonSettingsSectionStore(missingPath).Load(BattleSettingsCodec.SectionKey, codec);
+		if (!missing.UsedDefault || missing.Error != null || !IsDefaultBattle(missing.Value))
+		{
+			return false;
+		}
+
+		// 缺字段使用默认值；未知 Section 字段和规则对象整体保留；保存后无 BOM。
+		string path = Path.Combine(root, "typed-battle.json");
+		WriteJson(path, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["battle"] = new JObject
+				{
+					["Version"] = 1,
+					["UnknownBattleField"] = "keep-battle",
+					["MorphRules"] = new JArray
+					{
+						new JObject { ["FutureRuleField"] = 91 }
+					}
+				}
+			}
+		});
+		JsonSettingsSectionStore store = new JsonSettingsSectionStore(path);
+		SettingsSectionLoadResult<BattleSettings> loaded =
+			store.Load(BattleSettingsCodec.SectionKey, codec);
+		if (loaded.UsedDefault || loaded.Value.HideDamageNumbers || loaded.Value.HideHealingNumbers ||
+			loaded.Value.SkipPetAttackActions || loaded.Value.FightSkillEffect != 0 ||
+			loaded.Value.MorphRules.Count != 1 ||
+			loaded.Value.MorphRules[0].Value<int>("FutureRuleField") != 91)
+		{
+			return false;
+		}
+		if (!store.Save(
+			BattleSettingsCodec.SectionKey,
+			new BattleSettings(true, false, true, 3, loaded.Value.MorphRules),
+			codec).Succeeded)
+		{
+			return false;
+		}
+		JObject saved = JObject.Parse(File.ReadAllText(path, Encoding.UTF8));
+		JObject section = (JObject)saved["Sections"]["battle"];
+		JObject savedRule = (JObject)((JArray)section["MorphRules"])[0];
+		if (section.Value<string>("UnknownBattleField") != "keep-battle" ||
+			savedRule.Value<int>("FutureRuleField") != 91 ||
+			!section.Value<bool>("HideDamageNumbers") || section.Value<bool>("HideHealingNumbers") ||
+			!section.Value<bool>("SkipPetAttackActions") || section.Value<int>("FightSkillEffect") != 3 ||
+			HasUtf8Bom(path))
+		{
+			return false;
+		}
+		SettingsSectionLoadResult<BattleSettings> roundTrip =
+			store.Load(BattleSettingsCodec.SectionKey, codec);
+		if (roundTrip.UsedDefault || !roundTrip.Value.HideDamageNumbers ||
+			roundTrip.Value.HideHealingNumbers || !roundTrip.Value.SkipPetAttackActions ||
+			roundTrip.Value.FightSkillEffect != 3 || roundTrip.Value.MorphRules.Count != 1)
+		{
+			return false;
+		}
+		roundTrip.Value.MorphRules[0]["FutureRuleField"] = 999;
+		SettingsSectionLoadResult<BattleSettings> defensive =
+			store.Load(BattleSettingsCodec.SectionKey, codec);
+		if (defensive.Value.MorphRules.Count != 1 ||
+			defensive.Value.MorphRules[0].Value<int>("FutureRuleField") != 91)
+		{
+			return false;
+		}
+
+		// 不支持版本时回退默认并保留原文件。
+		string versionPath = Path.Combine(root, "typed-battle-version.json");
+		WriteJson(versionPath, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["battle"] = new JObject { ["Version"] = 2 }
+			}
+		});
+		byte[] versionBefore = File.ReadAllBytes(versionPath);
+		SettingsSectionLoadResult<BattleSettings> unsupported =
+			new JsonSettingsSectionStore(versionPath).Load(BattleSettingsCodec.SectionKey, codec);
+		if (!unsupported.UsedDefault || string.IsNullOrWhiteSpace(unsupported.Error) ||
+			!IsDefaultBattle(unsupported.Value) ||
+			!versionBefore.SequenceEqual(File.ReadAllBytes(versionPath)))
+		{
+			return false;
+		}
+
+		// 错误类型字段时回退默认并保留原文件。
+		string invalidPath = Path.Combine(root, "typed-battle-invalid.json");
+		WriteJson(invalidPath, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["battle"] = new JObject
+				{
+					["Version"] = 1,
+					["HideDamageNumbers"] = "invalid",
+					["MorphRules"] = new JArray()
+				}
+			}
+		});
+		byte[] invalidBefore = File.ReadAllBytes(invalidPath);
+		SettingsSectionLoadResult<BattleSettings> invalid =
+			new JsonSettingsSectionStore(invalidPath).Load(BattleSettingsCodec.SectionKey, codec);
+		if (!invalid.UsedDefault || string.IsNullOrWhiteSpace(invalid.Error) ||
+			!IsDefaultBattle(invalid.Value) || !invalidBefore.SequenceEqual(File.ReadAllBytes(invalidPath)))
+		{
+			return false;
+		}
+
+		// MorphRules 非数组时拒绝并回退。
+		string rulesPath = Path.Combine(root, "typed-battle-rules.json");
+		WriteJson(rulesPath, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["battle"] = new JObject
+				{
+					["Version"] = 1,
+					["MorphRules"] = "invalid"
+				}
+			}
+		});
+		byte[] rulesBefore = File.ReadAllBytes(rulesPath);
+		SettingsSectionLoadResult<BattleSettings> badRules =
+			new JsonSettingsSectionStore(rulesPath).Load(BattleSettingsCodec.SectionKey, codec);
+		if (!badRules.UsedDefault || string.IsNullOrWhiteSpace(badRules.Error) ||
+			!rulesBefore.SequenceEqual(File.ReadAllBytes(rulesPath)))
+		{
+			return false;
+		}
+
+		// 旧 SchemaVersion 5 迁移时建立 Battle Version 1 默认 Section。
+		string legacyPath = Path.Combine(root, "typed-battle-legacy.json");
+		WriteJson(legacyPath, new JObject
+		{
+			["SchemaVersion"] = 5,
+			["SelectedThemeId"] = 1,
+			["PetMorphEnabled"] = false,
+			["PetMorphLiveBridgeEnabled"] = true,
+			["PetMorphRules"] = new JArray()
+		});
+		JsonSettingsSectionStore legacyStore = new JsonSettingsSectionStore(legacyPath);
+		SettingsSectionLoadResult<BattleSettings> migrated =
+			legacyStore.Load(BattleSettingsCodec.SectionKey, codec);
+		if (migrated.UsedDefault || !migrated.LegacyDocumentMigrated ||
+			!IsDefaultBattle(migrated.Value) || HasUtf8Bom(legacyPath))
+		{
+			return false;
+		}
+		JObject migratedDoc = JObject.Parse(File.ReadAllText(legacyPath, Encoding.UTF8));
+		JObject battle = (JObject)migratedDoc["Sections"]["battle"];
+		if (battle.Value<int>("Version") != 1 ||
+			battle.Value<bool>("HideDamageNumbers") || battle.Value<bool>("HideHealingNumbers") ||
+			battle.Value<bool>("SkipPetAttackActions") || battle.Value<int>("FightSkillEffect") != 0 ||
+			((JArray)battle["MorphRules"]).Count != 0)
+		{
+			return false;
+		}
+
+		// Theme、PetMorph、Battle 任意顺序独立保存互不覆盖，未知 Section 保留。
+		string orderPath = Path.Combine(root, "typed-battle-order.json");
+		WriteJson(orderPath, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["theme"] = new JObject
+				{
+					["Version"] = 1,
+					["SelectedThemeId"] = 2,
+					["UnknownThemeField"] = "keep-theme"
+				},
+				["petMorph"] = new JObject
+				{
+					["Version"] = 1,
+					["Enabled"] = true,
+					["LiveBridgeEnabled"] = false,
+					["Rules"] = new JArray()
+				},
+				["futureModule"] = new JObject { ["Version"] = 7, ["Value"] = 99 }
+			}
+		});
+		JsonSettingsSectionStore orderStore = new JsonSettingsSectionStore(orderPath);
+		PetMorphSettingsCodec petMorphCodec = new PetMorphSettingsCodec();
+		if (!orderStore.Save(
+			BattleSettingsCodec.SectionKey,
+			new BattleSettings(true, true, true, 5, Array.Empty<JObject>()),
+			codec).Succeeded ||
+			!orderStore.Save(ThemeSettingsCodec.SectionKey, new ThemeSettings(6), themeCodec).Succeeded ||
+			!orderStore.Save(
+				PetMorphSettingsCodec.SectionKey,
+				new PetMorphSettings(false, true, Array.Empty<PetMorphRuleSettings>()),
+				petMorphCodec).Succeeded ||
+			!orderStore.Save(
+				BattleSettingsCodec.SectionKey,
+				new BattleSettings(false, false, false, 0, Array.Empty<JObject>()),
+				codec).Succeeded)
+		{
+			return false;
+		}
+		JObject ordered = JObject.Parse(File.ReadAllText(orderPath, Encoding.UTF8));
+		JObject orderedSections = (JObject)ordered["Sections"];
+		JObject orderedBattle = (JObject)orderedSections["battle"];
+		if (orderedSections["theme"].Value<int>("SelectedThemeId") != 6 ||
+			orderedSections["theme"].Value<string>("UnknownThemeField") != "keep-theme" ||
+			orderedSections["petMorph"].Value<bool>("Enabled") ||
+			!orderedSections["petMorph"].Value<bool>("LiveBridgeEnabled") ||
+			orderedSections["futureModule"].Value<int>("Value") != 99 ||
+			orderedBattle.Value<bool>("HideDamageNumbers") ||
+			orderedBattle.Value<bool>("HideHealingNumbers") ||
+			orderedBattle.Value<bool>("SkipPetAttackActions") ||
+			orderedBattle.Value<int>("FightSkillEffect") != 0 ||
+			HasUtf8Bom(orderPath))
+		{
+			return false;
+		}
+
+		// 损坏的 battle Section 回退默认且不影响其他 Section。
+		string corruptPath = Path.Combine(root, "typed-battle-corrupt.json");
+		WriteJson(corruptPath, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["battle"] = "not-an-object",
+				["theme"] = new JObject { ["Version"] = 1, ["SelectedThemeId"] = 3 }
+			}
+		});
+		JsonSettingsSectionStore corruptStore = new JsonSettingsSectionStore(corruptPath);
+		SettingsSectionLoadResult<BattleSettings> corruptBattle =
+			corruptStore.Load(BattleSettingsCodec.SectionKey, codec);
+		SettingsSectionLoadResult<ThemeSettings> intactTheme =
+			corruptStore.Load(ThemeSettingsCodec.SectionKey, themeCodec);
+		if (!corruptBattle.UsedDefault || string.IsNullOrWhiteSpace(corruptBattle.Error) ||
+			!IsDefaultBattle(corruptBattle.Value) ||
+			intactTheme.UsedDefault || intactTheme.Value.SelectedThemeId != 3)
+		{
+			return false;
+		}
+
+		// 保存失败不破坏旧文件。
+		string failurePath = Path.Combine(root, "typed-battle-failure.json");
+		WriteJson(failurePath, new JObject
+		{
+			["DocumentVersion"] = 1,
+			["Sections"] = new JObject
+			{
+				["battle"] = new JObject { ["Version"] = 1, ["FightSkillEffect"] = 1 }
+			}
+		});
+		byte[] failureBefore = File.ReadAllBytes(failurePath);
+		SettingsSectionSaveResult failed = new JsonSettingsSectionStore(
+			failurePath,
+			new FailingSettingsWriter(),
+			new LegacySettingsMigrator()).Save(
+			BattleSettingsCodec.SectionKey,
+			new BattleSettings(false, false, false, 7, Array.Empty<JObject>()),
+			codec);
+		return !failed.Succeeded && !string.IsNullOrWhiteSpace(failed.Error) &&
+			failureBefore.SequenceEqual(File.ReadAllBytes(failurePath));
+	}
+
+	private static bool IsDefaultBattle(BattleSettings value)
+	{
+		return value != null &&
+			!value.HideDamageNumbers &&
+			!value.HideHealingNumbers &&
+			!value.SkipPetAttackActions &&
+			value.FightSkillEffect == 0 &&
+			value.MorphRules != null &&
+			value.MorphRules.Count == 0;
 	}
 
 	private static bool VerifyProductionThemeAndPetMorphMigration(string root)
