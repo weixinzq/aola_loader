@@ -5,17 +5,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using CefSharp;
 using CefSharp.Handler;
+using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.ResourceInterception;
 using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.Features.Theme.ResourceInterception;
-using AolaLoader.ResourceInterception.Cef;
 using AolaLoader.ResourceInterception.Contracts;
 using AolaLoader.ResourceInterception.Pipeline;
 
-namespace AolaLoader;
+namespace AolaLoader.ResourceInterception.Cef;
 
-internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionTarget, IPetMorphRuleTarget
+internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelectionTarget, IPetMorphRuleTarget
 {
 	private const int HiddenPetMovieTemplateId = 6025;
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
@@ -29,11 +29,11 @@ internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionT
 	private readonly AolaPetPosterCatalog _posterCatalog;
 	private readonly bool _petMorphLiveBridgeEnabled;
 
-	public AolaThemeRequestHandler(
+	public AolaResourceRequestHandler(
 		string themeDirectory,
-		string posterCatalogPath = null,
-		string petPackageLiveTemplatePath = null,
-		bool petMorphLiveBridgeEnabled = true)
+		string posterCatalogPath,
+		string petPackageLiveTemplatePath,
+		bool petMorphLiveBridgeEnabled)
 	{
 		_themeRule = new ThemeLeafResourceRule(themeDirectory);
 		_petMorphLiveBridgeEnabled = petMorphLiveBridgeEnabled;
@@ -48,18 +48,12 @@ internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionT
 			new RemoteResourcePlanExecutor(_remoteResourceProbe, new HttpRemoteResourceFetcher()));
 	}
 
-	public int SelectedThemeId
+	void IThemeSelectionTarget.SetSelectedThemeId(int themeId)
 	{
-		get => _themeRule.SelectedThemeId;
-		set => _themeRule.SelectedThemeId = value;
+		_themeRule.SelectedThemeId = themeId == 0 ? -1 : themeId;
 	}
 
-	public void SetSelectedThemeId(int themeId)
-	{
-		SelectedThemeId = themeId == 0 ? -1 : themeId;
-	}
-
-	public void SetPetMorphRules(IEnumerable<AolaPetMorphRule> rules, bool enabled)
+	void IPetMorphRuleTarget.SetRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
 	{
 		AolaPetMorphRule[] snapshot = (rules ?? Enumerable.Empty<AolaPetMorphRule>())
 			.Select(rule => new AolaPetMorphRule(
@@ -70,14 +64,7 @@ internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionT
 		_petPosterRule.SetRules(snapshot, enabled);
 	}
 
-	public bool IsPetMorphLiveBridgeAvailable => _petPackageRule.IsAvailable;
-
-	bool IPetMorphRuleTarget.IsLiveBridgeAvailable => IsPetMorphLiveBridgeAvailable;
-
-	void IPetMorphRuleTarget.SetRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
-	{
-		SetPetMorphRules(rules, enabled);
-	}
+	bool IPetMorphRuleTarget.IsLiveBridgeAvailable => _petPackageRule.IsAvailable;
 
 	string IPetMorphRuleTarget.ValidateRule(AolaPetMorphRule rule)
 	{
@@ -91,7 +78,7 @@ internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionT
 		return GetAvailableLivePosterMappingsAsync(rules, enabled);
 	}
 
-	public async Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+	private async Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
 		IEnumerable<AolaPetMorphRule> rules,
 		bool enabled)
 	{
@@ -136,7 +123,7 @@ internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionT
 			.ToDictionary(pair => pair.Key, pair => pair.Value);
 	}
 
-	public string ValidatePetMorphRule(AolaPetMorphRule rule)
+	private string ValidatePetMorphRule(AolaPetMorphRule rule)
 	{
 		if (rule == null || (rule.BackpackId <= 0 && rule.PosterId <= 0 &&
 			!rule.HideOriginalModel && !rule.RemoveOriginalBackground && !rule.ReplaceBackpackIcon))

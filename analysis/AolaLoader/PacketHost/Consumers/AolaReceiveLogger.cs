@@ -9,7 +9,7 @@ using AolaSocketHack.Contracts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace AolaLoader;
+namespace AolaLoader.PacketHost.Consumers;
 
 internal sealed class AolaReceiveLogger : IDisposable
 {

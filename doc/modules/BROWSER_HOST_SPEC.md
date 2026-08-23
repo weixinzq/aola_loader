@@ -1,6 +1,6 @@
 # BrowserHost
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/BrowserHost/**`
 
@@ -58,5 +58,4 @@ Cef 回调按框架线程规则进入；对外事件不承诺 UI 线程。会话
 
 ## 已知限制
 
-阶段 2 已实现 `IBrowserSession`、页面/脚本结果、`IPageBridge` 和手动测试替身。当前 Cef 初始化、浏览器控件、frame 回调和 `AolaPetMorphLiveBridge` 仍在旧生产路径；Cef 适配器与消费者迁移尚未开始，因此模块整体继续标记为 `Target`。原任务目录示例遗漏了本规格，依据核心模块 8.2 与目标模块图补齐。
-
+阶段 2 已实现 `IBrowserSession`、页面/脚本结果、`IPageBridge` 和手动测试替身；阶段 6 已迁入 `AolaCefInitializer` 与 `AolaBrowserSession` 生产适配器。阶段 7 将功能特定的 PetMorph Cef 推送适配器收口到 `AppShell/Adapters/PetMorph`，BrowserHost 不反向依赖具体功能。阶段 9 已验证真实默认启动/登录、导航刷新、Flash frame 回调、新进程与缓存路径。浏览器控件和兼容探针仍由 AppShell 持有，这是已记录的运行集成，不改变 BrowserHost 边界。

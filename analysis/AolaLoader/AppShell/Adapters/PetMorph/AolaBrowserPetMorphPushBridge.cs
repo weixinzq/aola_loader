@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AolaLoader.Features.PetMorph.Coordination;
 using CefSharp;
 
-namespace AolaLoader;
+namespace AolaLoader.AppShell.Adapters.PetMorph;
 
 /// <summary>
 /// Cef adapter that satisfies the PetMorph push seam with the live bridge and the

@@ -2,32 +2,9 @@
 
 ## 状态与范围
 
-本文区分源码证明的 **Current** 与尚待迁移验证的 **Target**。字段、哈希、实机记录和逆向细节分别路由到模块规格、`task/` 与 `analysis/reverse-engineering/`。
+本文描述阶段 9 验收后的已实现架构。字段、哈希、实机记录和逆向细节分别路由到模块规格、`task/` 与 `analysis/reverse-engineering/`。
 
-## Current：当前顶层架构
-
-```text
-AolaLoader.exe / WinForms UI
-  AolaMainForm
-    -> ChromiumWebBrowser + CefSharp 初始化
-    -> AolaThemeRequestHandler（主题、形态、探测、回退、转换）
-    -> AolaSettingsStore（单一 SchemaVersion 5 文档）
-    -> AolaHookController
-    -> AolaReceiveLogger / AolaBattleStateTracker / 子窗口
-    -> AolaHookHostService 静态事件
-
-CefSharp network subprocess
-  -> AolaSocketHack.dll
-     -> Winsock Hooks -> TCP 重组 -> Aola/AMF3 协议
-     -> AolaSidecarSender（独立游戏连接）
-
-AolaSocketHack.Contracts
-  -> 跨进程 DTO、静态宿主事件和有界待发队列
-```
-
-当前源码的主要耦合点是：主窗体承担组合与业务协调；`AolaThemeRequestHandler` 同时拥有多类资源规则；日志、战斗 Tracker、抓包窗体和主窗体直接订阅静态 IPC 事件；主题和形态共享一个可变设置对象。现有行为细节见各模块规格的“已知限制”。
-
-## Target：目标顶层架构
+## 当前顶层架构
 
 ```text
 AolaLoader.exe
@@ -46,10 +23,10 @@ CefSharp network subprocess
 └─ AolaSocketHack       Hooking / Capture / Protocol / SidecarSend / Metrics
 
 AolaSocketHack.Contracts
-└─ 仅跨进程 DTO 与 remoting 边界
+└─ 跨进程 DTO、remoting 事件与有界待发队列
 ```
 
-第一轮仍使用现有 `AolaLoader.csproj`。先用目录和契约建立边界，再逐模块迁移；不同时进行程序集拆分、全量命名空间迁移和行为重写。
+第一轮继续使用现有 `AolaLoader.csproj`，通过物理目录、命名空间、构造函数注入和源码守卫建立边界；没有引入 DI 框架或不必要的程序集拆分。
 
 ## 允许的依赖方向
 
@@ -60,7 +37,7 @@ Feature resource rule -> ResourceInterception contracts -> SWF transformer
 AolaSocketHack -> Protocol + AolaSocketHack.Contracts
 ```
 
-禁止 `AolaSocketHack -> AolaLoader UI/Settings/CefSharp`。除 `AolaHookHostAdapter` 和 IPC 初始化外，宿主代码最终不得直接订阅 `AolaHookHostService` 静态事件。功能模块不得取得整个可变设置文档。
+禁止 `AolaSocketHack -> AolaLoader UI/Settings/CefSharp`。除 `AolaHookHostAdapter` 和 IPC 初始化外，宿主代码不得直接订阅 `AolaHookHostService` 静态事件。功能模块不得取得整个可变设置文档。
 
 ## 进程、线程与生命周期
 
@@ -95,9 +72,10 @@ UI structured request -> PacketHost -> bounded IPC queue
 ### 浏览器资源
 
 ```text
-Cef request -> CefRequestAdapter -> ordered ResourceRulePipeline
+Cef request -> AolaResourceRequestHandler / Cef adapter -> ordered ResourceRulePipeline
   -> PassThrough | LocalResponse | RemoteTransform
-  -> precise probe / bounded buffering / SWF contract validation
+  -> precise probe / bounded buffering / bounded FWS/CWS/ZWS decode
+  -> SWF class/bitmap contract validation
   -> transformed response or explicit original-resource fallback
 ```
 
@@ -111,8 +89,8 @@ Cef request -> CefRequestAdapter -> ordered ResourceRulePipeline
 - 规则关闭、未命中、探测失败或候选无效时保持/恢复官方资源。冲突必须确定性处理，不能依赖注册时机。
 - 设置按 Section 原子保存；损坏 Section 回退模块默认值，未知 Section/字段尽量保留，旧文件不可因保存失败而损坏。
 
-## 迁移与验证策略
+## 验证状态
 
-接口先冻结为 ContractVersion 1，再按资源管线、PacketHost、Section 设置、功能协调器、CompositionRoot 的顺序迁移。每批保持可构建、可验证、可回退；所有消费者迁移后才删除兼容路径。
+ContractVersion 1 边界、资源管线、PacketHost、Section 设置、功能协调器、CompositionRoot、目录/命名空间和兼容路径清理均已完成。阶段 9 已通过 Release 构建、全部自测、PCAP/主动发送基线，以及真实默认/替换 Flash、设置、日志、发包、战斗和窗口生命周期验证。
 
-模块状态见 [`modules/`](modules/)，跨模块理由见 [`decisions/`](decisions/)，当前阶段基线见 [`../task/update/restruct-baseline-20260821.md`](../task/update/restruct-baseline-20260821.md)。静态验证、构建、PCAP/主动发送和真实 Flash 运行是不同层级；只有所需实机路径完成后，模块规格才能从 `Target` 更新为 `Implemented`。
+模块状态见 [`modules/`](modules/)，跨模块理由见 [`decisions/`](decisions/)，最终证据见 [`../task/update/restruct-stage9-validation-20260823.md`](../task/update/restruct-stage9-validation-20260823.md)。静态验证、构建、PCAP/主动发送和真实 Flash 运行仍是不同层级；后续变更必须按受影响层级重新验证。

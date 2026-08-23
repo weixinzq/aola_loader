@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AolaLoader.Features.Battle.State;
 using AolaLoader.PacketHost;
 using AolaSocketHack.Contracts;
 
-namespace AolaLoader;
+namespace AolaLoader.Features.Battle.State;
 
 internal sealed class AolaBattleStateTracker : IBattleStateSource
 {

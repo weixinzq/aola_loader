@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Text;
 using SharpCompress.Compressors.LZMA;
 
-namespace AolaLoader;
+namespace AolaLoader.ResourceInterception.Transformers;
 
 internal static class AolaSwfClassAdapter
 {
@@ -86,7 +86,7 @@ internal static class AolaSwfClassAdapter
 		return IsValidFws(adapted);
 	}
 
-	private static bool TryDecodeToFws(byte[] content, out byte[] fws)
+	internal static bool TryDecodeToFws(byte[] content, out byte[] fws)
 	{
 		fws = null;
 		if (content == null || content.Length < 8 || content.Length > MaximumSwfBytes)

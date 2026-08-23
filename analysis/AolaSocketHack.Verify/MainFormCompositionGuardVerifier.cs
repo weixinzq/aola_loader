@@ -15,7 +15,7 @@ internal static class MainFormCompositionGuardVerifier
 		"new AolaHookHostAdapter(",
 		"new AolaReceiveLogger(",
 		"new AolaBattleStateTracker(",
-		"new AolaThemeRequestHandler(",
+		"new AolaResourceRequestHandler(",
 		"new ThemeCoordinator(",
 		"new PetMorphCoordinator(",
 		"new ChildWindowCoordinator(",
@@ -54,6 +54,7 @@ internal static class MainFormCompositionGuardVerifier
 			repositoryRoot,
 			"analysis",
 			"AolaLoader",
+			"AppShell",
 			"AolaMainForm.cs");
 		if (!File.Exists(mainFormPath))
 		{

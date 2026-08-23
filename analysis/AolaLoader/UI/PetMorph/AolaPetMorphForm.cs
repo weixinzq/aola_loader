@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using AolaLoader.Features.PetMorph;
+using AolaLoader.UI.Common;
 
-namespace AolaLoader;
+namespace AolaLoader.UI.PetMorph;
 
 internal sealed class AolaPetMorphForm : AolaFormBase
 {

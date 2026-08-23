@@ -53,6 +53,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("MainForm composition guard: PASS");
+		if (!CompatibilityPathSourceGuardVerifier.Verify())
+		{
+			Console.Error.WriteLine("Compatibility path source guard: FAIL");
+			return 1;
+		}
+		Console.WriteLine("Compatibility path source guard: PASS");
 		if (!ResourceInterceptionContractVerifier.Verify())
 		{
 			Console.Error.WriteLine("ResourceInterception contract self-test: FAIL");

@@ -1,6 +1,6 @@
 # ResourceInterception
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/ResourceInterception/**`
 
@@ -60,4 +60,4 @@ Theme、PetMorph 现有分支全部成为独立规则；入口只做适配/管�
 
 ## 已知限制
 
-阶段 3 已实现框架无关 `ResourceRulePipeline`、受界响应处理、共享 SWF 头验证器、HTTP 探测/完整抓取、成功/失败 TTL 缓存，以及本地和远程计划的 Cef 适配执行。Theme、版本锁定的 Pet package、PetMovie 和 Poster 均已迁移为独立规则；`AolaThemeRequestHandler` 仅保留兼容类型、规则注册、规则快照转发、校验和实时海报可用性查询。候选已通过静态 SWF/FFDec 验证，但本轮没有完成真实 Flash 的默认、替换、关闭重开和新进程路径验证，因此模块整体继续标记为 `Target`。
+框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Theme、Pet package、PetMovie 与 Poster 是独立规则。纯算法位于 `ResourceInterception/Transformers`，Cef 入口位于 `ResourceInterception/Cef`；`AolaResourceRequestHandler` 只注册规则、实现协调接口并转交管线。阶段 9 已验证默认、替换、刷新、窗口重开和新进程路径，并修复远端 CWS/ZWS 未先解为受界 FWS 就进入等长适配的问题；压缩回归自测、真实四分片 FFDec 复读和 PPAPI Flash 运行均通过。

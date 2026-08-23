@@ -7,7 +7,7 @@ using CefSharp;
 using AolaLoader.Features.PetMorph.Coordination;
 using Newtonsoft.Json;
 
-namespace AolaLoader;
+namespace AolaLoader.AppShell.Adapters.PetMorph;
 
 internal sealed class AolaPetMorphLiveBridge
 {

@@ -56,7 +56,7 @@ internal sealed class AolaSwfResourceTransformer : IResourceResponseTransformer
 		byte[] output = null;
 		if (_structuralClassAdaptation)
 		{
-			if (!global::AolaLoader.AolaSwfClassAdapter.TryAdapt(
+			if (!AolaSwfClassAdapter.TryAdapt(
 				remote,
 				Encoding.ASCII.GetString(_sourceToken),
 				Encoding.ASCII.GetString(_targetToken),
@@ -69,15 +69,21 @@ internal sealed class AolaSwfResourceTransformer : IResourceResponseTransformer
 		}
 		else
 		{
+			if (!AolaSwfClassAdapter.TryDecodeToFws(remote, out byte[] fws))
+			{
+				return ResourceTransformResult.Reject(
+					"swf.decode_failed",
+					"SWF response could not be decoded to a complete bounded FWS document.");
+			}
 			bool requiresScale = Math.Abs(_scaleFactor - 1) >= 0.0001 &&
-				CountOccurrences(remote, _sourceToken) > 0;
-			if (!TryAdaptFws(remote, _sourceToken, _targetToken, _expectedCount, out byte[] adapted))
+				CountOccurrences(fws, _sourceToken) > 0;
+			if (!TryAdaptFws(fws, _sourceToken, _targetToken, _expectedCount, out byte[] adapted))
 			{
 				return ResourceTransformResult.Reject(
 					"swf.class_contract_failed",
 					"SWF class token count or FWS contract did not match.");
 			}
-			if (requiresScale && !global::AolaLoader.AolaSwfBitmapScaler.TryScaleFws(
+			if (requiresScale && !AolaSwfBitmapScaler.TryScaleFws(
 				adapted,
 				_scaleFactor,
 				out output))
@@ -93,7 +99,7 @@ internal sealed class AolaSwfResourceTransformer : IResourceResponseTransformer
 		}
 
 		if (_makeBitmapsTransparent &&
-			!global::AolaLoader.AolaSwfBitmapScaler.TryMakeTransparentFws(output, out output))
+			!AolaSwfBitmapScaler.TryMakeTransparentFws(output, out output))
 		{
 			return ResourceTransformResult.Reject(
 				"swf.transparency_failed",

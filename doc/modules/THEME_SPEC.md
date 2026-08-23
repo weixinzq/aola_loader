@@ -1,6 +1,6 @@
 # Theme
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/Features/Theme/**`, `analysis/AolaLoader/Resources/Themes/**`
 
@@ -58,4 +58,4 @@ CefSharp 具体类型、PetMorph/Battle 内部实现、PacketHost 和服务器�
 
 ## 已知限制
 
-阶段 6 已建立 `IThemeCoordinator`/`ThemeCoordinator`，冻结主题选项、当前快照、`ApplyToRule`/`ApplyAndSave` 与结构化 `ThemeChangeResult`；主窗体的主题读取、菜单选项、切换和 Section 保存已迁到协调器，`AolaThemeRequestHandler` 只实现 `IThemeSelectionTarget` 缝隙。`ThemeLeafResourceRule` 已独立于 Cef 入口。真实默认/替换主题、刷新与新进程缓存路径仍待阶段 9 实机验证，因此模块整体继续标记为 `Target`。
+`IThemeCoordinator`/`ThemeCoordinator` 拥有主题选项、当前快照、`ApplyToRule`/`ApplyAndSave` 与结构化结果；主窗体只转发选择，`AolaResourceRequestHandler` 通过 `IThemeSelectionTarget` 接入，`ThemeLeafResourceRule` 独立于 Cef。阶段 9 已验证默认不拦截、替换主题、刷新、窗口重开与新进程缓存路径；本地替换不发送服务器主题状态命令。

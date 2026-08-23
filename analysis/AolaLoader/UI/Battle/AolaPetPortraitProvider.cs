@@ -2,8 +2,9 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using AolaLoader.Features.Battle.State;
 
-namespace AolaLoader;
+namespace AolaLoader.UI.Battle;
 
 internal interface IAolaPetPortraitProvider
 {

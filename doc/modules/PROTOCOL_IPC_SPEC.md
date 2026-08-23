@@ -1,6 +1,6 @@
 # Protocol 与 IPC
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaSocketHack/Protocol/**`, `analysis/AolaSocketHack/Hooking/AolaSidecarSender.cs`, `analysis/AolaSocketHack.Contracts/**`, `analysis/AolaSocketHack.Verify/**`
 
@@ -58,5 +58,4 @@ PCAP 保持 `exportable=164 failures=0` 及全部布尔基线；依赖方向守�
 
 ## 已知限制
 
-当前静态事件仍位于 Contracts 兼容边界；宿主迁移前保留，不在本阶段改破坏性 IPC 契约。
-
+静态 remoting 事件保留在 Contracts 跨进程边界，宿主只由 `AolaHookHostAdapter` 单点订阅。阶段 9 已验证真实捕获、登录脱敏、独立连接发包和战斗消费；当前无需破坏性更换 IPC 契约。

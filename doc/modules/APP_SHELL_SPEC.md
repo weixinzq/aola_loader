@@ -1,6 +1,6 @@
 # AppShell
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/AppShell/**`, `analysis/AolaLoader/UI/**`
 
@@ -60,4 +60,4 @@ AppShell 不拥有功能设置，只调用各协调器的加载/保存入口。�
 
 ## 已知限制
 
-阶段 6 已提供 `AolaBrowserSession`、`ChildWindowCoordinator` 与 `AolaCompositionRoot`：`Program.Main` 只做进程初始化、创建 CompositionRoot、运行主窗体并最终释放；长期服务全部由组合根构造，主窗体构造函数只接收已构造依赖。`AolaMainForm` 目前只保留控件布局、菜单/工具栏命令、状态呈现与命令转发，另保留两项已记录的运行集成：Hook 注入轮询（`EnsureHookInjected`，状态呈现的一部分）与 `FrameLoadEnd` 的 Flash 兼容探针/形态推送；这两项的服务化归属在后续阶段评估。`MainForm composition guard` 同时禁止主窗体构造长期服务/Cef 基础设施，以及引用协议解析、SWF 转换、设置 JSON 实现、`AolaHookHostService` 静态事件和 EasyHook 类型。真实启动、登录、主题/形态与子窗口路径仍需阶段 9 实机验证，本契约整体继续标记为 `Target`。
+`AolaBrowserSession`、`ChildWindowCoordinator` 与 `AolaCompositionRoot` 已落地：`Program.Main` 只做进程初始化、创建 CompositionRoot、运行主窗体并最终释放；长期服务由组合根构造，主窗体只接收已构造依赖。共同窗口基类位于 `UI/Common`，`AolaHookController` 与 `AolaMainForm` 位于 `AppShell`。主窗体保留控件布局、命令转发、状态呈现，以及两项已记录的运行集成：Hook 注入轮询和 `FrameLoadEnd` Flash 兼容探针/形态推送。阶段 9 已验证真实启动/登录、子窗口关闭重开、最小化恢复和新进程路径；源码守卫继续禁止组合边界退化。

@@ -3,8 +3,9 @@ using System.IO;
 using System.Text;
 using CefSharp;
 using AolaLoader.ResourceInterception.Pipeline;
+using AolaLoader.ResourceInterception.Transformers;
 
-namespace AolaLoader;
+namespace AolaLoader.ResourceInterception.Cef;
 
 internal sealed class AolaSwfResponseFilter : IResponseFilter
 {

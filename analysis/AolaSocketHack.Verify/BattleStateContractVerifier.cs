@@ -1,5 +1,5 @@
 using System;
-using AolaLoader;
+using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.Battle.State.Testing;
 using AolaLoader.PacketHost.Testing;
 using AolaSocketHack.Contracts;

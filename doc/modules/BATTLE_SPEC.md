@@ -1,6 +1,6 @@
 # Battle
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/Features/Battle/**`, `analysis/AolaLoader/UI/Battle/**`
 
@@ -58,4 +58,4 @@ State/UI/Presentation 物理边界清晰，Tracker 只依赖 PacketHost，F3 与
 
 ## 已知限制
 
-ContractVersion 1 已冻结；阶段 4 已让生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不再直接订阅静态 IPC。阶段 5 已建立 `battle` Section 正式边界：`BattleSettings`/`BattleSettingsCodec`（Version 1，只含默认禁用的预留表现字段），旧 SchemaVersion 5 迁移与 Section store 均使用该 codec；当前没有 Battle 设置消费者，未实现任何表现功能。文件仍平铺，头像 provider 仍生成占位图，战斗 Presentation 尚未实现，真实战斗运行回归仍待完成。
+ContractVersion 1 已冻结；生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不直接订阅静态 IPC。`battle` Section 使用 `BattleSettings`/`BattleSettingsCodec` Version 1；模型、解析器和 tracker 位于 `Features/Battle/State`，F3 窗体和头像 provider 位于 `UI/Battle`。阶段 9 已在真实战斗中验证完整 roster、场外亚比、最终六维、技能 PP/CD、结束重置和窗口关闭重开。头像 provider 仍按 View ID/名称生成占位图，Battle Presentation 仍是未扩展的可选边界，不属于本轮迁移缺口。

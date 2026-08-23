@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Text;
 using AolaLoader.ResourceInterception.Pipeline;
 
-namespace AolaLoader;
+namespace AolaLoader.ResourceInterception.Transformers;
 
 internal static class AolaSwfBitmapScaler
 {

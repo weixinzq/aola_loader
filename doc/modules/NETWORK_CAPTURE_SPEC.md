@@ -1,6 +1,6 @@
 # NetworkCapture
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaSocketHack/Hooking/**`, `analysis/AolaSocketHack/Transport/**`
 
@@ -58,5 +58,4 @@ Hook 回调只复制至多 16 MiB 并 `TryAdd` 到 4096 项队列。后台 worke
 
 ## 已知限制
 
-当前捕获实现已具备主要运行语义；本阶段只冻结契约，尚未完成目录/命名空间审计。
-
+捕获实现与独立项目边界已完成审计。阶段 9 已在真实登录、抓包、日志、独立发包和战斗中验证运行路径；PCAP 继续覆盖碎片/粘包、分类、边界、清理和 sidecar 排除。

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace AolaLoader;
+namespace AolaLoader.Features.Battle.State;
 
 internal sealed class AolaBattleSnapshot
 {

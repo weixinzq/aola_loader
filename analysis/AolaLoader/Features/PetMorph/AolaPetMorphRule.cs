@@ -1,4 +1,4 @@
-namespace AolaLoader;
+namespace AolaLoader.Features.PetMorph;
 
 internal sealed class AolaPetMorphRule
 {

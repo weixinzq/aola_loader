@@ -1,6 +1,8 @@
 using System;
+using AolaLoader.Features.PetMorph;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +12,7 @@ using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Contracts;
 using AolaLoader.ResourceInterception.Pipeline;
 using AolaLoader.ResourceInterception.Testing;
+using AolaLoader.ResourceInterception.Transformers;
 
 namespace AolaSocketHack.Verify;
 
@@ -20,6 +23,7 @@ internal static class ResourceInterceptionContractVerifier
 		return VerifyRequestContext() &&
 			VerifyPlansAndRuleDouble() &&
 			VerifyTransformContracts() &&
+			VerifyCompressedSwfTransform() &&
 			VerifyProbeContracts() &&
 			VerifyRulePipeline() &&
 			VerifyBoundedResponseProcessor() &&
@@ -154,6 +158,49 @@ internal static class ResourceInterceptionContractVerifier
 			success.Succeeded && success.Content[0] == 7 && success.Content[1] == 8 &&
 			string.IsNullOrEmpty(success.RejectionCode) &&
 			Throws<ArgumentException>(() => ResourceTransformResult.Reject(null, "invalid"));
+	}
+
+	private static bool VerifyCompressedSwfTransform()
+	{
+		const string sourceToken = "PetMovie6044";
+		const string targetToken = "PetMovie6000";
+		byte[] sourceBytes = Encoding.ASCII.GetBytes(sourceToken);
+		byte[] fws = new byte[8 + sourceBytes.Length];
+		fws[0] = (byte)'F';
+		fws[1] = (byte)'W';
+		fws[2] = (byte)'S';
+		fws[3] = 18;
+		Buffer.BlockCopy(BitConverter.GetBytes((uint)fws.Length), 0, fws, 4, 4);
+		Buffer.BlockCopy(sourceBytes, 0, fws, 8, sourceBytes.Length);
+
+		byte[] cws;
+		using (MemoryStream output = new MemoryStream())
+		{
+			output.WriteByte((byte)'C');
+			output.WriteByte((byte)'W');
+			output.WriteByte((byte)'S');
+			output.WriteByte(fws[3]);
+			output.Write(fws, 4, 4);
+			using (DeflateStream deflate = new DeflateStream(output, CompressionMode.Compress, true))
+			{
+				deflate.Write(fws, 8, fws.Length - 8);
+			}
+			cws = output.ToArray();
+		}
+
+		AolaSwfResourceTransformer transformer = new AolaSwfResourceTransformer(
+			sourceToken,
+			targetToken,
+			1,
+			1);
+		ResourceTransformResult result = transformer.Transform(new ResourceTransformInput(
+			"https://aola.100bt.com/petmovie6044.swf",
+			200,
+			"application/x-shockwave-flash",
+			cws));
+		return result.Succeeded &&
+			SwfResponseHeaderValidator.IsValidCompleteFws(result.Content) &&
+			Encoding.ASCII.GetString(result.Content).Contains(targetToken);
 	}
 
 	private static bool VerifyProbeContracts()

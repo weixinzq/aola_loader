@@ -1,6 +1,6 @@
 # PetMorph
 
-Status: Target  
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/Features/PetMorph/**`, `analysis/AolaLoader/UI/PetMorph/**`, `analysis/AolaLoader/Resources/Patches/**`, `analysis/AolaLoader/Resources/Data/**`
 
@@ -58,4 +58,4 @@ Battle state/presentation、PacketHost、AolaMainForm、CefSharp/WinForms（UI �
 
 ## 已知限制
 
-阶段 6 已建立 `IPetMorphCoordinator`/`PetMorphCoordinator`：主窗体的规则应用、校验入口、Section 保存、资源规则更新和页面推送（含帧加载完成后的二次推送）已迁到协调器；`AolaThemeRequestHandler` 只实现 `IPetMorphRuleTarget` 缝隙，Cef 推送由 `AolaBrowserPetMorphPushBridge` 适配，`AolaPetMorphPushResult` 已移入 PetMorph 模块。部分 SWF 候选仅有静态证据，真实 PPAPI Flash 验证与热推送实机回归仍待阶段 9，模块整体保持 `Target`。
+`IPetMorphCoordinator`/`PetMorphCoordinator` 已拥有规则应用、校验、Section 保存、资源规则更新和页面推送；`AolaResourceRequestHandler` 仅通过 `IPetMorphRuleTarget` 接入。形态面板位于 `UI/PetMorph`，领域对象位于 `Features/PetMorph`，Cef 推送适配器位于 `AppShell/Adapters/PetMorph`。阶段 9 真实验证覆盖开关、保存、热推送、背景移除、头像替换、动态模型替换、窗口重开和新进程恢复。阶段 9 同时修复远程 PetMovie 为 ZWS 时被 FWS-only 转换器拒绝的问题；真实 6000→6044 四分片已通过运行和 FFDec 复读。

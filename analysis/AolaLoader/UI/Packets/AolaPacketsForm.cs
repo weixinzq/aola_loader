@@ -6,13 +6,13 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using AolaLoader.PacketHost;
-using AolaLoader.UI.Packets;
+using AolaLoader.UI.Common;
 using AolaSocketHack.Contracts;
 using AolaSocketHack.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace AolaLoader;
+namespace AolaLoader.UI.Packets;
 
 internal sealed class AolaPacketsForm : AolaFormBase
 {

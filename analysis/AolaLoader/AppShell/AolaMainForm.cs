@@ -8,16 +8,22 @@ using System.Management;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using AolaLoader.AppShell;
 using AolaLoader.BrowserHost.Contracts;
+using AolaLoader.Features.Battle.State;
+using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.PacketHost;
+using AolaLoader.PacketHost.Consumers;
+using AolaLoader.UI.Battle;
+using AolaLoader.UI.Common;
+using AolaLoader.UI.Packets;
+using AolaLoader.UI.PetMorph;
 using AolaSocketHack.Contracts;
 using CefSharp;
 using CefSharp.WinForms;
 
-namespace AolaLoader;
+namespace AolaLoader.AppShell;
 
 internal sealed class AolaMainForm : AolaFormBase
 {

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace AolaLoader;
+namespace AolaLoader.UI.Common;
 
 /// <summary>
 /// 所有窗口的基类：窗口被激活（例如用户点击）时提升到最上层，

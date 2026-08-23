@@ -1,12 +1,16 @@
 using System;
 using System.IO;
 using System.Windows.Forms;
+using AolaLoader.AppShell.Adapters.PetMorph;
 using AolaLoader.BrowserHost;
+using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.Settings;
 using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.Features.Theme.Settings;
 using AolaLoader.PacketHost;
+using AolaLoader.PacketHost.Consumers;
+using AolaLoader.ResourceInterception.Cef;
 using AolaLoader.Settings;
 using CefSharp;
 using CefSharp.WinForms;
@@ -23,7 +27,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 	private readonly AolaHookHostAdapter _packetEventSource;
 	private readonly AolaReceiveLogger _receiveLogger;
 	private readonly AolaBattleStateTracker _battleTracker;
-	private readonly AolaThemeRequestHandler _themeRequestHandler;
+	private readonly AolaResourceRequestHandler _resourceRequestHandler;
 	private readonly ThemeCoordinator _themeCoordinator;
 	private readonly PetMorphCoordinator _petMorphCoordinator;
 	private readonly ChromiumWebBrowser _browser;
@@ -47,7 +51,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 		_packetEventSource = new AolaHookHostAdapter();
 		_receiveLogger = new AolaReceiveLogger(_packetEventSource);
 		_battleTracker = new AolaBattleStateTracker(_packetEventSource);
-		_themeRequestHandler = new AolaThemeRequestHandler(
+		_resourceRequestHandler = new AolaResourceRequestHandler(
 			Path.Combine(baseDirectory, "Resources", "Themes"),
 			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"),
 			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-live.fws.swf"),
@@ -55,16 +59,16 @@ internal sealed class AolaCompositionRoot : IDisposable
 		_themeCoordinator = new ThemeCoordinator(
 			settingsStore,
 			new ThemeSettingsCodec(),
-			_themeRequestHandler);
+			_resourceRequestHandler);
 		_browser = new ChromiumWebBrowser(AolaMainForm.DefaultUrl)
 		{
 			Dock = DockStyle.Fill,
-			RequestHandler = _themeRequestHandler
+			RequestHandler = _resourceRequestHandler
 		};
 		_petMorphCoordinator = new PetMorphCoordinator(
 			settingsStore,
 			petMorphCodec,
-			_themeRequestHandler,
+			_resourceRequestHandler,
 			new AolaBrowserPetMorphPushBridge(
 				() => _browser.GetMainFrame(),
 				new AolaPetMorphLiveBridge()));

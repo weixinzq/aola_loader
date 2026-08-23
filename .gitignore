@@ -29,6 +29,16 @@
 !/task/update/restruct-settings-theme-codec-20260822.md
 !/task/update/restruct-settings-theme-production-20260822.md
 !/task/update/restruct-settings-petmorph-production-20260822.md
+!/task/update/restruct-directories-battle-20260823.md
+!/task/update/restruct-directories-packethost-consumers-20260823.md
+!/task/update/restruct-directories-ui-packets-20260823.md
+!/task/update/restruct-directories-ui-petmorph-20260823.md
+!/task/update/restruct-directories-petmorph-domain-20260823.md
+!/task/update/restruct-directories-resource-transformers-20260823.md
+!/task/update/restruct-directories-petmorph-browser-adapters-20260823.md
+!/task/update/restruct-directories-resource-cef-20260823.md
+!/task/update/restruct-directories-ui-common-20260823.md
+!/task/update/restruct-directories-appshell-20260823.md
 !/analysis/Directory.Build.props
 !/analysis/AolaLoader/**
 !/analysis/AolaSocketHack/**

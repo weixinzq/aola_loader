@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
-using AolaLoader;
 using AolaLoader.PacketHost;
+using AolaLoader.PacketHost.Consumers;
 using AolaLoader.PacketHost.Testing;
 using AolaLoader.UI.Packets;
 using AolaSocketHack.Contracts;

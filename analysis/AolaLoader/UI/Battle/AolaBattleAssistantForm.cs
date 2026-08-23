@@ -4,8 +4,10 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using AolaLoader.Features.Battle.State;
+using AolaLoader.UI.Common;
 
-namespace AolaLoader;
+namespace AolaLoader.UI.Battle;
 
 internal sealed class AolaBattleAssistantForm : AolaFormBase
 {

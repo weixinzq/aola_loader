@@ -6,7 +6,7 @@ using AolaSocketHack.Contracts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace AolaLoader;
+namespace AolaLoader.Features.Battle.State;
 
 internal static class AolaBattlePacketParser
 {

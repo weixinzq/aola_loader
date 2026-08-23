@@ -1,6 +1,6 @@
 # PacketHost
 
-Status: Implemented, runtime pending
+Status: Implemented
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/PacketHost/**`
 
@@ -58,4 +58,4 @@ logger、Battle tracker、PacketsForm 和主窗状态全部迁移；除适配器
 
 ## 已知限制
 
-阶段 4 已完成四类消费者迁移：`AolaReceiveLogger`、`AolaBattleStateTracker`、`AolaPacketsForm` 和主窗状态均使用共享 `IAolaPacketEventSource`；只有 `AolaHookHostAdapter` 直接订阅静态 IPC 事件。构建、自测、源码守卫和 PCAP/主动发送基线已通过。尚未启动真实 WinForms/Flash 会话验证后台状态更新、窗口关闭和重新打开，因此标记为 `Implemented, runtime pending`；适配器的最终创建位置仍将在 CompositionRoot 阶段收口。
+四类消费者均使用共享 `IAolaPacketEventSource`；只有 `AolaHookHostAdapter` 直接订阅静态 IPC 事件，并由 CompositionRoot 统一创建/释放。接收日志消费者位于 `PacketHost/Consumers`，发送表格及方向策略位于 `UI/Packets`。阶段 8 审计确认适配器是必需的唯一 IPC 边界。阶段 9 已验证后台状态、send-only 表格、日志保留、独立发包、窗口关闭重开和真实战斗消费；构建、自测、源码守卫与 PCAP 基线均通过。

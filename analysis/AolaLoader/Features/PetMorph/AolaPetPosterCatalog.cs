@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 
-namespace AolaLoader;
+namespace AolaLoader.Features.PetMorph;
 
 internal sealed class AolaPetPosterCatalog
 {

@@ -20,7 +20,7 @@
     <Compile Include="..\AolaLoader\PacketHost\PacketEventDispatch.cs" Link="PacketHost\PacketEventDispatch.cs" />
     <Compile Include="..\AolaLoader\PacketHost\AolaHookHostAdapter.cs" Link="PacketHost\AolaHookHostAdapter.cs" />
     <Compile Include="..\AolaLoader\PacketHost\Testing\ManualAolaPacketEventSource.cs" Link="PacketHost\Testing\ManualAolaPacketEventSource.cs" />
-    <Compile Include="..\AolaLoader\AolaReceiveLogger.cs" Link="PacketHost\Consumers\AolaReceiveLogger.cs" />
+    <Compile Include="..\AolaLoader\PacketHost\Consumers\AolaReceiveLogger.cs" Link="PacketHost\Consumers\AolaReceiveLogger.cs" />
     <Compile Include="..\AolaLoader\UI\Packets\SendPacketVisibility.cs" Link="PacketHost\Consumers\SendPacketVisibility.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -61,12 +61,12 @@
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\HttpRemoteResourceFetcher.cs" Link="ResourceInterception\Pipeline\HttpRemoteResourceFetcher.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" Link="Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" />
-    <Compile Include="..\AolaLoader\AolaPetMorphRule.cs" Link="Features\PetMorph\AolaPetMorphRule.cs" />
-    <Compile Include="..\AolaLoader\AolaSwfClassAdapter.cs" Link="ResourceInterception\Transformers\AolaSwfClassAdapter.cs" />
-    <Compile Include="..\AolaLoader\AolaSwfBitmapScaler.cs" Link="ResourceInterception\Transformers\AolaSwfBitmapScaler.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\AolaPetMorphRule.cs" Link="Features\PetMorph\AolaPetMorphRule.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Transformers\AolaSwfClassAdapter.cs" Link="ResourceInterception\Transformers\AolaSwfClassAdapter.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Transformers\AolaSwfBitmapScaler.cs" Link="ResourceInterception\Transformers\AolaSwfBitmapScaler.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Transformers\AolaSwfResourceTransformer.cs" Link="ResourceInterception\Transformers\AolaSwfResourceTransformer.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetMovieResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetMovieResourceRule.cs" />
-    <Compile Include="..\AolaLoader\AolaPetPosterCatalog.cs" Link="Features\PetMorph\AolaPetPosterCatalog.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\AolaPetPosterCatalog.cs" Link="Features\PetMorph\AolaPetPosterCatalog.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -77,9 +77,9 @@
     <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualPageBridge.cs" Link="BrowserHost\Testing\ManualPageBridge.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\AolaLoader\AolaBattleModels.cs" Link="Battle\AolaBattleModels.cs" />
-    <Compile Include="..\AolaLoader\AolaBattlePacketParser.cs" Link="Battle\AolaBattlePacketParser.cs" />
-    <Compile Include="..\AolaLoader\AolaBattleStateTracker.cs" Link="Battle\AolaBattleStateTracker.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattleModels.cs" Link="Battle\AolaBattleModels.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattlePacketParser.cs" Link="Battle\AolaBattlePacketParser.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattleStateTracker.cs" Link="Battle\AolaBattleStateTracker.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\State\IBattleStateSource.cs" Link="Battle\State\IBattleStateSource.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\State\Testing\ManualBattleStateSource.cs" Link="Battle\State\Testing\ManualBattleStateSource.cs" />
   </ItemGroup>

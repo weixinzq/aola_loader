@@ -6,7 +6,7 @@ using System.Runtime.Remoting;
 using AolaSocketHack.Contracts;
 using EasyHook;
 
-namespace AolaLoader;
+namespace AolaLoader.AppShell;
 
 internal sealed class AolaHookController : IDisposable
 {

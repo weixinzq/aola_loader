@@ -13,6 +13,7 @@ Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓�
 - 将全部“接收”消息实时写入程序目录下的 `logs/aola-recv-yyyyMMdd-HHmmss.jsonl`，保留 AMF3 JSON 与接收帧 HEX，但不在抓包表格显示。
 - 通过“扩展 → 对战助手”或 `F3` 打开战斗窗口。助手解析 `2303/2304` 完整背包与后续战斗命令，显示敌我全部亚比的最终六维、HP 和技能 PP/CD，并缓存当前快照。
 - 通过“扩展 → 游戏主题界面”选择本地主题。请求处理器只拦截 `control/controlbarskin/skinN~*.swf` 末端资源，并将模板导出类适配为调用方需要的 `SkinN`；“默认”完全关闭拦截。
+- 通过“扩展 → 功能面板 → 形态变化”保存并热推送背包形态规则；模型、背景和头像走独立叶资源规则，远端 FWS/CWS/ZWS 在 16 MiB 边界内验证和转换，失败时回退官方资源。
 
 主题功能是 HTTP/SWF 本地资源替换，不会发送主题切换命令，也不会修改服务器保存的账号主题。捕获的登录 SID/登录帧只在注入进程内存中短暂用于建立独立连接，不进入 IPC 事件、界面、导出或日志。
 
@@ -24,6 +25,8 @@ Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓�
 - `analysis/AolaSocketHack.Verify/`：真实 PCAP 回放与主动发包编码回读验证。
 - `analysis/runtime/`：本地 PPAPI Flash 放置位置；EasyHook 由 NuGet 恢复。
 - [`doc/architecture.md`](doc/architecture.md)：运行拓扑、数据流、缓存层与验证边界。
+- [`doc/modules/`](doc/modules/)：各模块的 ContractVersion、依赖、线程、失败与缓存语义。
+- [`task/update/restruct-stage9-validation-20260823.md`](task/update/restruct-stage9-validation-20260823.md)：本轮重构最终自动与实机验收证据。
 
 ## 环境要求
 
@@ -58,6 +61,13 @@ analysis/build/AolaLoader/Release/net48/AolaLoader.exe
 [`analysis/runtime/README.md`](analysis/runtime/README.md)。
 
 ## 验证
+
+先运行全部边界自测：
+
+```powershell
+dotnet run --project .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj `
+  -c Release --no-build -- --self-test
+```
 
 维护者可以使用本地保留、未公开提交的真实 PCAP 回放协议基线：
 
