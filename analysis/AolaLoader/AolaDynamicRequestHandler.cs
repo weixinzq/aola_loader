@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CefSharp;
 using CefSharp.Handler;
 using AolaLoader.Features.PetMorph.ResourceInterception;
+using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Cef;
 using AolaLoader.ResourceInterception.Contracts;
@@ -13,7 +14,7 @@ using AolaLoader.ResourceInterception.Pipeline;
 
 namespace AolaLoader;
 
-internal sealed class AolaThemeRequestHandler : RequestHandler
+internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionTarget
 {
 	private const int HiddenPetMovieTemplateId = 6025;
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
@@ -50,6 +51,11 @@ internal sealed class AolaThemeRequestHandler : RequestHandler
 	{
 		get => _themeRule.SelectedThemeId;
 		set => _themeRule.SelectedThemeId = value;
+	}
+
+	public void SetSelectedThemeId(int themeId)
+	{
+		SelectedThemeId = themeId == 0 ? -1 : themeId;
 	}
 
 	public void SetPetMorphRules(IEnumerable<AolaPetMorphRule> rules, bool enabled)

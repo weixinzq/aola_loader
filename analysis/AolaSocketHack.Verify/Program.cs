@@ -28,6 +28,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("Settings boundary self-test: PASS");
+		if (!ThemeCoordinatorVerifier.Verify())
+		{
+			Console.Error.WriteLine("ThemeCoordinator boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("ThemeCoordinator boundary self-test: PASS");
 		if (!ResourceInterceptionContractVerifier.Verify())
 		{
 			Console.Error.WriteLine("ResourceInterception contract self-test: FAIL");

@@ -58,5 +58,4 @@ CefSharp 具体类型、PetMorph/Battle 内部实现、PacketHost 和服务器�
 
 ## 已知限制
 
-当前主题逻辑在 `AolaThemeRequestHandler`，设置位于共享 SchemaVersion 5 DTO，实时换肤受既有缓存契约限制。
-
+阶段 6 已建立 `IThemeCoordinator`/`ThemeCoordinator`，冻结主题选项、当前快照、`ApplyToRule`/`ApplyAndSave` 与结构化 `ThemeChangeResult`；主窗体的主题读取、菜单选项、切换和 Section 保存已迁到协调器，`AolaThemeRequestHandler` 只实现 `IThemeSelectionTarget` 缝隙。`ThemeLeafResourceRule` 已独立于 Cef 入口。真实默认/替换主题、刷新与新进程缓存路径仍待阶段 9 实机验证，因此模块整体继续标记为 `Target`。

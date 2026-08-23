@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.Features.PetMorph.Settings;
+using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.Features.Theme.Settings;
 using AolaLoader.PacketHost;
 using AolaLoader.Settings;
@@ -28,9 +29,8 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly Timer _injectTimer = new Timer();
 	private readonly List<Form> _childrenVisibleBeforeMinimize = new List<Form>();
 	private readonly ISettingsSectionStore _sectionSettingsStore;
-	private readonly ThemeSettingsCodec _themeSettingsCodec = new ThemeSettingsCodec();
 	private readonly PetMorphSettingsCodec _petMorphSettingsCodec = new PetMorphSettingsCodec();
-	private ThemeSettings _themeSettings;
+	private readonly IThemeCoordinator _themeCoordinator;
 	private PetMorphSettings _petMorphSettings;
 	private readonly AolaHookController _hookController;
 	private readonly IAolaPacketEventSource _packetEventSource;
@@ -57,9 +57,6 @@ internal sealed class AolaMainForm : AolaFormBase
 			AppDomain.CurrentDomain.BaseDirectory,
 			"settings.json");
 		_sectionSettingsStore = new JsonSettingsSectionStore(settingsPath);
-		_themeSettings = _sectionSettingsStore.Load(
-			ThemeSettingsCodec.SectionKey,
-			_themeSettingsCodec).Value;
 		_petMorphSettings = _sectionSettingsStore.Load(
 			PetMorphSettingsCodec.SectionKey,
 			_petMorphSettingsCodec).Value;
@@ -68,11 +65,6 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetEventSource = new AolaHookHostAdapter();
 		_receiveLogger = new AolaReceiveLogger(_packetEventSource);
 		_battleTracker = new AolaBattleStateTracker(_packetEventSource);
-
-		MenuStrip menuStrip = BuildMenu();
-		ToolStrip toolbar = BuildToolbar();
-		StatusStrip statusStrip = new StatusStrip();
-		statusStrip.Items.Add(_status);
 		_themeRequestHandler = new AolaThemeRequestHandler(Path.Combine(
 			AppDomain.CurrentDomain.BaseDirectory,
 			"Resources",
@@ -86,7 +78,18 @@ internal sealed class AolaMainForm : AolaFormBase
 			"Patches",
 			"newpetpackage-morph-live.fws.swf"),
 			_petMorphSettings.LiveBridgeEnabled);
-		UpdateThemeSelection(ApplySavedTheme(_themeRequestHandler));
+		_themeCoordinator = new ThemeCoordinator(
+			_sectionSettingsStore,
+			new ThemeSettingsCodec(),
+			_themeRequestHandler);
+
+		MenuStrip menuStrip = BuildMenu();
+		ToolStrip toolbar = BuildToolbar();
+		StatusStrip statusStrip = new StatusStrip();
+		statusStrip.Items.Add(_status);
+		ThemeChangeResult restoredTheme = _themeCoordinator.ApplyToRule(
+			_themeCoordinator.Current.SelectedThemeId);
+		UpdateThemeSelection(restoredTheme.RuleApplied ? restoredTheme.AppliedThemeId : 0);
 		_themeRequestHandler.SetPetMorphRules(
 			ToMorphRules(_petMorphSettings.Rules),
 			_petMorphSettings.Enabled);
@@ -209,27 +212,15 @@ internal sealed class AolaMainForm : AolaFormBase
 	private ToolStripMenuItem BuildThemeMenu()
 	{
 		_themeMenu = new ToolStripMenuItem("游戏主题界面");
-		string[] names =
+		foreach (ThemeOption option in _themeCoordinator.Options)
 		{
-			"默认",
-			"女皇花嫁主题风格",
-			"星尘花嫁主题风格",
-			"阿比斯花嫁主题风格",
-			"奥拉星怀旧风格",
-			"提亚玛特花嫁主题风格",
-			"渡至臻主题风格",
-			"梦花嫁主题风格",
-			"羲和花嫁主题风格",
-			"深海银河主题风格"
-		};
-		for (int id = 0; id < names.Length; id++)
-		{
-			int themeId = id;
-			ToolStripMenuItem item = new ToolStripMenuItem(names[id])
+			int themeId = option.Id;
+			string displayName = option.DisplayName;
+			ToolStripMenuItem item = new ToolStripMenuItem(displayName)
 			{
 				Tag = themeId
 			};
-			item.Click += delegate { ChangeTheme(themeId, item.Text); };
+			item.Click += delegate { ChangeTheme(themeId, displayName); };
 			_themeItems.Add(themeId, item);
 			_themeMenu.DropDownItems.Add(item);
 		}
@@ -240,44 +231,22 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private void ChangeTheme(int themeId, string themeName)
 	{
-		try
+		ThemeChangeResult result = _themeCoordinator.ApplyAndSave(themeId);
+		if (result.RuleApplied)
 		{
-			_themeRequestHandler.SelectedThemeId = themeId == 0 ? -1 : themeId;
-			UpdateThemeSelection(themeId);
-			if (TrySaveThemeSettings(themeId))
-			{
-				_status.Text = themeId == 0
-					? "已恢复默认主题并保存；刷新页面后生效"
-					: "已启用并保存主题：" + themeName + "；刷新页面后生效";
-			}
+			UpdateThemeSelection(result.AppliedThemeId);
 		}
-		catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentOutOfRangeException || ex is ObjectDisposedException)
+		if (result.Succeeded)
 		{
-			_status.Text = "主题资源替换失败：" + ex.Message;
-			MessageBox.Show(this, ex.Message, "主题资源替换失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			_status.Text = themeId == 0
+				? "已恢复默认主题并保存；刷新页面后生效"
+				: "已启用并保存主题：" + themeName + "；刷新页面后生效";
+			return;
 		}
-	}
-
-	private int ApplySavedTheme(AolaThemeRequestHandler handler)
-	{
-		int themeId = _themeSettings.SelectedThemeId;
-		if (themeId < 0 || themeId >= _themeItems.Count)
+		_status.Text = (result.RuleApplied ? "主题设置保存失败：" : "主题资源替换失败：") + result.Error;
+		if (!result.RuleApplied)
 		{
-			return 0;
-		}
-		if (themeId == 0)
-		{
-			handler.SelectedThemeId = -1;
-			return 0;
-		}
-		try
-		{
-			handler.SelectedThemeId = themeId;
-			return themeId;
-		}
-		catch (InvalidOperationException)
-		{
-			return 0;
+			MessageBox.Show(this, result.Error, "主题资源替换失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 		}
 	}
 
@@ -308,22 +277,6 @@ internal sealed class AolaMainForm : AolaFormBase
 			_status.Text = "形态设置保存失败：" + result.Error;
 			return false;
 		}
-		return true;
-	}
-
-	private bool TrySaveThemeSettings(int themeId)
-	{
-		ThemeSettings candidate = _themeSettingsCodec.Normalize(new ThemeSettings(themeId));
-		SettingsSectionSaveResult result = _sectionSettingsStore.Save(
-			ThemeSettingsCodec.SectionKey,
-			candidate,
-			_themeSettingsCodec);
-		if (!result.Succeeded)
-		{
-			_status.Text = "主题设置保存失败：" + result.Error;
-			return false;
-		}
-		_themeSettings = candidate;
 		return true;
 	}
 
