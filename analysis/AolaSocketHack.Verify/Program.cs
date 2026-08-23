@@ -34,6 +34,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("ThemeCoordinator boundary self-test: PASS");
+		if (!PetMorphCoordinatorVerifier.Verify())
+		{
+			Console.Error.WriteLine("PetMorphCoordinator boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("PetMorphCoordinator boundary self-test: PASS");
 		if (!ResourceInterceptionContractVerifier.Verify())
 		{
 			Console.Error.WriteLine("ResourceInterception contract self-test: FAIL");

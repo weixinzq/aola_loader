@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CefSharp;
 using CefSharp.Handler;
+using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.ResourceInterception;
 using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.Features.Theme.ResourceInterception;
@@ -14,7 +15,7 @@ using AolaLoader.ResourceInterception.Pipeline;
 
 namespace AolaLoader;
 
-internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionTarget
+internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionTarget, IPetMorphRuleTarget
 {
 	private const int HiddenPetMovieTemplateId = 6025;
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
@@ -70,6 +71,25 @@ internal sealed class AolaThemeRequestHandler : RequestHandler, IThemeSelectionT
 	}
 
 	public bool IsPetMorphLiveBridgeAvailable => _petPackageRule.IsAvailable;
+
+	bool IPetMorphRuleTarget.IsLiveBridgeAvailable => IsPetMorphLiveBridgeAvailable;
+
+	void IPetMorphRuleTarget.SetRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
+	{
+		SetPetMorphRules(rules, enabled);
+	}
+
+	string IPetMorphRuleTarget.ValidateRule(AolaPetMorphRule rule)
+	{
+		return ValidatePetMorphRule(rule);
+	}
+
+	Task<IReadOnlyDictionary<int, int>> IPetMorphRuleTarget.GetAvailableLivePosterMappingsAsync(
+		IReadOnlyList<AolaPetMorphRule> rules,
+		bool enabled)
+	{
+		return GetAvailableLivePosterMappingsAsync(rules, enabled);
+	}
 
 	public async Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
 		IEnumerable<AolaPetMorphRule> rules,

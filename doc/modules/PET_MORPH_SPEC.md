@@ -58,5 +58,4 @@ Battle state/presentation、PacketHost、AolaMainForm、CefSharp/WinForms（UI �
 
 ## 已知限制
 
-当前形态规则、远程探测和响应适配集中在旧 handler；部分 SWF 候选仅有静态证据，真实 PPAPI Flash 验证仍待完成。
-
+阶段 6 已建立 `IPetMorphCoordinator`/`PetMorphCoordinator`：主窗体的规则应用、校验入口、Section 保存、资源规则更新和页面推送（含帧加载完成后的二次推送）已迁到协调器；`AolaThemeRequestHandler` 只实现 `IPetMorphRuleTarget` 缝隙，Cef 推送由 `AolaBrowserPetMorphPushBridge` 适配，`AolaPetMorphPushResult` 已移入 PetMorph 模块。部分 SWF 候选仅有静态证据，真实 PPAPI Flash 验证与热推送实机回归仍待阶段 9，模块整体保持 `Target`。

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using CefSharp;
+using AolaLoader.Features.PetMorph.Coordination;
 using Newtonsoft.Json;
 
 namespace AolaLoader;
@@ -123,41 +124,5 @@ internal sealed class AolaPetMorphLiveBridge
 		{
 			return AolaPetMorphPushResult.NotInjected(ex.Message);
 		}
-	}
-}
-
-internal sealed class AolaPetMorphPushResult
-{
-	public AolaPetMorphPushResult(
-		bool injected,
-		bool bridgeReady,
-		bool refreshInvoked,
-		long revision,
-		string error,
-		bool superseded = false)
-	{
-		Injected = injected;
-		BridgeReady = bridgeReady;
-		RefreshInvoked = refreshInvoked;
-		Revision = revision;
-		Error = error;
-		Superseded = superseded;
-	}
-
-	public bool Injected { get; }
-	public bool BridgeReady { get; }
-	public bool RefreshInvoked { get; }
-	public long Revision { get; }
-	public string Error { get; }
-	public bool Superseded { get; }
-
-	public static AolaPetMorphPushResult NotInjected(string error)
-	{
-		return new AolaPetMorphPushResult(false, false, false, 0, error);
-	}
-
-	public static AolaPetMorphPushResult SupersededResult()
-	{
-		return new AolaPetMorphPushResult(false, false, false, 0, null, true);
 	}
 }

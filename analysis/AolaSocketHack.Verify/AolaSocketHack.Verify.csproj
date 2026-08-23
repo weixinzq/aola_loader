@@ -30,6 +30,11 @@
     <Compile Include="..\AolaLoader\Features\Theme\Coordination\ThemeCoordinator.cs" Link="Features\Theme\Coordination\ThemeCoordinator.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\Coordination\Testing\ManualThemeSelectionTarget.cs" Link="Features\Theme\Coordination\Testing\ManualThemeSelectionTarget.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Settings\PetMorphSettings.cs" Link="Features\PetMorph\Settings\PetMorphSettings.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphPushResult.cs" Link="Features\PetMorph\Coordination\PetMorphPushResult.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphCoordinationContracts.cs" Link="Features\PetMorph\Coordination\PetMorphCoordinationContracts.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphCoordinator.cs" Link="Features\PetMorph\Coordination\PetMorphCoordinator.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\Settings\BattleSettings.cs" Link="Features\Battle\Settings\BattleSettings.cs" />
   </ItemGroup>
   <ItemGroup>
