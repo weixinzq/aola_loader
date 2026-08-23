@@ -5,10 +5,10 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Management;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AolaLoader.AppShell;
 using AolaLoader.BrowserHost;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.PetMorph.Coordination;
@@ -27,11 +27,10 @@ namespace AolaLoader;
 internal sealed class AolaMainForm : AolaFormBase
 {
 	private const string DefaultUrl = "https://aola.100bt.com/play/play.html";
-	private const int SwShowNoActivate = 4;
 	private readonly ToolStripTextBox _address = new ToolStripTextBox();
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("正在初始化奥拉星登录页面");
 	private readonly System.Windows.Forms.Timer _injectTimer = new System.Windows.Forms.Timer();
-	private readonly List<Form> _childrenVisibleBeforeMinimize = new List<Form>();
+	private readonly IChildWindowCoordinator _childWindowCoordinator;
 	private readonly ISettingsSectionStore _sectionSettingsStore;
 	private readonly IThemeCoordinator _themeCoordinator;
 	private readonly IPetMorphCoordinator _petMorphCoordinator;
@@ -43,9 +42,6 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly ChromiumWebBrowser _browser;
 	private readonly IBrowserSession _browserSession;
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
-	private AolaPacketsForm _packetsForm;
-	private AolaBattleAssistantForm _battleAssistantForm;
-	private AolaPetMorphForm _petMorphForm;
 	private ToolStripMenuItem _themeMenu;
 	private bool _mainWindowMinimized;
 
@@ -92,6 +88,7 @@ internal sealed class AolaMainForm : AolaFormBase
 			new AolaBrowserPetMorphPushBridge(
 				() => _browser.GetMainFrame(),
 				new AolaPetMorphLiveBridge()));
+		_childWindowCoordinator = new ChildWindowCoordinator();
 
 		MenuStrip menuStrip = BuildMenu();
 		ToolStrip toolbar = BuildToolbar();
@@ -136,9 +133,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetEventSource.StatusReceived -= HookStatusReceived;
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
-		_petMorphForm?.Dispose();
-		_battleAssistantForm?.Close();
-		_packetsForm?.Close();
+		_childWindowCoordinator.Dispose();
 		_battleTracker.Dispose();
 		_receiveLogger.Dispose();
 		_packetEventSource.Dispose();
@@ -155,40 +150,14 @@ internal sealed class AolaMainForm : AolaFormBase
 		if (minimized && !_mainWindowMinimized)
 		{
 			_mainWindowMinimized = true;
-			_childrenVisibleBeforeMinimize.Clear();
-			RememberVisibleChild(_petMorphForm);
-			RememberVisibleChild(_battleAssistantForm);
-			RememberVisibleChild(_packetsForm);
-			foreach (Form child in _childrenVisibleBeforeMinimize)
-			{
-				child.Hide();
-			}
+			_childWindowCoordinator.RememberAndHideVisible();
 		}
 		else if (!minimized && _mainWindowMinimized)
 		{
 			_mainWindowMinimized = false;
-			foreach (Form child in _childrenVisibleBeforeMinimize)
-			{
-				if (!child.IsDisposed)
-				{
-					// 不激活子窗口，避免还原主窗口时焦点被抢走。
-					ShowWindow(child.Handle, SwShowNoActivate);
-				}
-			}
-			_childrenVisibleBeforeMinimize.Clear();
+			_childWindowCoordinator.RestoreVisibleAfterUnminimize();
 		}
 	}
-
-	private void RememberVisibleChild(Form child)
-	{
-		if (child != null && !child.IsDisposed && child.Visible)
-		{
-			_childrenVisibleBeforeMinimize.Add(child);
-		}
-	}
-
-	[DllImport("user32.dll")]
-	private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
 	private MenuStrip BuildMenu()
 	{
@@ -269,22 +238,13 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private void ShowPetMorphPanel()
 	{
-		if (_petMorphForm == null || _petMorphForm.IsDisposed)
-		{
-			_petMorphForm = new AolaPetMorphForm(
+		_childWindowCoordinator.Show(
+			"petMorph",
+			() => new AolaPetMorphForm(
 				_petMorphCoordinator.ValidateRule,
 				ApplyPetMorphRules,
 				_petMorphCoordinator.CurrentRules,
-				_petMorphCoordinator.Current.Enabled);
-			_petMorphForm.FormClosed += delegate { _petMorphForm = null; };
-			_petMorphForm.Show();
-		}
-		else
-		{
-			_petMorphForm.Show();
-			_petMorphForm.BringToFront();
-			_petMorphForm.Activate();
-		}
+				_petMorphCoordinator.Current.Enabled));
 	}
 
 	private async void ApplyPetMorphRules(IReadOnlyList<AolaPetMorphRule> rules, bool enabled)
@@ -453,33 +413,17 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private void ShowPackets()
 	{
-		if (_packetsForm == null || _packetsForm.IsDisposed)
-		{
-			_packetsForm = new AolaPacketsForm(_packetEventSource);
-			_packetsForm.FormClosed += delegate { _packetsForm = null; };
-			_packetsForm.Show();
-		}
-		else
-		{
-			_packetsForm.Show();
-			_packetsForm.BringToFront();
-		}
+		_childWindowCoordinator.Show(
+			"packets",
+			() => new AolaPacketsForm(_packetEventSource),
+			activate: false);
 	}
 
 	private void ShowBattleAssistant()
 	{
-		if (_battleAssistantForm == null || _battleAssistantForm.IsDisposed)
-		{
-			_battleAssistantForm = new AolaBattleAssistantForm(_battleTracker);
-			_battleAssistantForm.FormClosed += delegate { _battleAssistantForm = null; };
-			_battleAssistantForm.Show();
-		}
-		else
-		{
-			_battleAssistantForm.Show();
-			_battleAssistantForm.BringToFront();
-			_battleAssistantForm.Activate();
-		}
+		_childWindowCoordinator.Show(
+			"battleAssistant",
+			() => new AolaBattleAssistantForm(_battleTracker));
 	}
 
 	private void EnsureHookInjected()

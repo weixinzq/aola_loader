@@ -8,6 +8,9 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
     <ProjectReference Include="..\AolaSocketHack\AolaSocketHack.csproj" />
     <PackageReference Include="SharpCompress" Version="0.50.4" />
@@ -22,6 +25,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AolaLoader\Settings\ISettingsSectionStore.cs" Link="Settings\ISettingsSectionStore.cs" />
+    <Compile Include="..\AolaLoader\AppShell\ChildWindowCoordinatorContracts.cs" Link="AppShell\ChildWindowCoordinatorContracts.cs" />
+    <Compile Include="..\AolaLoader\AppShell\ChildWindowCoordinator.cs" Link="AppShell\ChildWindowCoordinator.cs" />
+    <Compile Include="..\AolaLoader\AppShell\Testing\ManualChildWindowCoordinator.cs" Link="AppShell\Testing\ManualChildWindowCoordinator.cs" />
     <Compile Include="..\AolaLoader\Settings\AtomicSettingsWriter.cs" Link="Settings\AtomicSettingsWriter.cs" />
     <Compile Include="..\AolaLoader\Settings\LegacySettingsMigrator.cs" Link="Settings\LegacySettingsMigrator.cs" />
     <Compile Include="..\AolaLoader\Settings\JsonSettingsSectionStore.cs" Link="Settings\JsonSettingsSectionStore.cs" />

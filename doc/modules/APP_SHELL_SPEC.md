@@ -60,4 +60,4 @@ AppShell 不拥有功能设置，只调用各协调器的加载/保存入口。�
 
 ## 已知限制
 
-阶段 6 已提供 `AolaBrowserSession`（`IBrowserSession` 的 CefSharp 生产适配，包装 `ChromiumWebBrowser` 并翻译生命周期、导航、刷新与脚本执行），主窗体已用会话接口处理地址显示、导航失败状态、刷新与导航命令并释放会话。`Program.Main` 仍直接 `new AolaMainForm()`，主窗体仍是组合根；`AolaCompositionRoot`、`ChildWindowCoordinator` 与最终主窗体瘦身仍待后续批次，本契约整体继续标记为 `Target`。
+阶段 6 已提供 `AolaBrowserSession`（`IBrowserSession` 的 CefSharp 生产适配）与 `ChildWindowCoordinator`（`IChildWindowCoordinator` 实现：稳定 key 复用、关闭引用清理、最小化隐藏与无激活恢复）；主窗体已用会话接口处理地址/导航/刷新，三个子窗口（抓包、对战助手、形态面板）与最小化/恢复全部走子窗口协调器。`Program.Main` 仍直接 `new AolaMainForm()`，主窗体仍是组合根；`AolaCompositionRoot` 与最终主窗体瘦身仍待后续批次，本契约整体继续标记为 `Target`。

@@ -14,6 +14,7 @@ namespace AolaSocketHack.Verify;
 
 internal static class Program
 {
+	[STAThread]
 	private static int Main(string[] args)
 	{
 		if (!PacketHostBoundaryVerifier.Verify())
@@ -40,6 +41,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("PetMorphCoordinator boundary self-test: PASS");
+		if (!ChildWindowCoordinatorVerifier.Verify())
+		{
+			Console.Error.WriteLine("ChildWindowCoordinator boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("ChildWindowCoordinator boundary self-test: PASS");
 		if (!ResourceInterceptionContractVerifier.Verify())
 		{
 			Console.Error.WriteLine("ResourceInterception contract self-test: FAIL");
