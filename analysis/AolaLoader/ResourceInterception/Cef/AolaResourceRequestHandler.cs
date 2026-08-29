@@ -28,6 +28,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 	private readonly CefResourceRuleAdapter _resourceRuleAdapter;
 	private readonly AolaPetPosterCatalog _posterCatalog;
 	private readonly bool _petMorphLiveBridgeEnabled;
+	private readonly AolaSwfCaptureSession _swfCaptureSession;
 
 	public AolaResourceRequestHandler(
 		string themeDirectory,
@@ -37,11 +38,11 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 	{
 		_themeRule = new ThemeLeafResourceRule(themeDirectory);
 		_petMorphLiveBridgeEnabled = petMorphLiveBridgeEnabled;
-		_petPackageRule = new PetPackageLiveResourceRule(
-			_petMorphLiveBridgeEnabled ? petPackageLiveTemplatePath : null);
+		_petPackageRule = new PetPackageLiveResourceRule(petPackageLiveTemplatePath);
 		_petMovieRule = new PetMovieResourceRule();
 		_posterCatalog = AolaPetPosterCatalog.Load(posterCatalogPath);
 		_petPosterRule = new PetPosterResourceRule(_posterCatalog);
+		_swfCaptureSession = AolaSwfCaptureSession.TryStart(AppDomain.CurrentDomain.BaseDirectory);
 		_remoteResourceProbe = new CachingRemoteResourceProbe(new HttpSwfRemoteResourceProbe());
 		_resourceRuleAdapter = new CefResourceRuleAdapter(new ResourceRulePipeline(
 			new IResourceInterceptionRule[] { _themeRule, _petPackageRule, _petMovieRule, _petPosterRule }),
@@ -193,6 +194,12 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		string requestInitiator,
 		ref bool disableDefaultHandling)
 	{
+		if (_swfCaptureSession != null &&
+			AolaSwfCaptureSession.IsSwfUrl(request?.Url))
+		{
+			disableDefaultHandling = false;
+			return _swfCaptureSession.CreateHandler(request);
+		}
 		return _resourceRuleAdapter.GetResourceRequestHandler(request, ref disableDefaultHandling);
 	}
 }

@@ -16,14 +16,15 @@ AolaLoader.exe
 ├─ Features
 │  ├─ Theme
 │  ├─ PetMorph
+│  ├─ ActiveSend        FlashCommandSender / verified extension map
 │  └─ Battle            State 与 Presentation 分离
 └─ UI                    Packets / PetMorph / Battle
 
 CefSharp network subprocess
-└─ AolaSocketHack       Hooking / Capture / Protocol / SidecarSend / Metrics
+└─ AolaSocketHack       Hooking / Capture / Protocol / Metrics
 
 AolaSocketHack.Contracts
-└─ 跨进程 DTO、remoting 事件与有界待发队列
+└─ 跨进程 DTO、remoting 事件与已禁用的兼容待发队列
 ```
 
 第一轮继续使用现有 `AolaLoader.csproj`，通过物理目录、命名空间、构造函数注入和源码守卫建立边界；没有引入 DI 框架或不必要的程序集拆分。
@@ -62,12 +63,17 @@ Winsock bytes -> socket TCP reassembly -> protocol/AMF3 decode
 ### 主动发送
 
 ```text
-UI structured request -> PacketHost -> bounded IPC queue
-  -> injected sidecar connection -> own login/sequence/encryption
-  -> local decode/readback -> structured result
+Packets UI strict #send -> IAolaCommandSender -> IPageBridge
+  -> controlled JavaScript -> ExternalInterface leaf bridge
+  -> ActClientSender -> SocketClient -> current Flash game connection
+  -> SubmittedToFlash -> UI immediately resumes
 ```
 
-该路径不使用浏览器连接的密文或序列状态。
+`SubmittedToFlash` 只表示 Flash API 已接受调用，不表示服务器成功。生产 UI 不等待接收验证，
+不轮询服务器终态，也不弹出模态结果框；本地脚本返回、socket 写入或协议回读均不是服务器成功。
+扩展 ID 只从当前客户端 `ExtMap` 证据映射，未知 ID 拒绝。OuterSeq、InnerSeq、加密与发送顺序继续完全由 Flash 原连接拥有。
+
+Packets UI 的“打开映射面板”是独立本地调用：`panel.open -> ExternalInterface aolaOpenPanel -> Panel_Helper.loadResAndShow`。它接受资源键/URL与 CLS 两个普通字符串，不执行脚本文本，不经过 socket；面板加载完成后产生的正常请求仍由 Flash 自身代码和原连接负责。
 
 ### 浏览器资源
 
@@ -91,6 +97,6 @@ Cef request -> AolaResourceRequestHandler / Cef adapter -> ordered ResourceRuleP
 
 ## 验证状态
 
-ContractVersion 1 边界、资源管线、PacketHost、Section 设置、功能协调器、CompositionRoot、目录/命名空间和兼容路径清理均已完成。阶段 9 已通过 Release 构建、全部自测、PCAP/主动发送基线，以及真实默认/替换 Flash、设置、日志、发包、战斗和窗口生命周期验证。
+ContractVersion 1 边界、资源管线、PacketHost、Section 设置、功能协调器、CompositionRoot、目录/命名空间和兼容路径清理均已完成。原连接主动发送替换已通过 Release 构建、自测、SWF 静态复读和 PCAP 基线；真实 Flash 的无新增连接、无重复登录、查询响应、单次状态执行和后续序列完整性仍必须单独验收，未验收前不能宣称完成。
 
 模块状态见 [`modules/`](modules/)，跨模块理由见 [`decisions/`](decisions/)，最终证据见 [`../task/update/restruct-stage9-validation-20260823.md`](../task/update/restruct-stage9-validation-20260823.md)。静态验证、构建、PCAP/主动发送和真实 Flash 运行仍是不同层级；后续变更必须按受影响层级重新验证。

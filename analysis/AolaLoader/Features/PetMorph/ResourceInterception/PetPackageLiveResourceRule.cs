@@ -9,7 +9,7 @@ namespace AolaLoader.Features.PetMorph.ResourceInterception;
 
 internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 {
-	internal const string SupportedVersion = "2026081331982423";
+	internal const string SupportedVersion = "2026082731219998";
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
 	private static readonly Regex PackagePathPattern = new Regex(
 		@"^/play/pet/newpetpackage~(?<version>\d+)\.swf$",
@@ -19,7 +19,11 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		"aolaMorphResolveSkinId",
 		"aolaMorphRefresh",
 		"aolaMorphShouldHideBackground",
-		"aolaMorphResolveIconId"
+		"aolaMorphResolveIconId",
+		"aolaSendCommand",
+		"aolaOpenPanel",
+		"ensureAolaCommandBridge",
+		"aolaCommandCompleted"
 	};
 	private readonly byte[] _template;
 	private readonly string _sha256;
@@ -37,7 +41,7 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		if (!TrySetTemplate(template, out _template, out _sha256))
 		{
 			throw new ArgumentException(
-				"Pet package template must be a bounded FWS containing every live bridge marker.",
+				"Pet package template must be a bounded FWS containing every required bridge marker.",
 				nameof(template));
 		}
 	}

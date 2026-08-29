@@ -3,6 +3,8 @@ using System.IO;
 using System.Windows.Forms;
 using AolaLoader.AppShell.Adapters.PetMorph;
 using AolaLoader.BrowserHost;
+using AolaLoader.BrowserHost.Contracts;
+using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.Settings;
@@ -32,6 +34,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 	private readonly PetMorphCoordinator _petMorphCoordinator;
 	private readonly ChromiumWebBrowser _browser;
 	private readonly AolaBrowserSession _browserSession;
+	private readonly IPageBridge _pageBridge;
+	private readonly IAolaCommandSender _commandSender;
 	private readonly ChildWindowCoordinator _childWindowCoordinator;
 	private bool _disposed;
 
@@ -54,7 +58,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 		_resourceRequestHandler = new AolaResourceRequestHandler(
 			Path.Combine(baseDirectory, "Resources", "Themes"),
 			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"),
-			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-live.fws.swf"),
+			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-bridge-2026082731219998-v3.fws.swf"),
 			initialPetMorph.LiveBridgeEnabled);
 		_themeCoordinator = new ThemeCoordinator(
 			settingsStore,
@@ -73,12 +77,16 @@ internal sealed class AolaCompositionRoot : IDisposable
 				() => _browser.GetMainFrame(),
 				new AolaPetMorphLiveBridge()));
 		_browserSession = new AolaBrowserSession(_browser);
+		_pageBridge = new AolaPageBridge(_browserSession);
+		_commandSender = new AolaFlashCommandSender(_pageBridge);
 		_childWindowCoordinator = new ChildWindowCoordinator();
 		MainForm = new AolaMainForm(
 			_browser,
 			_browserSession,
 			_hookController,
 			_packetEventSource,
+			_commandSender,
+			_pageBridge,
 			_receiveLogger,
 			_battleTracker,
 			_themeCoordinator,
@@ -96,6 +104,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 		}
 		_disposed = true;
 		_childWindowCoordinator.Dispose();
+		_pageBridge.Dispose();
 		_browserSession.Dispose();
 		_browser.Dispose();
 		_packetEventSource.Dispose();

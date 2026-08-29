@@ -6,19 +6,19 @@ OwnerPaths: `analysis/AolaLoader/PacketHost/**`
 
 ## 职责
 
-在宿主进程单点适配静态 IPC 服务，向消费者发布包、状态和发送结果，并提供结构化有界发送入口。
+在宿主进程单点适配静态 IPC 服务，向消费者发布包和 Hook 状态；保留兼容发送 DTO 的隔离边界，但不承担生产主动发送。
 
 ## 非职责
 
-不解析协议、不保存登录材料、不决定 UI 过滤或日志格式、不保证 UI 线程。
+不解析协议、不保存登录材料、不决定 UI 过滤或日志格式、不保证 UI 线程，也不建立旁路账号连接。生产主动发送属于 `Features/ActiveSend` 与 BrowserHost PageBridge；Packets UI 的本地面板打开操作同样走 PageBridge，不经过 PacketHost 或兼容发送队列。
 
 ## 公开契约
 
-`IAolaPacketEventSource` 提供 `PacketReceived`、`StatusReceived`、`SendCompleted` 与 `QueueSend(AolaSendRequest)`；事件参数继续使用 `AolaSocketHack.Contracts` DTO。`AolaHookHostAdapter` 是唯一静态事件订阅者。
+`IAolaPacketEventSource` 继续提供 `PacketReceived`、`StatusReceived` 以及兼容的 `SendCompleted`/`QueueSend`；事件参数使用 `AolaSocketHack.Contracts` DTO。`AolaHookHostAdapter` 是唯一静态事件订阅者。Packets UI 不再调用兼容发送入口。
 
 ## 输入与输出
 
-输入为 remoting 发布和结构化发送请求；输出为隔离分发的 DTO 事件、request id 或明确的队列错误。
+输入为 remoting 发布；输出为隔离分发的 DTO 事件。遗留队列请求会在注入端明确拒绝，不创建 socket、不复制登录帧。
 
 ## 允许依赖
 
@@ -34,7 +34,7 @@ WinForms、CefSharp、Settings、战斗解析器、日志实现和敏感注入�
 
 ## 异常及回退语义
 
-单个消费者异常不阻断其他消费者；队列满、请求非法或已释放返回明确失败，不静默丢弃主动发送。
+单个消费者异常不阻断其他消费者；遗留队列请求明确返回“旁路发包已禁用”，不静默发送或回退。
 
 ## 设置所有权
 
@@ -46,11 +46,11 @@ WinForms、CefSharp、Settings、战斗解析器、日志实现和敏感注入�
 
 ## 缓存语义
 
-不缓存包历史；发送排队仍由有界 IPC 队列拥有。
+不缓存包历史；兼容 IPC 队列仅用于接收并拒绝遗留请求，不是生产发送通路。
 
 ## 验证入口
 
-`AolaSocketHack.Verify --self-test` 验证事件转发、异常隔离、Dispose 后静默、结构化发送，ReceiveLogger 的仅接收过滤、UTF-8 无 BOM、解密参数/原始帧记录和释放后停止写入，Battle tracker 的接收方向过滤、快照发布和释放后停止消费，以及 PacketsForm 使用的精确“发送”方向可见性策略。源码守卫要求三个静态事件只允许出现在 `AolaHookHostAdapter`；PCAP 回放继续验证严格导出格式和主动发送。UI marshal 保留现有 `InvokeRequired/BeginInvoke` 路径，并在真实窗口验证时复核。
+`AolaSocketHack.Verify --self-test` 验证事件转发、异常隔离、Dispose 后静默、结构化发送，ReceiveLogger 的仅接收过滤、UTF-8 无 BOM、解密参数/原始帧记录和释放后停止写入，Battle tracker 的接收方向过滤、快照发布和释放后停止消费，以及 PacketsForm 使用的精确“发送”方向可见性策略。Packets UI 源码守卫还要求抓包表只加入 `CanExport` 且能生成严格 `#send` 的消息，保留复选追加、清空和文件导入入口，并拒绝恢复 Inner 明文详情控件。源码守卫要求三个静态事件只允许出现在 `AolaHookHostAdapter`；PCAP 回放继续验证严格导出格式和主动发送。UI marshal 保留现有 `InvokeRequired/BeginInvoke` 路径，并在真实窗口验证时复核。
 
 ## 完成标准
 
@@ -58,4 +58,4 @@ logger、Battle tracker、PacketsForm 和主窗状态全部迁移；除适配器
 
 ## 已知限制
 
-四类消费者均使用共享 `IAolaPacketEventSource`；只有 `AolaHookHostAdapter` 直接订阅静态 IPC 事件，并由 CompositionRoot 统一创建/释放。接收日志消费者位于 `PacketHost/Consumers`，发送表格及方向策略位于 `UI/Packets`。阶段 8 审计确认适配器是必需的唯一 IPC 边界。阶段 9 已验证后台状态、send-only 表格、日志保留、独立发包、窗口关闭重开和真实战斗消费；构建、自测、源码守卫与 PCAP 基线均通过。
+四类消费者均使用共享 `IAolaPacketEventSource`；只有 `AolaHookHostAdapter` 直接订阅静态 IPC 事件，并由 CompositionRoot 统一创建/释放。接收日志消费者位于 `PacketHost/Consumers`，发送表格及方向策略位于 `UI/Packets`。阶段 8 审计确认适配器是必需的唯一 IPC 边界。原连接发送迁移后，send-only 表格、日志和战斗消费仍走本边界；主动发送改走 PageBridge。构建、自测与 PCAP 基线通过，真实原连接发送验收单独记录。

@@ -60,4 +60,4 @@ Theme、PetMorph 现有分支全部成为独立规则；入口只做适配/管�
 
 ## 已知限制
 
-框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Theme、Pet package、PetMovie 与 Poster 是独立规则。纯算法位于 `ResourceInterception/Transformers`，Cef 入口位于 `ResourceInterception/Cef`；`AolaResourceRequestHandler` 只注册规则、实现协调接口并转交管线。阶段 9 已验证默认、替换、刷新、窗口重开和新进程路径，并修复远端 CWS/ZWS 未先解为受界 FWS 就进入等长适配的问题；压缩回归自测、真实四分片 FFDec 复读和 PPAPI Flash 运行均通过。
+框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Theme、Pet package、PetMovie 与 Poster 是独立规则。Pet package 只精确替换当前 `newpetpackage~2026082731219998.swf`，模板同时保留既有形态桥并提供 `aolaSendCommand` 与本地面板入口 `aolaOpenPanel`；版本变化时放行官方资源并使桥调用失败关闭。纯算法位于 `ResourceInterception/Transformers`，Cef 入口位于 `ResourceInterception/Cef`。当前模板须通过 FWS 长度、SHA-256、FFDec 复读和 SymbolClass 静态检查，PPAPI Flash 运行验证仍单独执行。

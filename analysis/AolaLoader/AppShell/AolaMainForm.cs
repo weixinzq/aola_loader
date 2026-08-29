@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
+using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
@@ -36,6 +37,8 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly IPetMorphCoordinator _petMorphCoordinator;
 	private readonly AolaHookController _hookController;
 	private readonly IAolaPacketEventSource _packetEventSource;
+	private readonly IAolaCommandSender _commandSender;
+	private readonly IPageBridge _pageBridge;
 	private readonly AolaReceiveLogger _receiveLogger;
 	private readonly AolaBattleStateTracker _battleTracker;
 	private readonly ChromiumWebBrowser _browser;
@@ -49,6 +52,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		IBrowserSession browserSession,
 		AolaHookController hookController,
 		IAolaPacketEventSource packetEventSource,
+		IAolaCommandSender commandSender,
+		IPageBridge pageBridge,
 		AolaReceiveLogger receiveLogger,
 		AolaBattleStateTracker battleTracker,
 		IThemeCoordinator themeCoordinator,
@@ -59,6 +64,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		_browserSession = browserSession ?? throw new ArgumentNullException(nameof(browserSession));
 		_hookController = hookController ?? throw new ArgumentNullException(nameof(hookController));
 		_packetEventSource = packetEventSource ?? throw new ArgumentNullException(nameof(packetEventSource));
+		_commandSender = commandSender ?? throw new ArgumentNullException(nameof(commandSender));
+		_pageBridge = pageBridge ?? throw new ArgumentNullException(nameof(pageBridge));
 		_receiveLogger = receiveLogger ?? throw new ArgumentNullException(nameof(receiveLogger));
 		_battleTracker = battleTracker ?? throw new ArgumentNullException(nameof(battleTracker));
 		_themeCoordinator = themeCoordinator ?? throw new ArgumentNullException(nameof(themeCoordinator));
@@ -344,7 +351,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	{
 		_childWindowCoordinator.Show(
 			"packets",
-			() => new AolaPacketsForm(_packetEventSource),
+			() => new AolaPacketsForm(_packetEventSource, _commandSender, _pageBridge),
 			activate: false);
 	}
 

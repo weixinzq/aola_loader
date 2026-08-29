@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using AolaSocketHack.Contracts;
@@ -27,7 +26,6 @@ public sealed class MainClass : IEntryPoint
 			CaptureRuntimeMetrics metrics = new CaptureRuntimeMetrics();
 			bool diagnosticCaptureAll = string.Equals(Environment.GetEnvironmentVariable("AOLA_CAPTURE_ALL_SOCKETS"), "1", StringComparison.Ordinal);
 			AolaSocketCaptureFilter filter = new AolaSocketCaptureFilter(captureAllSockets: diagnosticCaptureAll);
-			ConcurrentDictionary<long, AolaSidecarSender> senders = new ConcurrentDictionary<long, AolaSidecarSender>();
 			Thread worker = new Thread((ThreadStart)delegate
 			{
 				foreach (CapturedChunk chunk in queue.GetConsumingEnumerable())
@@ -49,13 +47,6 @@ public sealed class MainClass : IEntryPoint
 						else if (chunk.Direction == CaptureDirection.Close)
 						{
 							engine.Remove(chunk.Socket);
-							lock (senders)
-							{
-								if (senders.TryRemove(chunk.Socket, out AolaSidecarSender closedSender))
-								{
-									closedSender.Dispose();
-								}
-							}
 						}
 						else
 						{
@@ -89,7 +80,7 @@ public sealed class MainClass : IEntryPoint
 					hooks.Install();
 					Report("Info", diagnosticCaptureAll
 						? "Aola Winsock Hook 已安装（诊断：全 socket 捕获后筛选）"
-						: "Aola Winsock Hook 已安装（游戏 socket 前置筛选 + 独立连接发包模式）");
+						: "Aola Winsock Hook 已安装（游戏 socket 前置筛选；旁路登录发包已禁用）");
 					DateTime nextStatusUtc = DateTime.UtcNow.AddSeconds(5);
 					CaptureRuntimeSnapshot lastStatus = null;
 					AolaCaptureEngineMetrics lastEngineStatus = null;
@@ -124,7 +115,7 @@ public sealed class MainClass : IEntryPoint
 							Thread.Sleep(50);
 							continue;
 						}
-						HandleSendRequest(engine, senders, filter, request, processId);
+						RejectLegacySendRequest(request, processId);
 					}
 				}
 				catch (Exception ex)
@@ -134,14 +125,6 @@ public sealed class MainClass : IEntryPoint
 			}
 			queue.CompleteAdding();
 			bool workerStopped = worker.Join(2000);
-			lock (senders)
-			{
-				foreach (AolaSidecarSender sender in senders.Values)
-				{
-					sender.Dispose();
-				}
-				senders.Clear();
-			}
 			if (workerStopped)
 			{
 				engine.Dispose();
@@ -154,65 +137,23 @@ public sealed class MainClass : IEntryPoint
 		Report("Info", "Aola Winsock Hook 已卸载");
 	}
 
-	private void HandleSendRequest(AolaCaptureEngine engine, ConcurrentDictionary<long, AolaSidecarSender> senders, AolaSocketCaptureFilter filter, AolaSendRequest request, int processId)
+	private void RejectLegacySendRequest(AolaSendRequest request, int processId)
 	{
-		AolaSendContext context = null;
 		AolaSendResult result = new AolaSendResult
 		{
 			RequestId = request.RequestId,
 			CompletedAtUtc = DateTime.UtcNow,
-			ProcessId = processId
+			ProcessId = processId,
+			SocketHandle = request.SocketHandle,
+			Succeeded = false,
+			Message = "已拒绝旧式旁路发包：生产发送必须通过页面/ExternalInterface/Flash 原连接。"
 		};
 		try
 		{
-			if (!engine.TryGetSendContext(request.SocketHandle, out context, out string error))
-			{
-				throw new InvalidOperationException(error);
-			}
-			result.SocketHandle = context.SourceSocket;
-			lock (senders)
-			{
-				if (!senders.TryGetValue(context.SourceSocket, out AolaSidecarSender sender) || !sender.Matches(context.LoginFrame))
-				{
-					if (sender != null)
-					{
-						sender.Dispose();
-					}
-					sender = new AolaSidecarSender(context.SourceSocket, processId, context.LoginFrame, filter.MarkSidecar);
-					senders[context.SourceSocket] = sender;
-				}
-				AolaPacketEvent packet = sender.Send(request);
-				PublishSafely(packet);
-			}
-			result.Succeeded = true;
-			result.Message = string.Format("已发送 ext={0}, cmd={1}", request.ExtensionId, request.Command);
+			_host.PublishSendResult(result);
 		}
-		catch (Exception ex)
+		catch
 		{
-			lock (senders)
-			{
-				if (result.SocketHandle != 0 && senders.TryGetValue(result.SocketHandle, out AolaSidecarSender sender))
-				{
-					sender.Dispose();
-					senders.TryRemove(result.SocketHandle, out _);
-				}
-			}
-			result.Succeeded = false;
-			result.Message = "发送失败：" + ex.Message;
-		}
-		finally
-		{
-			if (context?.LoginFrame != null)
-			{
-				Array.Clear(context.LoginFrame, 0, context.LoginFrame.Length);
-			}
-			try
-			{
-				_host.PublishSendResult(result);
-			}
-			catch
-			{
-			}
 		}
 	}
 

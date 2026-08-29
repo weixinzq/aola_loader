@@ -71,6 +71,18 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("BrowserHost contract self-test: PASS");
+		if (!ActiveSendContractVerifier.Verify())
+		{
+			Console.Error.WriteLine("ActiveSend contract self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("ActiveSend contract self-test: PASS");
+		if (!PacketUiSourceGuardVerifier.Verify())
+		{
+			Console.Error.WriteLine("Packet UI source guard: FAIL");
+			return 1;
+		}
+		Console.WriteLine("Packet UI source guard: PASS");
 		if (!BattleStateContractVerifier.Verify())
 		{
 			Console.Error.WriteLine("BattleState contract self-test: FAIL");

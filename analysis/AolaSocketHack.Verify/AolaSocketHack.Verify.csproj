@@ -73,8 +73,13 @@
     <Compile Include="..\AolaLoader\BrowserHost\Contracts\IBrowserSession.cs" Link="BrowserHost\Contracts\IBrowserSession.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Contracts\BrowserScriptContracts.cs" Link="BrowserHost\Contracts\BrowserScriptContracts.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Contracts\IPageBridge.cs" Link="BrowserHost\Contracts\IPageBridge.cs" />
+	<Compile Include="..\AolaLoader\BrowserHost\AolaPageBridge.cs" Link="BrowserHost\AolaPageBridge.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualBrowserSession.cs" Link="BrowserHost\Testing\ManualBrowserSession.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualPageBridge.cs" Link="BrowserHost\Testing\ManualPageBridge.cs" />
+	<Compile Include="..\AolaLoader\Features\ActiveSend\IAolaCommandSender.cs" Link="Features\ActiveSend\IAolaCommandSender.cs" />
+	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaExtensionMap.cs" Link="Features\ActiveSend\AolaExtensionMap.cs" />
+	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaSendRequestParser.cs" Link="Features\ActiveSend\AolaSendRequestParser.cs" />
+	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaFlashCommandSender.cs" Link="Features\ActiveSend\AolaFlashCommandSender.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattleModels.cs" Link="Battle\AolaBattleModels.cs" />

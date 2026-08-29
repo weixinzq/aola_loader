@@ -514,7 +514,11 @@ internal static class ResourceInterceptionContractVerifier
 			CountAscii(firstRead, "aolaMorphResolveSkinId") != 1 ||
 			CountAscii(firstRead, "aolaMorphRefresh") != 1 ||
 			CountAscii(firstRead, "aolaMorphShouldHideBackground") != 1 ||
-			CountAscii(firstRead, "aolaMorphResolveIconId") != 1)
+			CountAscii(firstRead, "aolaMorphResolveIconId") != 1 ||
+			CountAscii(firstRead, "aolaSendCommand") != 1 ||
+			CountAscii(firstRead, "aolaOpenPanel") != 1 ||
+			CountAscii(firstRead, "ensureAolaCommandBridge") < 1 ||
+			CountAscii(firstRead, "aolaCommandCompleted") != 1)
 		{
 			return false;
 		}
@@ -552,6 +556,7 @@ internal static class ResourceInterceptionContractVerifier
 	private static byte[] CreatePetPackageTemplate(bool includeIconMarker)
 	{
 		string body = "aolaMorphResolveSkinId|aolaMorphRefresh|aolaMorphShouldHideBackground" +
+			"|aolaSendCommand|aolaOpenPanel|ensureAolaCommandBridge|aolaCommandCompleted" +
 			(includeIconMarker ? "|aolaMorphResolveIconId" : string.Empty);
 		byte[] bodyBytes = Encoding.ASCII.GetBytes(body);
 		byte[] content = new byte[8 + bodyBytes.Length];

@@ -4,7 +4,10 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
+using AolaLoader.BrowserHost.Contracts;
+using AolaLoader.Features.ActiveSend;
 using AolaLoader.PacketHost;
 using AolaLoader.UI.Common;
 using AolaSocketHack.Contracts;
@@ -17,97 +20,373 @@ namespace AolaLoader.UI.Packets;
 internal sealed class AolaPacketsForm : AolaFormBase
 {
 	private const int MaximumVisiblePackets = 5000;
-	private readonly ListView _packetList = new ListView();
-	private readonly RichTextBox _details = new RichTextBox();
-	private readonly TextBox _sendInput = new TextBox();
-	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("等待奥拉星发送消息");
-	private readonly List<AolaPacketEvent> _packets = new List<AolaPacketEvent>();
+	private static readonly Color Background = Color.FromArgb(245, 245, 247);
+	private static readonly Color SecondaryText = Color.FromArgb(110, 110, 115);
 	private readonly IAolaPacketEventSource _packetEventSource;
+	private readonly IAolaCommandSender _commandSender;
+	private readonly IPageBridge _pageBridge;
+	private readonly List<AolaPacketEvent> _packets = new List<AolaPacketEvent>();
+	private readonly DataGridView _packetGrid = new DataGridView();
+	private readonly TextBox _sendInput = new TextBox();
+	private readonly TextBox _panelResourceInput = new TextBox();
+	private readonly TextBox _panelClassInput = new TextBox();
+	private readonly CupertinoButton _sendButton = new CupertinoButton("发送", true);
+	private readonly CupertinoButton _openPanelButton = new CupertinoButton("打开映射面板", true);
+	private readonly CupertinoButton _captureNavigation = new CupertinoButton("抓包", true);
+	private readonly CupertinoButton _sendNavigation = new CupertinoButton("发包");
+	private readonly CupertinoButton _panelNavigation = new CupertinoButton("打开映射面板");
+	private readonly Label _status = new Label { Text = "等待奥拉星发送消息" };
+	private readonly Panel _contentHost = new Panel();
+	private Control _captureView;
+	private Control _sendView;
+	private Control _panelView;
 
-	public AolaPacketsForm(IAolaPacketEventSource packetEventSource)
+	public AolaPacketsForm(
+		IAolaPacketEventSource packetEventSource,
+		IAolaCommandSender commandSender,
+		IPageBridge pageBridge)
 	{
-		_packetEventSource = packetEventSource ??
-			throw new ArgumentNullException(nameof(packetEventSource));
+		_packetEventSource = packetEventSource ?? throw new ArgumentNullException(nameof(packetEventSource));
+		_commandSender = commandSender ?? throw new ArgumentNullException(nameof(commandSender));
+		_pageBridge = pageBridge ?? throw new ArgumentNullException(nameof(pageBridge));
 		Text = "奥拉星抓包 / 发包";
 		StartPosition = FormStartPosition.CenterParent;
 		MinimumSize = new Size(920, 620);
 		Size = new Size(1180, 780);
+		BackColor = Background;
+		Font = new Font("Microsoft YaHei UI", 9.5f);
 
-		ToolStrip toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden };
-		ToolStripButton clearButton = new ToolStripButton("清空");
-		ToolStripButton exportButton = new ToolStripButton("导出 #send");
-		ToolStripButton useSelectedButton = new ToolStripButton("选中项填入发包区");
-		ToolStripButton loadButton = new ToolStripButton("载入 #send 文件");
-		ToolStripButton sendButton = new ToolStripButton("发送");
-		clearButton.Click += delegate { ClearPackets(); };
-		exportButton.Click += delegate { ExportPackets(); };
-		useSelectedButton.Click += delegate { FillFromSelected(); };
-		loadButton.Click += delegate { LoadSendFile(); };
-		sendButton.Click += delegate { QueueSends(); };
-		toolbar.Items.AddRange(new ToolStripItem[] { clearButton, exportButton, new ToolStripSeparator(), useSelectedButton, loadButton, sendButton });
-
-		_packetList.Dock = DockStyle.Fill;
-		_packetList.View = View.Details;
-		_packetList.FullRowSelect = true;
-		_packetList.HideSelection = false;
-		_packetList.MultiSelect = true;
-		_packetList.Columns.Add("时间", 95);
-		_packetList.Columns.Add("长度", 60);
-		_packetList.Columns.Add("OuterSeq", 105);
-		_packetList.Columns.Add("Action", 70);
-		_packetList.Columns.Add("ExtID", 65);
-		_packetList.Columns.Add("Cmd", 210);
-		_packetList.Columns.Add("摘要", 430);
-		_packetList.SelectedIndexChanged += delegate { ShowSelectedPacket(); };
-
-		_details.Dock = DockStyle.Fill;
-		_details.ReadOnly = true;
-		_details.Font = new Font("Consolas", 9f);
-		_details.WordWrap = false;
-		_sendInput.Dock = DockStyle.Fill;
-		_sendInput.Multiline = true;
-		_sendInput.AcceptsReturn = true;
-		_sendInput.AcceptsTab = true;
-		_sendInput.ScrollBars = ScrollBars.Both;
-		_sendInput.WordWrap = false;
-		_sendInput.Font = new Font("Consolas", 9f);
-		_sendInput.Text = "#send={\"id\":42,\"param\":{},\"cmd\":\"\"}|";
-
-		TabControl tabs = new TabControl { Dock = DockStyle.Fill };
-		TabPage detailsPage = new TabPage("Inner 明文详情");
-		TabPage sendPage = new TabPage("#send 发包");
-		detailsPage.Controls.Add(_details);
-		sendPage.Controls.Add(_sendInput);
-		tabs.TabPages.Add(detailsPage);
-		tabs.TabPages.Add(sendPage);
-
-		SplitContainer split = new SplitContainer
-		{
-			Dock = DockStyle.Fill,
-			Orientation = Orientation.Horizontal,
-			SplitterDistance = 430
-		};
-		split.Panel1.Controls.Add(_packetList);
-		split.Panel2.Controls.Add(tabs);
-		StatusStrip statusStrip = new StatusStrip();
-		statusStrip.Items.Add(_status);
-		Controls.Add(split);
-		Controls.Add(toolbar);
-		Controls.Add(statusStrip);
-		toolbar.Dock = DockStyle.Top;
-		statusStrip.Dock = DockStyle.Bottom;
-
+		ConfigureInputs();
+		BuildInterface();
 		_packetEventSource.PacketReceived += OnPacketReceived;
 		_packetEventSource.StatusReceived += OnStatusReceived;
-		_packetEventSource.SendCompleted += OnSendCompleted;
+		_commandSender.StatusChanged += OnCommandStatusChanged;
 	}
 
 	protected override void OnFormClosed(FormClosedEventArgs e)
 	{
 		_packetEventSource.PacketReceived -= OnPacketReceived;
 		_packetEventSource.StatusReceived -= OnStatusReceived;
-		_packetEventSource.SendCompleted -= OnSendCompleted;
+		_commandSender.StatusChanged -= OnCommandStatusChanged;
 		base.OnFormClosed(e);
+	}
+
+	private void ConfigureInputs()
+	{
+		_sendInput.Multiline = true;
+		_sendInput.AcceptsReturn = true;
+		_sendInput.AcceptsTab = true;
+		_sendInput.ScrollBars = ScrollBars.Both;
+		_sendInput.WordWrap = false;
+		_sendInput.BorderStyle = BorderStyle.FixedSingle;
+		_sendInput.BackColor = Color.FromArgb(251, 251, 253);
+		_sendInput.Font = new Font("Consolas", 10f);
+
+		_panelResourceInput.BorderStyle = BorderStyle.FixedSingle;
+		_panelResourceInput.Font = new Font("Consolas", 10f);
+		_panelResourceInput.Text = "activityres/activity241101/challengeandtrialentrance/challengeandtrialentrance_code";
+		_panelClassInput.BorderStyle = BorderStyle.FixedSingle;
+		_panelClassInput.Font = new Font("Consolas", 10f);
+		_panelClassInput.Text = "mmo.activity241101.challengeandtrialentrance.panel.CATE_MainPl";
+		_sendButton.Click += delegate { QueueSends(); };
+		_openPanelButton.Click += delegate { OpenMappedPanel(); };
+	}
+
+	private void BuildInterface()
+	{
+		TableLayoutPanel shell = new TableLayoutPanel
+		{
+			Dock = DockStyle.Fill,
+			ColumnCount = 1,
+			RowCount = 3,
+			Padding = new Padding(16, 14, 16, 14),
+			BackColor = Background
+		};
+		shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+		shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78f));
+		shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+		shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
+		shell.Controls.Add(BuildNavigation(), 0, 0);
+
+		_contentHost.Dock = DockStyle.Fill;
+		_contentHost.Margin = new Padding(0, 12, 0, 12);
+		_contentHost.BackColor = Background;
+		_captureView = BuildCaptureView();
+		_sendView = BuildSendView();
+		_panelView = BuildPanelView();
+		_contentHost.Controls.AddRange(new[] { _captureView, _sendView, _panelView });
+		shell.Controls.Add(_contentHost, 0, 1);
+		shell.Controls.Add(BuildStatusBar(), 0, 2);
+		Controls.Add(shell);
+		ShowView(_captureView, _captureNavigation);
+	}
+
+	private Control BuildNavigation()
+	{
+		CupertinoCard card = new CupertinoCard { Dock = DockStyle.Fill, Padding = new Padding(16, 12, 16, 12) };
+		FlowLayoutPanel row = ActionRow();
+		ConfigureNavigation(_captureNavigation, 170);
+		ConfigureNavigation(_sendNavigation, 170);
+		ConfigureNavigation(_panelNavigation, 220);
+		_captureNavigation.Click += delegate { ShowView(_captureView, _captureNavigation); };
+		_sendNavigation.Click += delegate { ShowView(_sendView, _sendNavigation); };
+		_panelNavigation.Click += delegate { ShowView(_panelView, _panelNavigation); };
+		row.Controls.AddRange(new Control[] { _captureNavigation, _sendNavigation, _panelNavigation });
+		card.Controls.Add(row);
+		return card;
+	}
+
+	private static void ConfigureNavigation(CupertinoButton button, int width)
+	{
+		button.AutoSize = false;
+		button.Size = new Size(width, 48);
+		button.Margin = new Padding(0, 0, 12, 0);
+		button.Font = new Font("Microsoft YaHei UI", 11f, FontStyle.Bold);
+	}
+
+	private Control BuildCaptureView()
+	{
+		CupertinoCard card = PageCard();
+		TableLayoutPanel layout = PageLayout(72, 54);
+		layout.Controls.Add(Header("抓包消息", "仅显示能够转换为严格 #send 格式的客户端发送消息。"), 0, 0);
+		FlowLayoutPanel actions = ActionRow();
+		actions.Controls.Add(ActionButton("全选", delegate { SetAllPacketsChecked(true); }));
+		actions.Controls.Add(ActionButton("取消全选", delegate { SetAllPacketsChecked(false); }));
+		actions.Controls.Add(ActionButton("选中内容加入发包", AppendCheckedToSend, true));
+		actions.Controls.Add(ActionButton("导出所选", ExportPackets));
+		actions.Controls.Add(ActionButton("清空消息", ClearPackets));
+		layout.Controls.Add(actions, 0, 1);
+		ConfigurePacketGrid();
+		layout.Controls.Add(_packetGrid, 0, 2);
+		card.Controls.Add(layout);
+		return card;
+	}
+
+	private void ConfigurePacketGrid()
+	{
+		_packetGrid.Dock = DockStyle.Fill;
+		_packetGrid.Margin = new Padding(0);
+		_packetGrid.BackgroundColor = Color.White;
+		_packetGrid.BorderStyle = BorderStyle.None;
+		_packetGrid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+		_packetGrid.GridColor = Color.FromArgb(235, 235, 240);
+		_packetGrid.AllowUserToAddRows = false;
+		_packetGrid.AllowUserToDeleteRows = false;
+		_packetGrid.AllowUserToResizeRows = false;
+		_packetGrid.RowHeadersVisible = false;
+		_packetGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+		_packetGrid.RowTemplate.Height = 34;
+		_packetGrid.EnableHeadersVisualStyles = false;
+		_packetGrid.ColumnHeadersHeight = 38;
+		_packetGrid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+		{
+			BackColor = Color.FromArgb(248, 248, 250),
+			ForeColor = Color.FromArgb(40, 40, 45),
+			Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold),
+			SelectionBackColor = Color.FromArgb(248, 248, 250),
+			SelectionForeColor = Color.FromArgb(40, 40, 45)
+		};
+		_packetGrid.DefaultCellStyle = new DataGridViewCellStyle
+		{
+			BackColor = Color.White,
+			ForeColor = Color.FromArgb(35, 35, 40),
+			SelectionBackColor = Color.FromArgb(225, 239, 255),
+			SelectionForeColor = Color.FromArgb(20, 70, 125),
+			Font = new Font("Consolas", 9.5f),
+			Padding = new Padding(4, 0, 4, 0)
+		};
+		_packetGrid.Columns.Add(new DataGridViewCheckBoxColumn
+		{
+			Name = "Selected",
+			HeaderText = string.Empty,
+			Width = 48,
+			Resizable = DataGridViewTriState.False,
+			SortMode = DataGridViewColumnSortMode.NotSortable
+		});
+		_packetGrid.Columns.Add(new DataGridViewTextBoxColumn
+		{
+			Name = "Time",
+			HeaderText = "时间",
+			Width = 125,
+			ReadOnly = true,
+			SortMode = DataGridViewColumnSortMode.NotSortable
+		});
+		_packetGrid.Columns.Add(new DataGridViewTextBoxColumn
+		{
+			Name = "SendLine",
+			HeaderText = "解析后的 #send 消息",
+			AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+			ReadOnly = true,
+			SortMode = DataGridViewColumnSortMode.NotSortable
+		});
+		_packetGrid.CurrentCellDirtyStateChanged += delegate
+		{
+			if (_packetGrid.IsCurrentCellDirty)
+			{
+				_packetGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+			}
+		};
+		_packetGrid.CellValueChanged += delegate(object sender, DataGridViewCellEventArgs e)
+		{
+			if (e.RowIndex >= 0 && e.ColumnIndex == 0)
+			{
+				UpdateCountStatus();
+			}
+		};
+	}
+
+	private Control BuildSendView()
+	{
+		CupertinoCard card = PageCard();
+		TableLayoutPanel layout = PageLayout(72, 0);
+		layout.RowStyles.Clear();
+		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72f));
+		layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
+		layout.Controls.Add(Header("发包", "直接编写严格 #send 消息，或从 UTF-8 文本文件导入。"), 0, 0);
+		_sendInput.Dock = DockStyle.Fill;
+		_sendInput.Margin = new Padding(0, 0, 0, 10);
+		layout.Controls.Add(_sendInput, 0, 1);
+
+		TableLayoutPanel actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
+		actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+		actions.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+		FlowLayoutPanel left = ActionRow();
+		left.AutoSize = true;
+		left.Controls.Add(ActionButton("从文件导入", LoadSendFile));
+		left.Controls.Add(ActionButton("清空", ClearSendEditor));
+		FlowLayoutPanel right = ActionRow();
+		right.AutoSize = true;
+		right.FlowDirection = FlowDirection.RightToLeft;
+		_sendButton.MinimumSize = new Size(120, 44);
+		_sendButton.Margin = new Padding(10, 0, 0, 0);
+		right.Controls.Add(_sendButton);
+		actions.Controls.Add(left, 0, 0);
+		actions.Controls.Add(right, 1, 0);
+		layout.Controls.Add(actions, 0, 2);
+		card.Controls.Add(layout);
+		return card;
+	}
+
+	private Control BuildPanelView()
+	{
+		CupertinoCard card = PageCard();
+		TableLayoutPanel layout = PageLayout(72, 260);
+		layout.Controls.Add(Header("打开映射面板", "将资源键或 URL 与 CLS 类名提交给已加载的 Flash 面板桥。"), 0, 0);
+		TableLayoutPanel fields = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Margin = new Padding(0) };
+		fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+		fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
+		fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+		fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
+		fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 64f));
+		fields.Controls.Add(FieldLabel("URL / 资源键"), 0, 0);
+		_panelResourceInput.Dock = DockStyle.Fill;
+		fields.Controls.Add(_panelResourceInput, 0, 1);
+		fields.Controls.Add(FieldLabel("CLS 类名"), 0, 2);
+		_panelClassInput.Dock = DockStyle.Fill;
+		fields.Controls.Add(_panelClassInput, 0, 3);
+		FlowLayoutPanel openRow = ActionRow();
+		_openPanelButton.MinimumSize = new Size(170, 44);
+		_openPanelButton.Margin = new Padding(0, 12, 0, 0);
+		openRow.Controls.Add(_openPanelButton);
+		fields.Controls.Add(openRow, 0, 4);
+		layout.Controls.Add(fields, 0, 1);
+		card.Controls.Add(layout);
+		return card;
+	}
+
+	private Control BuildStatusBar()
+	{
+		CupertinoCard card = new CupertinoCard { Dock = DockStyle.Fill, Padding = new Padding(14, 4, 14, 4) };
+		_status.Dock = DockStyle.Fill;
+		_status.TextAlign = ContentAlignment.MiddleLeft;
+		_status.ForeColor = SecondaryText;
+		_status.BackColor = Color.Transparent;
+		_status.AutoEllipsis = true;
+		card.Controls.Add(_status);
+		return card;
+	}
+
+	private static CupertinoCard PageCard() => new CupertinoCard { Dock = DockStyle.Fill, Padding = new Padding(24) };
+
+	private static TableLayoutPanel PageLayout(float firstHeight, float secondHeight)
+	{
+		TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = new Padding(0) };
+		layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, firstHeight));
+		layout.RowStyles.Add(secondHeight == 0 ? new RowStyle(SizeType.Percent, 100f) : new RowStyle(SizeType.Absolute, secondHeight));
+		layout.RowStyles.Add(secondHeight == 0 ? new RowStyle(SizeType.Absolute, 0) : new RowStyle(SizeType.Percent, 100f));
+		return layout;
+	}
+
+	private static Control Header(string title, string subtitle)
+	{
+		TableLayoutPanel panel = new TableLayoutPanel
+		{
+			Dock = DockStyle.Fill,
+			ColumnCount = 1,
+			RowCount = 2,
+			Margin = new Padding(0)
+		};
+		panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40f));
+		panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+		panel.Controls.Add(new Label
+		{
+			Text = title,
+			Dock = DockStyle.Fill,
+			Font = new Font("Microsoft YaHei UI", 17f, FontStyle.Bold),
+			ForeColor = Color.FromArgb(20, 20, 24),
+			TextAlign = ContentAlignment.MiddleLeft
+		}, 0, 0);
+		panel.Controls.Add(new Label
+		{
+			Text = subtitle,
+			Dock = DockStyle.Fill,
+			ForeColor = SecondaryText,
+			TextAlign = ContentAlignment.MiddleLeft
+		}, 0, 1);
+		return panel;
+	}
+
+	private static Label FieldLabel(string text) => new Label
+	{
+		Text = text,
+		AutoSize = true,
+		Margin = new Padding(0, 8, 0, 6),
+		ForeColor = Color.FromArgb(55, 55, 60),
+		Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold)
+	};
+
+	private static FlowLayoutPanel ActionRow() => new FlowLayoutPanel
+	{
+		Dock = DockStyle.Fill,
+		FlowDirection = FlowDirection.LeftToRight,
+		WrapContents = false,
+		Margin = new Padding(0),
+		BackColor = Color.Transparent
+	};
+
+	private static CupertinoButton ActionButton(string text, Action action, bool primary = false)
+	{
+		CupertinoButton button = new CupertinoButton(text, primary) { MinimumSize = new Size(96, 40), Margin = new Padding(0, 0, 10, 0) };
+		button.Click += delegate { action(); };
+		return button;
+	}
+
+	private void ShowView(Control view, CupertinoButton selected)
+	{
+		if (view == null)
+		{
+			return;
+		}
+		foreach (Control control in _contentHost.Controls)
+		{
+			control.Visible = control == view;
+		}
+		_captureNavigation.Primary = selected == _captureNavigation;
+		_sendNavigation.Primary = selected == _sendNavigation;
+		_panelNavigation.Primary = selected == _panelNavigation;
+		view.BringToFront();
 	}
 
 	private void OnPacketReceived(AolaPacketEvent packet)
@@ -121,20 +400,16 @@ internal sealed class AolaPacketsForm : AolaFormBase
 			BeginInvoke(new Action<AolaPacketEvent>(OnPacketReceived), packet);
 			return;
 		}
-		_packets.Add(packet);
-		ListViewItem item = new ListViewItem(packet.TimestampUtc.ToLocalTime().ToString("HH:mm:ss.fff"));
-		item.SubItems.Add(packet.FrameLength.ToString());
-		item.SubItems.Add(packet.OuterSequence?.ToString() ?? string.Empty);
-		item.SubItems.Add(packet.Action?.ToString() ?? string.Empty);
-		item.SubItems.Add(packet.ExtensionId?.ToString() ?? string.Empty);
-		item.SubItems.Add(packet.Command ?? string.Empty);
-		item.SubItems.Add(packet.Summary ?? string.Empty);
-		item.Tag = packet;
-		item.ForeColor = !packet.DecodeSucceeded ? Color.DarkRed : packet.CanExport ? Color.DarkBlue : SystemColors.WindowText;
-		_packetList.Items.Add(item);
-		while (_packetList.Items.Count > MaximumVisiblePackets)
+		if (!packet.CanExport || !AolaSendExporter.TryCreateLine(packet, out string sendLine))
 		{
-			_packetList.Items.RemoveAt(0);
+			return;
+		}
+		_packets.Add(packet);
+		int index = _packetGrid.Rows.Add(false, packet.TimestampUtc.ToLocalTime().ToString("HH:mm:ss.fff"), sendLine);
+		_packetGrid.Rows[index].Tag = packet;
+		while (_packetGrid.Rows.Count > MaximumVisiblePackets)
+		{
+			_packetGrid.Rows.RemoveAt(0);
 			_packets.RemoveAt(0);
 		}
 		UpdateCountStatus();
@@ -154,80 +429,59 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_status.Text = string.Format("[{0}] {1}", status.Level, status.Message);
 	}
 
-	private void OnSendCompleted(AolaSendResult result)
+	private void OnCommandStatusChanged(AolaCommandSendUpdate update)
 	{
-		if (result == null || IsDisposed)
+		if (update == null || IsDisposed)
 		{
 			return;
 		}
 		if (InvokeRequired)
 		{
-			BeginInvoke(new Action<AolaSendResult>(OnSendCompleted), result);
+			BeginInvoke(new Action<AolaCommandSendUpdate>(OnCommandStatusChanged), update);
 			return;
 		}
-		_status.Text = (result.Succeeded ? "[发送成功] " : "[发送失败] ") + result.Message;
-		if (!result.Succeeded)
-		{
-			MessageBox.Show(this, result.Message, "奥拉星发包", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-		}
+		_status.Text = "[" + update.Status + "] " + update.Message;
 	}
 
-	private void ShowSelectedPacket()
+	private void SetAllPacketsChecked(bool value)
 	{
-		if (_packetList.SelectedItems.Count == 0 || !(_packetList.SelectedItems[0].Tag is AolaPacketEvent packet))
+		foreach (DataGridViewRow row in _packetGrid.Rows)
 		{
+			row.Cells[0].Value = value;
+		}
+		UpdateCountStatus();
+	}
+
+	private List<DataGridViewRow> CheckedRows() => _packetGrid.Rows.Cast<DataGridViewRow>()
+		.Where(row => Convert.ToBoolean(row.Cells[0].Value)).ToList();
+
+	private void AppendCheckedToSend()
+	{
+		List<string> lines = CheckedRows().Select(row => Convert.ToString(row.Cells["SendLine"].Value))
+			.Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+		if (lines.Count == 0)
+		{
+			_status.Text = "请选择至少一条消息后再加入发包。";
 			return;
 		}
-		StringBuilder text = new StringBuilder();
-		text.AppendLine("Socket: " + packet.SocketHandle);
-		text.AppendLine("长度: " + packet.FrameLength);
-		text.AppendLine("OuterSeq: " + (packet.OuterSequence?.ToString() ?? "-"));
-		text.AppendLine("Type/Action: " + (packet.MessageType?.ToString() ?? "-") + "/" + (packet.Action?.ToString() ?? "-"));
-		text.AppendLine("ExtID/Cmd: " + (packet.ExtensionId?.ToString() ?? "-") + "/" + (packet.Command ?? "-"));
-		text.AppendLine("摘要: " + packet.Summary);
-		if (!string.IsNullOrWhiteSpace(packet.ParametersJson))
-		{
-			text.AppendLine();
-			text.AppendLine("Inner 参数明文（JSON）:");
-			try
-			{
-				text.AppendLine(JToken.Parse(packet.ParametersJson).ToString(Formatting.Indented));
-			}
-			catch (JsonException)
-			{
-				text.AppendLine(packet.ParametersJson);
-			}
-		}
-		if (!string.IsNullOrWhiteSpace(packet.InnerPlainHex))
-		{
-			text.AppendLine();
-			text.AppendLine("Inner 明文（AMF3 HEX）:");
-			text.AppendLine(packet.InnerPlainHex);
-		}
-		_details.Text = text.ToString();
+		string separator = _sendInput.TextLength == 0 || _sendInput.Text.EndsWith("\n", StringComparison.Ordinal)
+			? string.Empty
+			: Environment.NewLine;
+		_sendInput.AppendText(separator + string.Join(Environment.NewLine, lines));
+		_status.Text = string.Format("已将 {0} 条消息追加到发包区。", lines.Count);
 	}
 
 	private void ClearPackets()
 	{
 		_packets.Clear();
-		_packetList.Items.Clear();
-		_details.Clear();
+		_packetGrid.Rows.Clear();
 		UpdateCountStatus();
 	}
 
-	private void FillFromSelected()
+	private void ClearSendEditor()
 	{
-		IEnumerable<AolaPacketEvent> selected = _packetList.SelectedItems.Cast<ListViewItem>()
-			.Select(item => item.Tag as AolaPacketEvent)
-			.Where(packet => packet != null && packet.CanExport);
-		List<string> lines = selected.Select(packet => AolaSendExporter.TryCreateLine(packet, out string line) ? line : null)
-			.Where(line => line != null).ToList();
-		if (lines.Count == 0)
-		{
-			MessageBox.Show(this, "请选择至少一条可导出的 EXT 消息。", "填入发包区", MessageBoxButtons.OK, MessageBoxIcon.Information);
-			return;
-		}
-		_sendInput.Lines = lines.ToArray();
+		_sendInput.Clear();
+		_status.Text = "发包编辑区已清空。";
 	}
 
 	private void LoadSendFile()
@@ -237,95 +491,76 @@ internal sealed class AolaPacketsForm : AolaFormBase
 			if (dialog.ShowDialog(this) == DialogResult.OK)
 			{
 				_sendInput.Text = File.ReadAllText(dialog.FileName, Encoding.UTF8);
+				_status.Text = "已导入发包文件：" + dialog.FileName;
 			}
 		}
 	}
 
-	private void QueueSends()
+	private async void QueueSends()
 	{
+		_sendButton.Enabled = false;
 		try
 		{
-			List<AolaSendRequest> requests = ParseSendLines(_sendInput.Text);
-			AolaPacketEvent target = GetTargetPacket();
-			foreach (AolaSendRequest request in requests)
+			foreach (AolaSendRequest request in AolaSendRequestParser.ParseLines(_sendInput.Text))
 			{
-				request.ProcessId = target?.ProcessId ?? 0;
-				request.SocketHandle = target?.SocketHandle ?? 0;
-				_packetEventSource.QueueSend(request);
+				await _commandSender.SendAsync(request, CancellationToken.None);
 			}
-			_status.Text = string.Format("已排队 {0} 条消息，等待独立游戏连接发送", requests.Count);
 		}
 		catch (Exception ex) when (ex is JsonException || ex is InvalidOperationException || ex is ArgumentException)
 		{
 			MessageBox.Show(this, ex.Message, "#send 格式错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 		}
+		finally
+		{
+			if (!IsDisposed)
+			{
+				_sendButton.Enabled = true;
+			}
+		}
 	}
 
-	private AolaPacketEvent GetTargetPacket()
+	private async void OpenMappedPanel()
 	{
-		AolaPacketEvent selected = _packetList.SelectedItems.Cast<ListViewItem>()
-			.Select(item => item.Tag as AolaPacketEvent)
-			.FirstOrDefault(packet => packet != null && packet.SocketHandle != 0);
-		return selected ?? _packets.LastOrDefault(packet => packet.SocketHandle != 0);
-	}
-
-	private static List<AolaSendRequest> ParseSendLines(string input)
-	{
-		List<string> lines = (input ?? string.Empty).Replace("\r\n", "\n").Split('\n')
-			.Select(line => line.Trim().TrimStart('\uFEFF'))
-			.Where(line => line.Length != 0 && !line.StartsWith("//", StringComparison.Ordinal))
-			.ToList();
-		if (lines.Count == 0)
+		string resourceUrl = _panelResourceInput.Text;
+		string resourceClass = _panelClassInput.Text;
+		if (string.IsNullOrEmpty(resourceUrl) || string.IsNullOrEmpty(resourceClass) || resourceUrl.Length > 2048 || resourceClass.Length > 2048)
 		{
-			throw new InvalidOperationException("请输入至少一条 #send={...}| 消息。");
+			_status.Text = "[PanelRejected] URL/资源键和 CLS 类名必须为 1 到 2048 个字符。";
+			return;
 		}
-		List<AolaSendRequest> requests = new List<AolaSendRequest>();
-		for (int index = 0; index < lines.Count; index++)
+		_openPanelButton.Enabled = false;
+		try
 		{
-			string line = lines[index];
-			if (!line.StartsWith("#send=", StringComparison.Ordinal) || !line.EndsWith("|", StringComparison.Ordinal))
-			{
-				throw new InvalidOperationException(string.Format("第 {0} 行必须使用 #send={{...}}| 格式。", index + 1));
-			}
-			JObject message = JObject.Parse(line.Substring(6, line.Length - 7));
-			JToken idToken = message["id"];
-			JToken commandToken = message["cmd"];
-			JToken parametersToken = message["param"];
-			if (idToken == null || idToken.Type != JTokenType.Integer || idToken.Value<long>() < 0 || idToken.Value<long>() > ushort.MaxValue)
-			{
-				throw new InvalidOperationException(string.Format("第 {0} 行 id 必须是 0..65535 的整数。", index + 1));
-			}
-			if (commandToken == null || commandToken.Type != JTokenType.String || string.IsNullOrWhiteSpace(commandToken.Value<string>()))
-			{
-				throw new InvalidOperationException(string.Format("第 {0} 行 cmd 必须是非空字符串。", index + 1));
-			}
-			if (!(parametersToken is JObject parameters))
-			{
-				throw new InvalidOperationException(string.Format("第 {0} 行 param 必须是 JSON 对象。", index + 1));
-			}
-			parameters = (JObject)parameters.DeepClone();
-			parameters.Remove(":ext_seq;");
-			requests.Add(new AolaSendRequest
-			{
-				ExtensionId = idToken.Value<int>(),
-				Command = commandToken.Value<string>(),
-				ParametersJson = parameters.ToString(Formatting.None)
-			});
+			PageBridgeResult result = await _pageBridge.InvokeAsync(
+				new PageBridgeRequest("panel.open", new JObject { ["resourceUrl"] = resourceUrl, ["resourceClass"] = resourceClass }, TimeSpan.FromSeconds(5)),
+				CancellationToken.None);
+			_status.Text = result.Succeeded
+				? "[PanelOpenRequested] 已提交给 Flash：" + resourceUrl + " → " + resourceClass
+				: "[PanelRejected] " + result.Message;
 		}
-		return requests;
+		catch (Exception ex)
+		{
+			_status.Text = "[PanelRejected] " + ex.Message;
+		}
+		finally
+		{
+			if (!IsDisposed)
+			{
+				_openPanelButton.Enabled = true;
+			}
+		}
 	}
 
 	private void ExportPackets()
 	{
-		IEnumerable<AolaPacketEvent> source = _packetList.SelectedItems.Count == 0
-			? _packets
-			: _packetList.SelectedItems.Cast<ListViewItem>().Select(item => item.Tag as AolaPacketEvent);
+		List<DataGridViewRow> selected = CheckedRows();
+		IEnumerable<AolaPacketEvent> source = selected.Count == 0 ? _packets : selected.Select(row => row.Tag as AolaPacketEvent);
 		List<string> lines = source.Where(packet => packet != null && packet.CanExport)
 			.Select(packet => AolaSendExporter.TryCreateLine(packet, out string line) ? line : null)
 			.Where(line => line != null).ToList();
 		if (lines.Count == 0)
 		{
-			MessageBox.Show(this, "当前没有可导出的客户端 EXT 消息。", "导出 #send", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			_status.Text = "当前没有可导出的客户端 EXT 消息。";
 			return;
 		}
 		using (SaveFileDialog dialog = new SaveFileDialog
@@ -344,6 +579,6 @@ internal sealed class AolaPacketsForm : AolaFormBase
 
 	private void UpdateCountStatus()
 	{
-		_status.Text = string.Format("发送消息 {0} 条，可导出 {1} 条", _packets.Count, _packets.Count(packet => packet.CanExport));
+		_status.Text = string.Format("已捕获可发包消息 {0} 条，已选择 {1} 条。", _packets.Count, CheckedRows().Count);
 	}
 }

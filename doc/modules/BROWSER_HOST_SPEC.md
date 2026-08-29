@@ -16,6 +16,8 @@ OwnerPaths: `analysis/AolaLoader/BrowserHost/**`
 
 `IBrowserSession` 提供当前地址、导航、刷新、页面/主 frame 生命周期、关闭状态和结构化脚本执行结果；`IPageBridge` 通过 `PageBridgeRequest` 调用命名操作，通过 `PageFeatureStatePush` 推送带 revision 的结构化状态，并区分桥未安装、页面未就绪、调用失败、超时、取消和浏览器关闭。所有 JSON 值使用防御性副本。
 
+生产 `AolaPageBridge` 只接受命名操作。主动发送使用 `activeSend.submit`：JavaScript 只向已加载 Flash 对象调用 `aolaSendCommand`，提交返回后立即删除临时请求状态，不轮询或等待服务器响应。面板打开使用独立的 `panel.open`，把结构化的 `resourceUrl` 与 `resourceClass` 字符串传给 `aolaOpenPanel`；不执行用户脚本文本。桥不传递登录帧、SID 或服务器响应正文。
+
 ## 输入与输出
 
 输入为受控 HTTP/HTTPS 导航及结构化桥请求；输出为生命周期事件和结构化脚本结果，不向功能模块泄露 `ChromiumWebBrowser`/`IFrame`。
@@ -50,7 +52,7 @@ Cef 回调按框架线程规则进入；对外事件不承诺 UI 线程。会话
 
 ## 验证入口
 
-`AolaSocketHack.Verify --self-test` 当前验证导航/刷新、主 frame 生命周期、订阅者异常隔离、脚本结果、桥失败分类、状态 revision、防御性副本和关闭语义。生产适配批次继续验证未完成调用取消、事件退订，以及默认页面启动/关闭/新进程实测。
+`AolaSocketHack.Verify --self-test` 当前验证导航/刷新、主 frame 生命周期、订阅者异常隔离、脚本结果、桥失败分类、状态 revision、防御性副本和关闭语义，并验证主动发送脚本不含登录/SID、未知扩展拒绝及四类发送状态。生产适配仍需真实页面启动、桥加载、服务器回调和新进程实测。
 
 ## 完成标准
 
