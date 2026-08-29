@@ -22,6 +22,7 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		"aolaMorphResolveIconId",
 		"aolaSendCommand",
 		"aolaOpenPanel",
+		"aolaSetPlayback",
 		"ensureAolaCommandBridge",
 		"aolaCommandCompleted"
 	};

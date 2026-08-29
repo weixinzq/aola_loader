@@ -9,6 +9,30 @@ namespace AolaSocketHack.Verify;
 /// </summary>
 internal static class MainFormCompositionGuardVerifier
 {
+	private static readonly string[] RequiredResponsivenessTokens =
+	{
+		"EnsureHookInjectedAsync",
+		"await Task.Run(FindNetworkProcessId)",
+		"await Task.Run(() => _hookController.EnsureInjected",
+		"FormBorderStyle = FormBorderStyle.FixedSingle",
+		"MaximizeBox = false",
+		"Size = new Size(1200, 800)",
+		"ToolStripDropDownButton extensions = BuildExtensionsButton()",
+		"extensions, refresh, packets, _playbackMenu, _qualityMenu, devTools, retainLog",
+		"Refresh(BrowserRefreshMode.IgnoreCache)",
+		"\"playback.apply\""
+	};
+
+	private static readonly string[] ForbiddenToolbarTokens =
+	{
+		"ToolStripTextBox _address",
+		"ToolStripButton(\"后退\")",
+		"ToolStripButton(\"前进\")",
+		"ToolStripButton(\"打开\")",
+		"MenuStrip menuStrip = BuildMenu()",
+		"Refresh(BrowserRefreshMode.Normal)"
+	};
+
 	private static readonly string[] ForbiddenConstructionTokens =
 	{
 		"new AolaHookController(",
@@ -62,6 +86,27 @@ internal static class MainFormCompositionGuardVerifier
 			return false;
 		}
 		string source = File.ReadAllText(mainFormPath);
+		foreach (string required in RequiredResponsivenessTokens)
+		{
+			if (source.IndexOf(required, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("MainForm responsiveness guard is missing " + required + ".");
+				return false;
+			}
+		}
+		if (source.IndexOf("Tick += delegate { EnsureHookInjected(); }", StringComparison.Ordinal) >= 0)
+		{
+			Console.Error.WriteLine("MainForm responsiveness guard rejected synchronous hook polling on the UI timer.");
+			return false;
+		}
+		foreach (string forbidden in ForbiddenToolbarTokens)
+		{
+			if (source.IndexOf(forbidden, StringComparison.Ordinal) >= 0)
+			{
+				Console.Error.WriteLine("MainForm toolbar guard rejected " + forbidden + ".");
+				return false;
+			}
+		}
 		foreach (string forbidden in ForbiddenConstructionTokens)
 		{
 			if (source.IndexOf(forbidden, StringComparison.Ordinal) >= 0)

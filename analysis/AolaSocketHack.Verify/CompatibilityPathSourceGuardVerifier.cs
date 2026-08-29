@@ -38,6 +38,34 @@ internal static class CompatibilityPathSourceGuardVerifier
 			}
 		}
 
+		string cefAdapterPath = Path.Combine(
+			loaderRoot, "ResourceInterception", "Cef", "CefResourceRuleAdapter.cs");
+		string cefAdapterSource = File.ReadAllText(cefAdapterPath);
+		if (cefAdapterSource.IndexOf("handler.Headers[\"Cache-Control\"] = \"no-store, no-cache, must-revalidate\"", StringComparison.Ordinal) < 0 ||
+			cefAdapterSource.IndexOf("handler.Headers[\"Pragma\"] = \"no-cache\"", StringComparison.Ordinal) < 0 ||
+			cefAdapterSource.IndexOf("request.Flags =", StringComparison.Ordinal) >= 0)
+		{
+			Console.Error.WriteLine("Compatibility path source guard requires no-store local responses without mutating CefSharp's read-only request.");
+			return false;
+		}
+
+		string petBridgePath = Path.Combine(
+			loaderRoot, "Resources", "Patches", "Sources", "newpetpackage-2026082731219998",
+			"mmo", "petpackage", "DocClass.as");
+		string petBridgeSource = File.ReadAllText(petBridgePath);
+		int commandBridgeIndex = petBridgeSource.IndexOf(
+			"public static function ensureAolaCommandBridge()", StringComparison.Ordinal);
+		int playbackCallbackIndex = petBridgeSource.IndexOf(
+			"ExternalInterface.addCallback(\"aolaSetPlayback\",onAolaSetPlayback)", StringComparison.Ordinal);
+		if (commandBridgeIndex < 0 || playbackCallbackIndex < commandBridgeIndex ||
+			petBridgeSource.IndexOf("private static function onAolaSetPlayback", StringComparison.Ordinal) < 0 ||
+			petBridgeSource.IndexOf("LoaderContainer.instance.stage", StringComparison.Ordinal) < 0 ||
+			petBridgeSource.IndexOf("ensureAolaPlaybackBridge", StringComparison.Ordinal) >= 0)
+		{
+			Console.Error.WriteLine("Compatibility path source guard requires playback registration through the proven static backpack bridge entry.");
+			return false;
+		}
+
 		foreach (string path in Directory.GetFiles(loaderRoot, "*.cs", SearchOption.AllDirectories))
 		{
 			string source = File.ReadAllText(path);

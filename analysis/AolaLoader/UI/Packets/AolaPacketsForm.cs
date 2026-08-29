@@ -20,12 +20,18 @@ namespace AolaLoader.UI.Packets;
 internal sealed class AolaPacketsForm : AolaFormBase
 {
 	private const int MaximumVisiblePackets = 5000;
+	private const int MaximumPendingPackets = 8192;
+	private const int MaximumPacketsPerFlush = 256;
 	private static readonly Color Background = Color.FromArgb(245, 245, 247);
 	private static readonly Color SecondaryText = Color.FromArgb(110, 110, 115);
 	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly IAolaCommandSender _commandSender;
 	private readonly IPageBridge _pageBridge;
 	private readonly List<AolaPacketEvent> _packets = new List<AolaPacketEvent>();
+	private readonly object _pendingPacketSync = new object();
+	private readonly Queue<AolaPacketEvent> _pendingPackets = new Queue<AolaPacketEvent>();
+	private readonly HashSet<AolaPacketEvent> _checkedPackets = new HashSet<AolaPacketEvent>();
+	private readonly System.Windows.Forms.Timer _packetFlushTimer = new System.Windows.Forms.Timer { Interval = 50 };
 	private readonly DataGridView _packetGrid = new DataGridView();
 	private readonly TextBox _sendInput = new TextBox();
 	private readonly TextBox _panelResourceInput = new TextBox();
@@ -40,6 +46,8 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private Control _captureView;
 	private Control _sendView;
 	private Control _panelView;
+	private int _pendingPacketDrops;
+	private int _closed;
 
 	public AolaPacketsForm(
 		IAolaPacketEventSource packetEventSource,
@@ -61,10 +69,19 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetEventSource.PacketReceived += OnPacketReceived;
 		_packetEventSource.StatusReceived += OnStatusReceived;
 		_commandSender.StatusChanged += OnCommandStatusChanged;
+		_packetFlushTimer.Tick += delegate { FlushPendingPackets(); };
+		_packetFlushTimer.Start();
 	}
 
 	protected override void OnFormClosed(FormClosedEventArgs e)
 	{
+		Interlocked.Exchange(ref _closed, 1);
+		_packetFlushTimer.Stop();
+		_packetFlushTimer.Dispose();
+		lock (_pendingPacketSync)
+		{
+			_pendingPackets.Clear();
+		}
 		_packetEventSource.PacketReceived -= OnPacketReceived;
 		_packetEventSource.StatusReceived -= OnStatusReceived;
 		_commandSender.StatusChanged -= OnCommandStatusChanged;
@@ -228,8 +245,17 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		};
 		_packetGrid.CellValueChanged += delegate(object sender, DataGridViewCellEventArgs e)
 		{
-			if (e.RowIndex >= 0 && e.ColumnIndex == 0)
+			if (e.RowIndex >= 0 && e.ColumnIndex == 0 && e.RowIndex < _packetGrid.Rows.Count &&
+				_packetGrid.Rows[e.RowIndex].Tag is AolaPacketEvent packet)
 			{
+				if (Convert.ToBoolean(_packetGrid.Rows[e.RowIndex].Cells[0].Value))
+				{
+					_checkedPackets.Add(packet);
+				}
+				else
+				{
+					_checkedPackets.Remove(packet);
+				}
 				UpdateCountStatus();
 			}
 		};
@@ -391,15 +417,58 @@ internal sealed class AolaPacketsForm : AolaFormBase
 
 	private void OnPacketReceived(AolaPacketEvent packet)
 	{
-		if (!SendPacketVisibility.IsVisible(packet) || IsDisposed)
+		if (!SendPacketVisibility.IsVisible(packet) || Volatile.Read(ref _closed) != 0)
 		{
 			return;
 		}
-		if (InvokeRequired)
+		lock (_pendingPacketSync)
 		{
-			BeginInvoke(new Action<AolaPacketEvent>(OnPacketReceived), packet);
+			if (_closed != 0)
+			{
+				return;
+			}
+			if (_pendingPackets.Count >= MaximumPendingPackets)
+			{
+				_pendingPackets.Dequeue();
+				_pendingPacketDrops++;
+			}
+			_pendingPackets.Enqueue(packet);
+		}
+	}
+
+	private void FlushPendingPackets()
+	{
+		if (IsDisposed || Volatile.Read(ref _closed) != 0)
+		{
 			return;
 		}
+		List<AolaPacketEvent> batch = new List<AolaPacketEvent>(MaximumPacketsPerFlush);
+		int dropped;
+		lock (_pendingPacketSync)
+		{
+			while (batch.Count < MaximumPacketsPerFlush && _pendingPackets.Count > 0)
+			{
+				batch.Add(_pendingPackets.Dequeue());
+			}
+			dropped = _pendingPacketDrops;
+			_pendingPacketDrops = 0;
+		}
+		foreach (AolaPacketEvent packet in batch)
+		{
+			AppendPacketToGrid(packet);
+		}
+		if (dropped > 0)
+		{
+			_status.Text = string.Format("已捕获可发包消息 {0} 条，已选择 {1} 条；刷新队列丢弃 {2} 条。", _packets.Count, _checkedPackets.Count, dropped);
+		}
+		else if (batch.Count > 0)
+		{
+			UpdateCountStatus();
+		}
+	}
+
+	private void AppendPacketToGrid(AolaPacketEvent packet)
+	{
 		if (!packet.CanExport || !AolaSendExporter.TryCreateLine(packet, out string sendLine))
 		{
 			return;
@@ -409,10 +478,14 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetGrid.Rows[index].Tag = packet;
 		while (_packetGrid.Rows.Count > MaximumVisiblePackets)
 		{
+			DataGridViewRow removed = _packetGrid.Rows[0];
+			if (Convert.ToBoolean(removed.Cells[0].Value) && removed.Tag is AolaPacketEvent removedPacket)
+			{
+				_checkedPackets.Remove(removedPacket);
+			}
 			_packetGrid.Rows.RemoveAt(0);
 			_packets.RemoveAt(0);
 		}
-		UpdateCountStatus();
 	}
 
 	private void OnStatusReceived(AolaHookStatus status)
@@ -474,6 +547,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private void ClearPackets()
 	{
 		_packets.Clear();
+		_checkedPackets.Clear();
 		_packetGrid.Rows.Clear();
 		UpdateCountStatus();
 	}
@@ -579,6 +653,6 @@ internal sealed class AolaPacketsForm : AolaFormBase
 
 	private void UpdateCountStatus()
 	{
-		_status.Text = string.Format("已捕获可发包消息 {0} 条，已选择 {1} 条。", _packets.Count, CheckedRows().Count);
+		_status.Text = string.Format("已捕获可发包消息 {0} 条，已选择 {1} 条。", _packets.Count, _checkedPackets.Count);
 	}
 }

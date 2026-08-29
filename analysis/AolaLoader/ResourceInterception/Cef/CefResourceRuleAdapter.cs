@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using CefSharp;
@@ -212,7 +213,14 @@ internal sealed class CefResourceRuleAdapter
 			IFrame frame,
 			IRequest request)
 		{
-			return ResourceHandler.FromByteArray(_content, _contentType);
+			ResourceHandler handler = new ResourceHandler(
+				_contentType,
+				new MemoryStream(_content, writable: false),
+				autoDisposeStream: true);
+			handler.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+			handler.Headers["Pragma"] = "no-cache";
+			handler.Headers["Expires"] = "0";
+			return handler;
 		}
 	}
 }

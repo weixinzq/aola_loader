@@ -54,6 +54,7 @@ internal static class ActiveSendContractVerifier
 			.GetAwaiter().GetResult();
 		string sendScript = null;
 		string panelScript = null;
+		string playbackScript = null;
 		session.ScriptHandler = (script, cancellationToken) =>
 		{
 			if (script.OperationName == "panel.open")
@@ -61,6 +62,12 @@ internal static class ActiveSendContractVerifier
 				panelScript = script.Script;
 				return Task.FromResult(BrowserScriptResult.Success(
 					JValue.CreateString("{\"ok\":true,\"value\":{\"status\":\"PanelOpenRequested\"},\"failure\":\"\",\"message\":\"\"}")));
+			}
+			if (script.OperationName == "playback.apply")
+			{
+				playbackScript = script.Script;
+				return Task.FromResult(BrowserScriptResult.Success(
+					JValue.CreateString("{\"ok\":true,\"value\":{\"status\":\"PlaybackApplied\",\"frameRate\":50,\"quality\":\"best\"},\"failure\":\"\",\"message\":\"\"}")));
 			}
 			sendScript = script.Script;
 			return Task.FromResult(BrowserScriptResult.Success(
@@ -79,17 +86,26 @@ internal static class ActiveSendContractVerifier
 				},
 				TimeSpan.FromSeconds(1)),
 			CancellationToken.None).GetAwaiter().GetResult();
+		PageBridgeResult playback = bridge.InvokeAsync(
+			new PageBridgeRequest(
+				"playback.apply",
+				new JObject { ["frameRate"] = 50, ["quality"] = "best" },
+				TimeSpan.FromSeconds(1)),
+			CancellationToken.None).GetAwaiter().GetResult();
 		bridge.Dispose();
 		session.Dispose();
 		return !notReady.Succeeded && notReady.FailureKind == PageBridgeFailureKind.PageNotReady &&
 			ready.Succeeded && ready.Value.Value<string>("status") == "SubmittedToFlash" &&
 			panel.Succeeded && panel.Value.Value<string>("status") == "PanelOpenRequested" &&
-			sendScript != null && panelScript != null &&
+			playback.Succeeded && playback.Value.Value<int>("frameRate") == 50 &&
+			sendScript != null && panelScript != null && playbackScript != null &&
 			sendScript.IndexOf("aolaSendCommand", StringComparison.Ordinal) >= 0 &&
 			sendScript.IndexOf("aolaCommandCompleted", StringComparison.Ordinal) >= 0 &&
 			panelScript.IndexOf("aolaOpenPanel", StringComparison.Ordinal) >= 0 &&
 			panelScript.IndexOf("activityres/example/panel_code", StringComparison.Ordinal) >= 0 &&
 			panelScript.IndexOf("mmo.example.Panel", StringComparison.Ordinal) >= 0 &&
+			playbackScript.IndexOf("aolaSetPlayback", StringComparison.Ordinal) >= 0 &&
+			playbackScript.IndexOf("[0, 25, 50, 75]", StringComparison.Ordinal) >= 0 &&
 			sendScript.IndexOf("logIn", StringComparison.OrdinalIgnoreCase) < 0 &&
 			sendScript.IndexOf("SID", StringComparison.OrdinalIgnoreCase) < 0 &&
 			panelScript.IndexOf("logIn", StringComparison.OrdinalIgnoreCase) < 0 &&

@@ -146,6 +146,27 @@ internal sealed class AolaPageBridge : IPageBridge
 			}
 			return envelope(true, { status: panelResult }, '', '');
 		}
+		if (operation === 'playback.apply') {
+			var frameRate = Math.floor(Number(args.frameRate) || 0);
+			var quality = String(args.quality || '').toLowerCase();
+			if ([0, 25, 50, 75].indexOf(frameRate) < 0 ||
+				['', 'high', 'best'].indexOf(quality) < 0 ||
+				(frameRate === 0 && quality === '')) {
+				return envelope(false, null, 'InvocationFailed', 'Invalid playback arguments.');
+			}
+			var playbackFlash = findFlash('aolaSetPlayback');
+			if (!playbackFlash) return envelope(false, null, 'BridgeNotInstalled', 'Flash 播放桥尚未加载；请先打开精灵背包。');
+			var playbackResult = String(playbackFlash.aolaSetPlayback(frameRate, quality) || '');
+			var playbackParts = playbackResult.split('|');
+			if (playbackParts.length !== 3 || playbackParts[0] !== 'PlaybackApplied') {
+				return envelope(false, null, 'InvocationFailed', playbackResult || 'Flash rejected playback settings.');
+			}
+			return envelope(true, {
+				status: playbackParts[0],
+				frameRate: Math.floor(Number(playbackParts[1]) || 0),
+				quality: String(playbackParts[2] || '')
+			}, '', '');
+		}
 		if (operation === 'feature.push') {
 			var feature = String(args.feature || '');
 			var revision = Math.floor(Number(args.revision) || 0);

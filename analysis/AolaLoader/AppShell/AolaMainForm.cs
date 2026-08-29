@@ -23,14 +23,16 @@ using AolaLoader.UI.PetMorph;
 using AolaSocketHack.Contracts;
 using CefSharp;
 using CefSharp.WinForms;
+using Newtonsoft.Json.Linq;
 
 namespace AolaLoader.AppShell;
 
 internal sealed class AolaMainForm : AolaFormBase
 {
 	internal const string DefaultUrl = "https://aola.100bt.com/play/play.html";
-	private readonly ToolStripTextBox _address = new ToolStripTextBox();
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("正在初始化奥拉星登录页面");
+	private readonly ToolStripDropDownButton _playbackMenu = new ToolStripDropDownButton("速度");
+	private readonly ToolStripDropDownButton _qualityMenu = new ToolStripDropDownButton("画质");
 	private readonly System.Windows.Forms.Timer _injectTimer = new System.Windows.Forms.Timer();
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
 	private readonly IThemeCoordinator _themeCoordinator;
@@ -45,6 +47,8 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly IBrowserSession _browserSession;
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private ToolStripMenuItem _themeMenu;
+	private bool _injectCheckInProgress;
+	private bool _isClosing;
 	private bool _mainWindowMinimized;
 
 	internal AolaMainForm(
@@ -74,10 +78,10 @@ internal sealed class AolaMainForm : AolaFormBase
 
 		Text = "Aola Loader";
 		StartPosition = FormStartPosition.CenterScreen;
-		MinimumSize = new Size(960, 640);
+		FormBorderStyle = FormBorderStyle.FixedSingle;
+		MaximizeBox = false;
 		Size = new Size(1200, 800);
 
-		MenuStrip menuStrip = BuildMenu();
 		ToolStrip toolbar = BuildToolbar();
 		StatusStrip statusStrip = new StatusStrip();
 		statusStrip.Items.Add(_status);
@@ -91,26 +95,24 @@ internal sealed class AolaMainForm : AolaFormBase
 		Controls.Add(_browser);
 		Controls.Add(statusStrip);
 		Controls.Add(toolbar);
-		Controls.Add(menuStrip);
-		MainMenuStrip = menuStrip;
-		menuStrip.Dock = DockStyle.Top;
 		toolbar.Dock = DockStyle.Top;
 		statusStrip.Dock = DockStyle.Bottom;
 
 		_injectTimer.Interval = 750;
-		_injectTimer.Tick += delegate { EnsureHookInjected(); };
+		_injectTimer.Tick += delegate { EnsureHookInjectedAsync(); };
 		_packetEventSource.StatusReceived += HookStatusReceived;
 		Shown += delegate
 		{
 			ShowPackets();
 			_injectTimer.Start();
-			EnsureHookInjected();
+			EnsureHookInjectedAsync();
 			_status.Text = "接收日志正在内存中暂存；点击“保留日志”后写入文件。";
 		};
 	}
 
 	protected override void OnFormClosed(FormClosedEventArgs e)
 	{
+		_isClosing = true;
 		_packetEventSource.StatusReceived -= HookStatusReceived;
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
@@ -134,14 +136,9 @@ internal sealed class AolaMainForm : AolaFormBase
 		}
 	}
 
-	private MenuStrip BuildMenu()
+	private ToolStripDropDownButton BuildExtensionsButton()
 	{
-		MenuStrip menu = new MenuStrip
-		{
-			GripStyle = ToolStripGripStyle.Hidden,
-			BackColor = SystemColors.Control
-		};
-		ToolStripMenuItem extensions = new ToolStripMenuItem("扩展");
+		ToolStripDropDownButton extensions = new ToolStripDropDownButton("扩展");
 		ToolStripMenuItem featurePanel = new ToolStripMenuItem("功能面板")
 		{
 			ShortcutKeys = Keys.F2,
@@ -158,8 +155,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		extensions.DropDownItems.Add(battleAssistant);
 		extensions.DropDownItems.Add(new ToolStripSeparator());
 		extensions.DropDownItems.Add(BuildThemeMenu());
-		menu.Items.Add(extensions);
-		return menu;
+		return extensions;
 	}
 
 	private ToolStripMenuItem BuildThemeMenu()
@@ -286,28 +282,17 @@ internal sealed class AolaMainForm : AolaFormBase
 	private ToolStrip BuildToolbar()
 	{
 		ToolStrip toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden };
-		ToolStripButton back = new ToolStripButton("后退");
-		ToolStripButton forward = new ToolStripButton("前进");
+		ToolStripDropDownButton extensions = BuildExtensionsButton();
 		ToolStripButton refresh = new ToolStripButton("刷新");
-		ToolStripButton go = new ToolStripButton("打开");
 		ToolStripButton packets = new ToolStripButton("抓包 / 发包");
 		ToolStripButton devTools = new ToolStripButton("开发者工具");
 		ToolStripButton retainLog = new ToolStripButton("保留日志");
-		_address.AutoSize = false;
-		_address.Width = 520;
-		_address.Text = DefaultUrl;
-		back.Click += delegate { if (_browser.CanGoBack) _browser.Back(); };
-		forward.Click += delegate { if (_browser.CanGoForward) _browser.Forward(); };
-		refresh.Click += delegate { _browserSession.Refresh(BrowserRefreshMode.Normal); };
-		go.Click += delegate { Navigate(); };
-		_address.KeyDown += delegate(object sender, KeyEventArgs e)
-		{
-			if (e.KeyCode == Keys.Enter)
-			{
-				e.SuppressKeyPress = true;
-				Navigate();
-			}
-		};
+		AddPlaybackOption("1×（25 FPS）", 25);
+		AddPlaybackOption("2×（50 FPS）", 50);
+		AddPlaybackOption("3×（75 FPS）", 75);
+		AddQualityOption("高（游戏默认）", "high");
+		AddQualityOption("最佳", "best");
+		refresh.Click += delegate { _browserSession.Refresh(BrowserRefreshMode.IgnoreCache); };
 		packets.Click += delegate { ShowPackets(); };
 		devTools.Click += delegate { _browser.ShowDevTools(); };
 		retainLog.Click += async delegate
@@ -331,20 +316,64 @@ internal sealed class AolaMainForm : AolaFormBase
 				MessageBox.Show(this, errorMessage, "保留日志失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		};
-		toolbar.Items.AddRange(new ToolStripItem[] { back, forward, refresh, _address, go, new ToolStripSeparator(), packets, devTools, retainLog });
+		toolbar.Items.AddRange(new ToolStripItem[]
+		{
+			extensions, refresh, packets, _playbackMenu, _qualityMenu, devTools, retainLog
+		});
 		return toolbar;
 	}
 
-	private void Navigate()
+	private void AddPlaybackOption(string text, int frameRate)
 	{
-		string address = _address.Text.Trim();
-		if (!Uri.TryCreate(address, UriKind.Absolute, out Uri uri) ||
-			(uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+		ToolStripMenuItem item = new ToolStripMenuItem(text);
+		item.Click += delegate { ApplyPlaybackSettings(frameRate, string.Empty); };
+		_playbackMenu.DropDownItems.Add(item);
+	}
+
+	private void AddQualityOption(string text, string quality)
+	{
+		ToolStripMenuItem item = new ToolStripMenuItem(text);
+		item.Click += delegate { ApplyPlaybackSettings(0, quality); };
+		_qualityMenu.DropDownItems.Add(item);
+	}
+
+	private async void ApplyPlaybackSettings(int frameRate, string quality)
+	{
+		_playbackMenu.Enabled = false;
+		_qualityMenu.Enabled = false;
+		try
 		{
-			MessageBox.Show(this, "请输入有效的 HTTP/HTTPS 地址。", "地址无效", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-			return;
+			PageBridgeResult result = await _pageBridge.InvokeAsync(
+				new PageBridgeRequest(
+					"playback.apply",
+					new JObject
+					{
+						["frameRate"] = frameRate,
+						["quality"] = quality
+					},
+					TimeSpan.FromSeconds(3)),
+				CancellationToken.None);
+			if (!result.Succeeded)
+			{
+				_status.Text = "Flash 播放设置失败：" + result.Message;
+				return;
+			}
+			int appliedFrameRate = result.Value?.Value<int>("frameRate") ?? 0;
+			string appliedQuality = result.Value?.Value<string>("quality") ?? string.Empty;
+			_playbackMenu.Text = appliedFrameRate == 25 ? "速度 1×" :
+				appliedFrameRate == 50 ? "速度 2×" :
+				appliedFrameRate == 75 ? "速度 3×" : "速度 " + appliedFrameRate + " FPS";
+			_qualityMenu.Text = string.Equals(appliedQuality, "best", StringComparison.OrdinalIgnoreCase)
+				? "画质 最佳"
+				: "画质 高";
+			_status.Text = string.Format("Flash 播放设置已应用：{0} FPS，画质 {1}",
+				appliedFrameRate, appliedQuality);
 		}
-		_browserSession.Navigate(uri.AbsoluteUri);
+		finally
+		{
+			_playbackMenu.Enabled = true;
+			_qualityMenu.Enabled = true;
+		}
 	}
 
 	private void ShowPackets()
@@ -362,16 +391,39 @@ internal sealed class AolaMainForm : AolaFormBase
 			() => new AolaBattleAssistantForm(_battleTracker));
 	}
 
-	private void EnsureHookInjected()
+	private async void EnsureHookInjectedAsync()
 	{
-		int processId = FindNetworkProcessId();
-		if (processId == 0)
+		if (_injectCheckInProgress || _isClosing)
 		{
-			_status.Text = "等待 CEF network.mojom 子进程";
 			return;
 		}
-		string libraryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AolaSocketHack.dll");
-		_hookController.EnsureInjected(processId, libraryPath);
+		_injectCheckInProgress = true;
+		try
+		{
+			int processId = await Task.Run(FindNetworkProcessId);
+			if (_isClosing || IsDisposed)
+			{
+				return;
+			}
+			if (processId == 0)
+			{
+				_status.Text = "等待 CEF network.mojom 子进程";
+				return;
+			}
+			string libraryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AolaSocketHack.dll");
+			await Task.Run(() => _hookController.EnsureInjected(processId, libraryPath));
+		}
+		catch (Exception ex)
+		{
+			if (!_isClosing && !IsDisposed)
+			{
+				_status.Text = "检查抓包注入状态失败：" + ex.Message;
+			}
+		}
+		finally
+		{
+			_injectCheckInProgress = false;
+		}
 	}
 
 	private static int FindNetworkProcessId()
@@ -408,9 +460,6 @@ internal sealed class AolaMainForm : AolaFormBase
 		{
 			switch (value.Kind)
 			{
-				case BrowserPageLifecycleKind.NavigationStarted:
-					_address.Text = value.Address;
-					break;
 				case BrowserPageLifecycleKind.NavigationFailed:
 					_status.Text = "页面加载失败：" + value.Error;
 					break;

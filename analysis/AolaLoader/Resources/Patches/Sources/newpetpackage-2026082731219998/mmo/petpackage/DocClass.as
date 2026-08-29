@@ -2,6 +2,7 @@ package mmo.petpackage
 {
    import flash.display.MovieClip;
    import flash.external.ExternalInterface;
+   import mmo.loader.LoaderContainer;
    import mmo.play.activity.helper.Panel_Helper;
    import mmo.play.actthings.data.ActClientSender;
    import mmo.petpackage.data.PetDetailDataMap;
@@ -53,6 +54,38 @@ package mmo.petpackage
          ensureAolaCommandBridge();
       }
 
+      private static function onAolaSetPlayback(param1:int, param2:String) : String
+      {
+         var gameStage:Object = LoaderContainer.instance == null ? null : LoaderContainer.instance.stage;
+         var quality:String = param2 == null ? "" : param2.toLowerCase();
+         if((param1 != 0 && param1 != 25 && param1 != 50 && param1 != 75) ||
+            (quality != "" && quality != "high" && quality != "best") ||
+            (param1 == 0 && quality == ""))
+         {
+            return "PlaybackRejected";
+         }
+         if(gameStage == null)
+         {
+            return "PlaybackUnavailable";
+         }
+         try
+         {
+            if(param1 > 0)
+            {
+               gameStage.frameRate = param1;
+            }
+            if(quality.length > 0)
+            {
+               gameStage.quality = quality;
+            }
+            return "PlaybackApplied|" + int(gameStage.frameRate).toString() + "|" + String(gameStage.quality);
+         }
+         catch(error:Error)
+         {
+         }
+         return "PlaybackRejected";
+      }
+
       public static function ensureAolaCommandBridge() : void
       {
          if(_aolaCommandBridgeRegistered)
@@ -65,6 +98,7 @@ package mmo.petpackage
             {
                ExternalInterface.addCallback("aolaSendCommand",onAolaSendCommand);
                ExternalInterface.addCallback("aolaOpenPanel",onAolaOpenPanel);
+               ExternalInterface.addCallback("aolaSetPlayback",onAolaSetPlayback);
                _aolaCommandBridgeRegistered = true;
             }
          }

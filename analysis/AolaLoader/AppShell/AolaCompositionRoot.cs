@@ -58,7 +58,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 		_resourceRequestHandler = new AolaResourceRequestHandler(
 			Path.Combine(baseDirectory, "Resources", "Themes"),
 			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"),
-			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-bridge-2026082731219998-v3.fws.swf"),
+			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-bridge-2026082731219998-v5.fws.swf"),
 			initialPetMorph.LiveBridgeEnabled);
 		_themeCoordinator = new ThemeCoordinator(
 			settingsStore,

@@ -13,6 +13,11 @@ internal static class PacketUiSourceGuardVerifier
 		"DataGridViewCheckBoxColumn",
 		"packet.CanExport",
 		"AolaSendExporter.TryCreateLine",
+		"MaximumPendingPackets",
+		"MaximumPacketsPerFlush",
+		"_packetFlushTimer",
+		"FlushPendingPackets",
+		"_checkedPackets",
 		"选中内容加入发包",
 		"AppendCheckedToSend",
 		"清空消息",
@@ -24,7 +29,9 @@ internal static class PacketUiSourceGuardVerifier
 	{
 		"Inner 明文详情",
 		"RichTextBox _details",
-		"FillFromSelected"
+		"FillFromSelected",
+		"BeginInvoke(new Action<AolaPacketEvent>(OnPacketReceived))",
+		"CheckedRows().Count"
 	};
 
 	public static bool Verify()

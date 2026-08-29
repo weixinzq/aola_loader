@@ -19,7 +19,7 @@
 	<Content Include="Resources\Data\pet-poster-catalog.json">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
-	<Content Include="Resources\Patches\newpetpackage-bridge-2026082731219998-v3.fws.swf">
+	<Content Include="Resources\Patches\newpetpackage-bridge-2026082731219998-v5.fws.swf">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
     <PackageReference Include="CefSharp.WinForms" Version="87.1.132" />
