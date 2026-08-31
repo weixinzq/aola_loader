@@ -8,6 +8,8 @@ using System.Threading;
 using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
+using AolaLoader.Features.Battle.Bridge;
+using AolaLoader.Features.Battle.Replay;
 using AolaLoader.PacketHost;
 using AolaLoader.UI.Common;
 using AolaSocketHack.Contracts;
@@ -37,6 +39,12 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private readonly TextBox _panelResourceInput = new TextBox();
 	private readonly TextBox _panelClassInput = new TextBox();
 	private readonly CupertinoButton _sendButton = new CupertinoButton("发送", true);
+	private readonly CheckBox _battleStateMode = new CheckBox
+	{
+		Text = "按战斗状态逐条发送",
+		AutoSize = true,
+		Margin = new Padding(12, 10, 0, 0)
+	};
 	private readonly CupertinoButton _openPanelButton = new CupertinoButton("打开映射面板", true);
 	private readonly CupertinoButton _captureNavigation = new CupertinoButton("抓包", true);
 	private readonly CupertinoButton _sendNavigation = new CupertinoButton("发包");
@@ -46,6 +54,8 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private Control _captureView;
 	private Control _sendView;
 	private Control _panelView;
+	private readonly BattleSequenceRunner _battleSequenceRunner;
+	private CancellationTokenSource _sequenceCancellation;
 	private int _pendingPacketDrops;
 	private int _closed;
 
@@ -57,6 +67,10 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetEventSource = packetEventSource ?? throw new ArgumentNullException(nameof(packetEventSource));
 		_commandSender = commandSender ?? throw new ArgumentNullException(nameof(commandSender));
 		_pageBridge = pageBridge ?? throw new ArgumentNullException(nameof(pageBridge));
+		_battleSequenceRunner = new BattleSequenceRunner(
+			_packetEventSource,
+			_commandSender,
+			new BattleBridgeClient(_pageBridge));
 		Text = "奥拉星抓包 / 发包";
 		StartPosition = FormStartPosition.CenterParent;
 		MinimumSize = new Size(920, 620);
@@ -69,6 +83,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetEventSource.PacketReceived += OnPacketReceived;
 		_packetEventSource.StatusReceived += OnStatusReceived;
 		_commandSender.StatusChanged += OnCommandStatusChanged;
+		_battleSequenceRunner.StatusChanged += OnBattleSequenceStatusChanged;
 		_packetFlushTimer.Tick += delegate { FlushPendingPackets(); };
 		_packetFlushTimer.Start();
 	}
@@ -85,6 +100,9 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetEventSource.PacketReceived -= OnPacketReceived;
 		_packetEventSource.StatusReceived -= OnStatusReceived;
 		_commandSender.StatusChanged -= OnCommandStatusChanged;
+		_battleSequenceRunner.StatusChanged -= OnBattleSequenceStatusChanged;
+		_sequenceCancellation?.Cancel();
+		_sequenceCancellation?.Dispose();
 		base.OnFormClosed(e);
 	}
 
@@ -281,6 +299,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		left.AutoSize = true;
 		left.Controls.Add(ActionButton("从文件导入", LoadSendFile));
 		left.Controls.Add(ActionButton("清空", ClearSendEditor));
+		left.Controls.Add(_battleStateMode);
 		FlowLayoutPanel right = ActionRow();
 		right.AutoSize = true;
 		right.FlowDirection = FlowDirection.RightToLeft;
@@ -516,6 +535,17 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_status.Text = "[" + update.Status + "] " + update.Message;
 	}
 
+	private void OnBattleSequenceStatusChanged(BattleSequenceUpdate update)
+	{
+		if (update == null || IsDisposed) return;
+		if (InvokeRequired)
+		{
+			BeginInvoke(new Action<BattleSequenceUpdate>(OnBattleSequenceStatusChanged), update);
+			return;
+		}
+		_status.Text = "[" + update.Status + "] " + update.Message;
+	}
+
 	private void SetAllPacketsChecked(bool value)
 	{
 		foreach (DataGridViewRow row in _packetGrid.Rows)
@@ -573,9 +603,19 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private async void QueueSends()
 	{
 		_sendButton.Enabled = false;
+		_battleStateMode.Enabled = false;
 		try
 		{
-			foreach (AolaSendRequest request in AolaSendRequestParser.ParseLines(_sendInput.Text))
+			List<AolaSendRequest> requests = AolaSendRequestParser.ParseLines(_sendInput.Text);
+			if (_battleStateMode.Checked)
+			{
+				BattleSequencePlan plan = BattleSequenceValidator.Validate(requests);
+				_sequenceCancellation?.Dispose();
+				_sequenceCancellation = new CancellationTokenSource();
+				await _battleSequenceRunner.RunAsync(plan, _sequenceCancellation.Token);
+				return;
+			}
+			foreach (AolaSendRequest request in requests)
 			{
 				await _commandSender.SendAsync(request, CancellationToken.None);
 			}
@@ -589,6 +629,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 			if (!IsDisposed)
 			{
 				_sendButton.Enabled = true;
+				_battleStateMode.Enabled = true;
 			}
 		}
 	}

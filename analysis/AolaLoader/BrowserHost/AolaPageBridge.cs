@@ -88,6 +88,9 @@ internal sealed class AolaPageBridge : IPageBridge
 	}
 	if (!state.results || typeof state.results !== 'object') state.results = Object.create(null);
 	if (!state.featureState || typeof state.featureState !== 'object') state.featureState = Object.create(null);
+	if (!state.battle || typeof state.battle !== 'object') {
+		state.battle = { options: null, revision: -1, appliedRevision: -1, timer: 0 };
+	}
 	window.aolaCommandCompleted = function (requestId, status, code) {
 		requestId = String(requestId || '');
 		status = String(status || '');
@@ -111,6 +114,28 @@ internal sealed class AolaPageBridge : IPageBridge
 		}
 		return null;
 	}
+	function applyBattleOptions() {
+		if (!state.battle.options) return false;
+		var battleFlash = findFlash('aolaBattleApplyOptions');
+		if (!battleFlash) {
+			state.battle.appliedRevision = -1;
+			return false;
+		}
+		if (state.battle.appliedRevision === state.battle.revision) return true;
+		var result = String(battleFlash.aolaBattleApplyOptions(JSON.stringify(state.battle.options)) || '');
+		if (result === 'BattleOptionsApplied|' + String(state.battle.revision)) {
+			state.battle.appliedRevision = state.battle.revision;
+			return true;
+		}
+		state.battle.lastError = result || 'Flash rejected battle options.';
+		return false;
+	}
+	function ensureBattlePump() {
+		if (state.battle.timer) return;
+		state.battle.timer = window.setInterval(function () {
+			try { applyBattleOptions(); } catch (ignored) {}
+		}, 100);
+	}
 	try {
 		if (operation === 'activeSend.submit') {
 			var requestId = String(args.requestId || '');
@@ -121,7 +146,7 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Invalid active-send arguments.');
 			}
 			var flash = findFlash('aolaSendCommand');
-			if (!flash) return envelope(false, null, 'BridgeNotInstalled', 'Flash 发包桥尚未加载；请先打开精灵背包。');
+			if (!flash) return envelope(false, null, 'BridgeNotInstalled', '游戏桥尚未就绪，请等待游戏加载完成。');
 			state.results[requestId] = { status: 'SubmittedToFlash', code: '' };
 			var submitted = flash.aolaSendCommand(
 				requestId, args.extension, args.command, args.parametersJson);
@@ -139,7 +164,7 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Invalid panel arguments.');
 			}
 			var panelFlash = findFlash('aolaOpenPanel');
-			if (!panelFlash) return envelope(false, null, 'BridgeNotInstalled', 'Flash 面板桥尚未加载；请先打开精灵背包。');
+			if (!panelFlash) return envelope(false, null, 'BridgeNotInstalled', '游戏桥尚未就绪，请等待游戏加载完成。');
 			var panelResult = String(panelFlash.aolaOpenPanel(args.resourceUrl, args.resourceClass) || '');
 			if (panelResult !== 'PanelOpenRequested') {
 				return envelope(false, null, 'InvocationFailed', panelResult || 'Flash rejected the panel request.');
@@ -155,7 +180,7 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Invalid playback arguments.');
 			}
 			var playbackFlash = findFlash('aolaSetPlayback');
-			if (!playbackFlash) return envelope(false, null, 'BridgeNotInstalled', 'Flash 播放桥尚未加载；请先打开精灵背包。');
+			if (!playbackFlash) return envelope(false, null, 'BridgeNotInstalled', '游戏桥尚未就绪，请等待游戏加载完成。');
 			var playbackResult = String(playbackFlash.aolaSetPlayback(frameRate, quality) || '');
 			var playbackParts = playbackResult.split('|');
 			if (playbackParts.length !== 3 || playbackParts[0] !== 'PlaybackApplied') {
@@ -166,6 +191,55 @@ internal sealed class AolaPageBridge : IPageBridge
 				frameRate: Math.floor(Number(playbackParts[1]) || 0),
 				quality: String(playbackParts[2] || '')
 			}, '', '');
+		}
+		if (operation === 'battle.apply') {
+			var optionKeys = ['version', 'revision', 'hideDamageNumbers', 'hideHealingNumbers',
+				'skipAttackAnimation'];
+			var actualKeys = Object.keys(args).sort();
+			var expectedKeys = optionKeys.slice(0).sort();
+			if (actualKeys.length !== expectedKeys.length ||
+				actualKeys.some(function (key, index) { return key !== expectedKeys[index]; }) ||
+				typeof args.version !== 'number' || args.version !== 3 ||
+				typeof args.revision !== 'number' || Math.floor(args.revision) !== args.revision || args.revision < 0 ||
+				typeof args.hideDamageNumbers !== 'boolean' || typeof args.hideHealingNumbers !== 'boolean' ||
+				typeof args.skipAttackAnimation !== 'boolean') {
+				return envelope(false, null, 'InvocationFailed', 'Invalid battle options.');
+			}
+			state.battle.options = {
+				version: 3,
+				revision: Number(args.revision),
+				hideDamageNumbers: args.hideDamageNumbers,
+				hideHealingNumbers: args.hideHealingNumbers,
+				skipAttackAnimation: args.skipAttackAnimation
+			};
+			state.battle.revision = Number(args.revision);
+			state.battle.appliedRevision = -1;
+			ensureBattlePump();
+			var applied = applyBattleOptions();
+			return envelope(true, {
+				status: applied ? 'BattleOptionsApplied' : 'BattleOptionsPending',
+				revision: state.battle.revision,
+				message: applied ? '' : String(state.battle.lastError || '战斗模块尚未加载，进入战斗后自动应用。')
+			}, '', '');
+		}
+		if (operation === 'battle.state') {
+			var stateFlash = findFlash('aolaBattleGetState');
+			if (!stateFlash) return envelope(false, null, 'BridgeNotInstalled', '战斗桥尚未就绪。');
+			var rawState = String(stateFlash.aolaBattleGetState() || '');
+			var battleState = JSON.parse(rawState);
+			var stateKeys = ['version', 'active', 'battleId', 'turn', 'inputReady', 'readyEpoch', 'ended'];
+			var returnedKeys = Object.keys(battleState || {}).sort();
+			var requiredStateKeys = stateKeys.slice(0).sort();
+			if (!battleState || returnedKeys.length !== requiredStateKeys.length ||
+				returnedKeys.some(function (key, index) { return key !== requiredStateKeys[index]; }) ||
+				Number(battleState.version) !== 3 || typeof battleState.active !== 'boolean' ||
+				typeof battleState.inputReady !== 'boolean' || typeof battleState.ended !== 'boolean' ||
+				typeof battleState.battleId !== 'number' || Math.floor(battleState.battleId) !== battleState.battleId || battleState.battleId < 0 ||
+				typeof battleState.turn !== 'number' || Math.floor(battleState.turn) !== battleState.turn || battleState.turn < 0 ||
+				typeof battleState.readyEpoch !== 'number' || Math.floor(battleState.readyEpoch) !== battleState.readyEpoch || battleState.readyEpoch < 0) {
+				return envelope(false, null, 'InvocationFailed', 'Flash returned an invalid battle state.');
+			}
+			return envelope(true, battleState, '', '');
 		}
 		if (operation === 'feature.push') {
 			var feature = String(args.feature || '');

@@ -23,6 +23,18 @@ internal static class CompatibilityPathSourceGuardVerifier
 		}
 
 		string loaderRoot = Path.Combine(repositoryRoot, "analysis", "AolaLoader");
+		string compositionSource = File.ReadAllText(Path.Combine(
+			loaderRoot, "AppShell", "AolaCompositionRoot.cs"));
+		string normalizedCompositionSource = compositionSource.Replace("\r\n", "\n");
+		string loaderProjectSource = File.ReadAllText(Path.Combine(loaderRoot, "AolaLoader.csproj"));
+		if (normalizedCompositionSource.IndexOf(
+			"Path.Combine(baseDirectory, \"Resources\", \"Patches\", \"start-bridge-2107300001.fws.swf\"),\n\t\t\tnull,",
+			StringComparison.Ordinal) < 0 ||
+			loaderProjectSource.IndexOf("petfightnew-battle-presentation-v2-2026082731219998.fws.swf", StringComparison.Ordinal) >= 0)
+		{
+			Console.Error.WriteLine("Compatibility path source guard requires the rejected battle SWF to remain disabled in production.");
+			return false;
+		}
 		string[] removedPaths =
 		{
 			Path.Combine(loaderRoot, "AolaSettings.cs"),
@@ -49,21 +61,110 @@ internal static class CompatibilityPathSourceGuardVerifier
 			return false;
 		}
 
-		string petBridgePath = Path.Combine(
+		string startBridgePath = Path.Combine(
+			loaderRoot, "Resources", "Patches", "Sources", "start-2107300001",
+			"mmo", "checkversion", "Load.as");
+		string startBridgeSource = File.ReadAllText(startBridgePath);
+		string[] requiredStartBridgeTokens =
+		{
+			"ExternalInterface.addCallback(\"aolaSendCommand\",this.onAolaSendCommand)",
+			"ExternalInterface.addCallback(\"aolaOpenPanel\",this.onAolaOpenPanel)",
+			"ExternalInterface.addCallback(\"aolaSetPlayback\",this.onAolaSetPlayback)",
+			"ApplicationDomain.currentDomain.hasDefinition(ACT_CLIENT_SENDER)",
+			"ApplicationDomain.currentDomain.getDefinition(ACT_CLIENT_SENDER)",
+			"sender[\"sendMessage\"](extension,command,parameters",
+			"private static const MAX_PENDING_COMMANDS:int = 256",
+			"new LoaderContext(false,ApplicationDomain.currentDomain)",
+			"param2.hasOwnProperty(\"r\")",
+			"param2.hasOwnProperty(\"suc\")",
+			"param2.hasOwnProperty(\"res\")",
+			"code == 1 ? \"ServerSucceeded\" : \"ServerRejected\"",
+			"return \"BridgeNotReady\"",
+			"return \"SubmittedToFlash\""
+		};
+		foreach (string token in requiredStartBridgeTokens)
+		{
+			if (startBridgeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires start.swf bridge token " + token + ".");
+				return false;
+			}
+		}
+		if (startBridgeSource.IndexOf("import mmo.play.actthings.data.ActClientSender", StringComparison.Ordinal) >= 0 ||
+			startBridgeSource.IndexOf("import mmo.play.activity.helper.Panel_Helper", StringComparison.Ordinal) >= 0)
+		{
+			Console.Error.WriteLine("Compatibility path source guard rejected hard imports from the startup bridge.");
+			return false;
+		}
+
+		string petDocClassPath = Path.Combine(
 			loaderRoot, "Resources", "Patches", "Sources", "newpetpackage-2026082731219998",
 			"mmo", "petpackage", "DocClass.as");
-		string petBridgeSource = File.ReadAllText(petBridgePath);
-		int commandBridgeIndex = petBridgeSource.IndexOf(
-			"public static function ensureAolaCommandBridge()", StringComparison.Ordinal);
-		int playbackCallbackIndex = petBridgeSource.IndexOf(
-			"ExternalInterface.addCallback(\"aolaSetPlayback\",onAolaSetPlayback)", StringComparison.Ordinal);
-		if (commandBridgeIndex < 0 || playbackCallbackIndex < commandBridgeIndex ||
-			petBridgeSource.IndexOf("private static function onAolaSetPlayback", StringComparison.Ordinal) < 0 ||
-			petBridgeSource.IndexOf("LoaderContainer.instance.stage", StringComparison.Ordinal) < 0 ||
-			petBridgeSource.IndexOf("ensureAolaPlaybackBridge", StringComparison.Ordinal) >= 0)
+		string petDocClassSource = File.ReadAllText(petDocClassPath);
+		if (petDocClassSource.IndexOf("aolaSendCommand", StringComparison.Ordinal) >= 0 ||
+			petDocClassSource.IndexOf("aolaOpenPanel", StringComparison.Ordinal) >= 0 ||
+			petDocClassSource.IndexOf("aolaSetPlayback", StringComparison.Ordinal) >= 0 ||
+			petDocClassSource.IndexOf("ensureAolaCommandBridge", StringComparison.Ordinal) >= 0)
 		{
-			Console.Error.WriteLine("Compatibility path source guard requires playback registration through the proven static backpack bridge entry.");
+			Console.Error.WriteLine("Compatibility path source guard requires a morph-only newpetpackage DocClass.");
 			return false;
+		}
+		string[] morphSourcePaths =
+		{
+			Path.Combine(loaderRoot, "Resources", "Patches", "Sources", "newpetpackage-2026082731219998",
+				"mmo", "petpackage", "panel", "SimpleViewController.as"),
+			Path.Combine(loaderRoot, "Resources", "Patches", "Sources", "newpetpackage-2026082731219998",
+				"mmo", "petpackage", "panel", "inclusion", "PetBigIconDetail.as")
+		};
+		foreach (string morphSourcePath in morphSourcePaths)
+		{
+			string morphSource = File.ReadAllText(morphSourcePath);
+			if (morphSource.IndexOf("aolaMorph", StringComparison.Ordinal) < 0 ||
+				morphSource.IndexOf("ensureAolaCommandBridge", StringComparison.Ordinal) >= 0 ||
+				morphSource.IndexOf("import mmo.petpackage.DocClass", StringComparison.Ordinal) >= 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires morph-only backpack sources.");
+				return false;
+			}
+		}
+
+		string battleBridgePath = Path.Combine(
+			loaderRoot, "Resources", "Patches", "Sources", "petfightnew-2026082731219998",
+			"mmo", "petfightnew", "DocPetFight.as");
+		string battleBridgeSource = File.ReadAllText(battleBridgePath);
+		string[] requiredBattleTokens =
+		{
+			"private static const BRIDGE_VERSION:int = 3",
+			"public static var skipAttackAnimation:Boolean = false",
+			"ExternalInterface.addCallback(\"aolaBattleApplyOptions\",onAolaBattleApplyOptions)",
+			"int(options.version) != options.version",
+			"typeof options.skipAttackAnimation != \"boolean\""
+		};
+		foreach (string token in requiredBattleTokens)
+		{
+			if (battleBridgeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires battle bridge token " + token + ".");
+				return false;
+			}
+		}
+		string[] forbiddenBattleTokens =
+		{
+			"fightSkillEffect",
+			"NoFightSkillEffect",
+			"AllFightSkillEffect",
+			"IGameOptionService",
+			"skipPetAttackActions",
+			"skipBattleVisualDelays",
+			"skipBattlePresentation"
+		};
+		foreach (string token in forbiddenBattleTokens)
+		{
+			if (battleBridgeSource.IndexOf(token, StringComparison.Ordinal) >= 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard rejected battle bridge token " + token + ".");
+				return false;
+			}
 		}
 
 		foreach (string path in Directory.GetFiles(loaderRoot, "*.cs", SearchOption.AllDirectories))

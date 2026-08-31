@@ -14,12 +14,15 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 	private static readonly Regex PackagePathPattern = new Regex(
 		@"^/play/pet/newpetpackage~(?<version>\d+)\.swf$",
 		RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-	private static readonly string[] RequiredBridgeMarkers =
+	private static readonly string[] RequiredMorphMarkers =
 	{
 		"aolaMorphResolveSkinId",
 		"aolaMorphRefresh",
 		"aolaMorphShouldHideBackground",
-		"aolaMorphResolveIconId",
+		"aolaMorphResolveIconId"
+	};
+	private static readonly string[] ForbiddenCommandBridgeMarkers =
+	{
 		"aolaSendCommand",
 		"aolaOpenPanel",
 		"aolaSetPlayback",
@@ -42,7 +45,7 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		if (!TrySetTemplate(template, out _template, out _sha256))
 		{
 			throw new ArgumentException(
-				"Pet package template must be a bounded FWS containing every required bridge marker.",
+				"Pet package template must be a bounded morph-only FWS.",
 				nameof(template));
 		}
 	}
@@ -91,9 +94,16 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		{
 			return false;
 		}
-		foreach (string marker in RequiredBridgeMarkers)
+		foreach (string marker in RequiredMorphMarkers)
 		{
 			if (CountOccurrences(content, Encoding.ASCII.GetBytes(marker)) < 1)
+			{
+				return false;
+			}
+		}
+		foreach (string marker in ForbiddenCommandBridgeMarkers)
+		{
+			if (CountOccurrences(content, Encoding.ASCII.GetBytes(marker)) != 0)
 			{
 				return false;
 			}

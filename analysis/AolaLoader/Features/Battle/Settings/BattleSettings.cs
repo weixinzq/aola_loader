@@ -7,23 +7,17 @@ using Newtonsoft.Json.Linq;
 
 namespace AolaLoader.Features.Battle.Settings;
 
-/// <summary>
-/// Battle module-owned settings. No Battle presentation feature is enabled yet;
-/// the fields below are reserved placeholders that must stay at their defaults.
-/// </summary>
 internal sealed class BattleSettings
 {
 	public BattleSettings(
 		bool hideDamageNumbers,
 		bool hideHealingNumbers,
-		bool skipPetAttackActions,
-		int fightSkillEffect,
+		bool skipAttackAnimation,
 		IEnumerable<JObject> morphRules)
 	{
 		HideDamageNumbers = hideDamageNumbers;
 		HideHealingNumbers = hideHealingNumbers;
-		SkipPetAttackActions = skipPetAttackActions;
-		FightSkillEffect = fightSkillEffect;
+		SkipAttackAnimation = skipAttackAnimation;
 		MorphRules = new ReadOnlyCollection<JObject>(
 			(morphRules ?? Enumerable.Empty<JObject>())
 				.Where(rule => rule != null)
@@ -35,9 +29,7 @@ internal sealed class BattleSettings
 
 	public bool HideHealingNumbers { get; }
 
-	public bool SkipPetAttackActions { get; }
-
-	public int FightSkillEffect { get; }
+	public bool SkipAttackAnimation { get; }
 
 	/// <summary>
 	/// Battle morph rules have no defined schema yet, so each entry is preserved
@@ -49,22 +41,25 @@ internal sealed class BattleSettings
 internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings>
 {
 	public const string SectionKey = "battle";
-	public const int CurrentVersion = 1;
+	public const int CurrentVersion = 4;
 
 	public BattleSettings CreateDefault()
 	{
 		return new BattleSettings(
 			hideDamageNumbers: false,
 			hideHealingNumbers: false,
-			skipPetAttackActions: false,
-			fightSkillEffect: 0,
+			skipAttackAnimation: false,
 			Array.Empty<JObject>());
 	}
 
 	public BattleSettings DeserializeAndMigrate(JObject section)
 	{
-		if (section == null || section["Version"]?.Type != JTokenType.Integer ||
-			section.Value<int>("Version") != CurrentVersion)
+		if (section == null || section["Version"]?.Type != JTokenType.Integer)
+		{
+			throw new InvalidOperationException("Battle settings version is unsupported.");
+		}
+		int version = section.Value<int>("Version");
+		if (version != 1 && version != 2 && version != 3 && version != CurrentVersion)
 		{
 			throw new InvalidOperationException("Battle settings version is unsupported.");
 		}
@@ -85,11 +80,16 @@ internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings
 			rules.Add((JObject)rule.DeepClone());
 		}
 
+		bool skipAttackAnimation = version >= 4
+			? ReadBoolean(section, "SkipAttackAnimation", false)
+			: version == 3
+				? ReadBoolean(section, "SkipBattlePresentation", false)
+				: ReadBoolean(section, "SkipPetAttackActions", false);
+
 		return new BattleSettings(
 			ReadBoolean(section, "HideDamageNumbers", false),
 			ReadBoolean(section, "HideHealingNumbers", false),
-			ReadBoolean(section, "SkipPetAttackActions", false),
-			ReadInteger(section, "FightSkillEffect", 0),
+			skipAttackAnimation,
 			rules);
 	}
 
@@ -99,8 +99,7 @@ internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings
 		return new BattleSettings(
 			source.HideDamageNumbers,
 			source.HideHealingNumbers,
-			source.SkipPetAttackActions,
-			source.FightSkillEffect,
+			source.SkipAttackAnimation,
 			source.MorphRules);
 	}
 
@@ -117,8 +116,7 @@ internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings
 			["Version"] = CurrentVersion,
 			["HideDamageNumbers"] = normalized.HideDamageNumbers,
 			["HideHealingNumbers"] = normalized.HideHealingNumbers,
-			["SkipPetAttackActions"] = normalized.SkipPetAttackActions,
-			["FightSkillEffect"] = normalized.FightSkillEffect,
+			["SkipAttackAnimation"] = normalized.SkipAttackAnimation,
 			["MorphRules"] = rules
 		};
 	}
@@ -137,22 +135,4 @@ internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings
 		return token.Value<bool>();
 	}
 
-	private static int ReadInteger(JObject source, string name, int defaultValue)
-	{
-		JToken token = source[name];
-		if (token == null)
-		{
-			return defaultValue;
-		}
-		if (token.Type != JTokenType.Integer)
-		{
-			throw new InvalidOperationException(name + " must be an integer.");
-		}
-		long value = token.Value<long>();
-		if (value < int.MinValue || value > int.MaxValue)
-		{
-			throw new InvalidOperationException(name + " is outside the Int32 range.");
-		}
-		return (int)value;
-	}
 }

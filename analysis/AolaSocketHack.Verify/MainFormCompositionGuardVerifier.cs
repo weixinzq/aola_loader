@@ -16,7 +16,7 @@ internal static class MainFormCompositionGuardVerifier
 		"await Task.Run(() => _hookController.EnsureInjected",
 		"FormBorderStyle = FormBorderStyle.FixedSingle",
 		"MaximizeBox = false",
-		"Size = new Size(1200, 800)",
+		"Size = new Size(1220, 800)",
 		"ToolStripDropDownButton extensions = BuildExtensionsButton()",
 		"extensions, refresh, packets, _playbackMenu, _qualityMenu, devTools, retainLog",
 		"Refresh(BrowserRefreshMode.IgnoreCache)",

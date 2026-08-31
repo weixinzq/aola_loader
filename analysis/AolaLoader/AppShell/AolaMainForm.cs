@@ -11,6 +11,8 @@ using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Battle.State;
+using AolaLoader.Features.Battle.Coordination;
+using AolaLoader.Features.Battle.Bridge;
 using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.Theme.Coordination;
@@ -37,6 +39,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
 	private readonly IThemeCoordinator _themeCoordinator;
 	private readonly IPetMorphCoordinator _petMorphCoordinator;
+	private readonly BattlePresentationCoordinator _battlePresentationCoordinator;
 	private readonly AolaHookController _hookController;
 	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly IAolaCommandSender _commandSender;
@@ -62,6 +65,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		AolaBattleStateTracker battleTracker,
 		IThemeCoordinator themeCoordinator,
 		IPetMorphCoordinator petMorphCoordinator,
+		BattlePresentationCoordinator battlePresentationCoordinator,
 		IChildWindowCoordinator childWindowCoordinator)
 	{
 		_browser = browser ?? throw new ArgumentNullException(nameof(browser));
@@ -74,13 +78,14 @@ internal sealed class AolaMainForm : AolaFormBase
 		_battleTracker = battleTracker ?? throw new ArgumentNullException(nameof(battleTracker));
 		_themeCoordinator = themeCoordinator ?? throw new ArgumentNullException(nameof(themeCoordinator));
 		_petMorphCoordinator = petMorphCoordinator ?? throw new ArgumentNullException(nameof(petMorphCoordinator));
+		_battlePresentationCoordinator = battlePresentationCoordinator ?? throw new ArgumentNullException(nameof(battlePresentationCoordinator));
 		_childWindowCoordinator = childWindowCoordinator ?? throw new ArgumentNullException(nameof(childWindowCoordinator));
 
 		Text = "Aola Loader";
 		StartPosition = FormStartPosition.CenterScreen;
 		FormBorderStyle = FormBorderStyle.FixedSingle;
 		MaximizeBox = false;
-		Size = new Size(1200, 800);
+		Size = new Size(1220, 800);
 
 		ToolStrip toolbar = BuildToolbar();
 		StatusStrip statusStrip = new StatusStrip();
@@ -151,8 +156,11 @@ internal sealed class AolaMainForm : AolaFormBase
 			ShowShortcutKeys = true
 		};
 		battleAssistant.Click += delegate { ShowBattleAssistant(); };
+		ToolStripMenuItem battlePresentation = new ToolStripMenuItem("战斗表现");
+		battlePresentation.Click += delegate { ShowBattlePresentation(); };
 		extensions.DropDownItems.Add(featurePanel);
 		extensions.DropDownItems.Add(battleAssistant);
+		extensions.DropDownItems.Add(battlePresentation);
 		extensions.DropDownItems.Add(new ToolStripSeparator());
 		extensions.DropDownItems.Add(BuildThemeMenu());
 		return extensions;
@@ -391,6 +399,13 @@ internal sealed class AolaMainForm : AolaFormBase
 			() => new AolaBattleAssistantForm(_battleTracker));
 	}
 
+	private void ShowBattlePresentation()
+	{
+		_childWindowCoordinator.Show(
+			"battlePresentation",
+			() => new AolaBattleSettingsForm(_battlePresentationCoordinator));
+	}
+
 	private async void EnsureHookInjectedAsync()
 	{
 		if (_injectCheckInProgress || _isClosing)
@@ -500,9 +515,14 @@ internal sealed class AolaMainForm : AolaFormBase
 			JavascriptResponse response = await e.Frame.EvaluateScriptAsync(script);
 			bool detected = response.Success && response.Result is bool value && value;
 			AolaPetMorphPushResult morphResult = null;
+			BattleBridgeApplyResult battleResult = null;
 			if (isAolaPlayPage && _petMorphCoordinator.IsLiveBridgeAvailable)
 			{
 				morphResult = await _petMorphCoordinator.PushCurrentRulesAsync(CancellationToken.None);
+			}
+			if (isAolaPlayPage)
+			{
+				battleResult = await _battlePresentationCoordinator.PushCurrentAsync(CancellationToken.None);
 			}
 			if (morphResult != null && morphResult.Superseded)
 			{
@@ -510,7 +530,9 @@ internal sealed class AolaMainForm : AolaFormBase
 			}
 			BeginInvoke(new Action(delegate
 			{
-				_status.Text = morphResult != null && !morphResult.Superseded && !morphResult.Injected
+				_status.Text = battleResult != null && !battleResult.Submitted
+					? "页面已加载，但战斗表现设置桥接失败：" + battleResult.Message
+					: morphResult != null && !morphResult.Superseded && !morphResult.Injected
 					? "页面已加载，但形态规则注入失败：" + (morphResult.Error ?? "未知错误")
 					: detected
 					? (isAolaPlayPage ? "Flash 插件已启用，已兼容 1×1 心跳探针" : "Flash 插件已启用")

@@ -55,6 +55,8 @@ internal static class ActiveSendContractVerifier
 		string sendScript = null;
 		string panelScript = null;
 		string playbackScript = null;
+		string battleApplyScript = null;
+		string battleStateScript = null;
 		session.ScriptHandler = (script, cancellationToken) =>
 		{
 			if (script.OperationName == "panel.open")
@@ -68,6 +70,18 @@ internal static class ActiveSendContractVerifier
 				playbackScript = script.Script;
 				return Task.FromResult(BrowserScriptResult.Success(
 					JValue.CreateString("{\"ok\":true,\"value\":{\"status\":\"PlaybackApplied\",\"frameRate\":50,\"quality\":\"best\"},\"failure\":\"\",\"message\":\"\"}")));
+			}
+			if (script.OperationName == "battle.apply")
+			{
+				battleApplyScript = script.Script;
+				return Task.FromResult(BrowserScriptResult.Success(
+					JValue.CreateString("{\"ok\":true,\"value\":{\"status\":\"BattleOptionsPending\",\"revision\":1},\"failure\":\"\",\"message\":\"\"}")));
+			}
+			if (script.OperationName == "battle.state")
+			{
+				battleStateScript = script.Script;
+				return Task.FromResult(BrowserScriptResult.Success(
+					JValue.CreateString("{\"ok\":true,\"value\":{\"version\":3,\"active\":true,\"battleId\":7,\"turn\":0,\"inputReady\":true,\"readyEpoch\":1,\"ended\":false},\"failure\":\"\",\"message\":\"\"}")));
 			}
 			sendScript = script.Script;
 			return Task.FromResult(BrowserScriptResult.Success(
@@ -92,13 +106,29 @@ internal static class ActiveSendContractVerifier
 				new JObject { ["frameRate"] = 50, ["quality"] = "best" },
 				TimeSpan.FromSeconds(1)),
 			CancellationToken.None).GetAwaiter().GetResult();
+		PageBridgeResult battleApply = bridge.InvokeAsync(
+			new PageBridgeRequest(
+				"battle.apply",
+				new JObject
+				{
+					["version"] = 3, ["revision"] = 1,
+					["hideDamageNumbers"] = true, ["hideHealingNumbers"] = false,
+					["skipAttackAnimation"] = true
+				},
+				TimeSpan.FromSeconds(1)),
+			CancellationToken.None).GetAwaiter().GetResult();
+		PageBridgeResult battleState = bridge.InvokeAsync(
+			new PageBridgeRequest("battle.state", new JObject(), TimeSpan.FromSeconds(1)),
+			CancellationToken.None).GetAwaiter().GetResult();
 		bridge.Dispose();
 		session.Dispose();
 		return !notReady.Succeeded && notReady.FailureKind == PageBridgeFailureKind.PageNotReady &&
 			ready.Succeeded && ready.Value.Value<string>("status") == "SubmittedToFlash" &&
 			panel.Succeeded && panel.Value.Value<string>("status") == "PanelOpenRequested" &&
 			playback.Succeeded && playback.Value.Value<int>("frameRate") == 50 &&
+			battleApply.Succeeded && battleState.Succeeded && battleState.Value.Value<int>("battleId") == 7 &&
 			sendScript != null && panelScript != null && playbackScript != null &&
+			battleApplyScript != null && battleStateScript != null &&
 			sendScript.IndexOf("aolaSendCommand", StringComparison.Ordinal) >= 0 &&
 			sendScript.IndexOf("aolaCommandCompleted", StringComparison.Ordinal) >= 0 &&
 			panelScript.IndexOf("aolaOpenPanel", StringComparison.Ordinal) >= 0 &&
@@ -106,6 +136,12 @@ internal static class ActiveSendContractVerifier
 			panelScript.IndexOf("mmo.example.Panel", StringComparison.Ordinal) >= 0 &&
 			playbackScript.IndexOf("aolaSetPlayback", StringComparison.Ordinal) >= 0 &&
 			playbackScript.IndexOf("[0, 25, 50, 75]", StringComparison.Ordinal) >= 0 &&
+			battleApplyScript.IndexOf("aolaBattleApplyOptions", StringComparison.Ordinal) >= 0 &&
+			battleApplyScript.IndexOf("skipAttackAnimation", StringComparison.Ordinal) >= 0 &&
+			battleStateScript.IndexOf("aolaBattleGetState", StringComparison.Ordinal) >= 0 &&
+			battleStateScript.IndexOf("readyEpoch", StringComparison.Ordinal) >= 0 &&
+			sendScript.IndexOf("游戏桥尚未就绪，请等待游戏加载完成", StringComparison.Ordinal) >= 0 &&
+			sendScript.IndexOf("请先打开精灵背包", StringComparison.Ordinal) < 0 &&
 			sendScript.IndexOf("logIn", StringComparison.OrdinalIgnoreCase) < 0 &&
 			sendScript.IndexOf("SID", StringComparison.OrdinalIgnoreCase) < 0 &&
 			panelScript.IndexOf("logIn", StringComparison.OrdinalIgnoreCase) < 0 &&

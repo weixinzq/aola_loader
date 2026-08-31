@@ -1,6 +1,7 @@
 # ActiveSend
 
-Status: Implemented; Real Flash validation pending  
+Status: Implemented; real Flash startup, original-connection send and post-send sequence validated 2026-08-29
+
 ContractVersion: 1  
 OwnerPaths: `analysis/AolaLoader/Features/ActiveSend/**`, `analysis/AolaLoader/UI/Packets/**`
 
@@ -37,7 +38,7 @@ AolaPacketsForm
 
 ## SWF 承载与失败关闭
 
-桥位于精确版本的背包叶资源 `newpetpackage~2026082731219998.swf`；桥实现集中在 `DocClass`，由已实机确认实例化的 `SimpleViewController`/`PetBigIconDetail` 注册，不依赖 SWF 文档类实例化。不修改 `play.swf`、`controlv2.swf` 或其他核心启动模块。桥只暴露白名单扩展名、32 位请求 ID、受界命令和 JSON 对象；不回传响应正文。
+桥位于精确版本的启动资源 `start~2107300001.swf` 的独立 FWS 副本中，只替换 `mmo.checkversion.Load`，并保留版本检查、`loader.swf` 下载及 `ApplicationDomain.currentDomain` 同域 `loadBytes` 启动链。启动桥使用字符串名称和 `hasDefinition/getDefinition` 动态解析 `ActClientSender` 与 `Panel_Helper`，不得硬 import 未加载类。背包 `newpetpackage~2026082731219998.swf` 只保留形态变化桥，不再承担发包、面板或播放设置。不得修改 `play.swf`、`controlv2.swf`，也不得覆盖官方 SWF 原件。桥只暴露白名单扩展名、32 位请求 ID、受界命令和 JSON 对象；不回传响应正文。
 
 叶模块未加载、版本变化、ExternalInterface 不可用或模板校验失败时，发送失败关闭，不回退到 IPC sidecar。旧 Hook 队列即使收到请求也只返回拒绝结果。
 

@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AolaLoader;
+using AolaLoader.Features.ActiveSend.ResourceInterception;
+using AolaLoader.Features.Battle.ResourceInterception;
 using AolaLoader.Features.PetMorph.ResourceInterception;
 using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Contracts;
@@ -29,6 +31,8 @@ internal static class ResourceInterceptionContractVerifier
 			VerifyBoundedResponseProcessor() &&
 			VerifySwfHeaderAndProbeCache() &&
 			VerifyThemeLeafRule() &&
+			VerifyStartBridgeRule() &&
+			VerifyBattleBridgeRule() &&
 			VerifyPetPackageLiveRule() &&
 			VerifyRemotePlanExecutor() &&
 			VerifyPetMovieRule() &&
@@ -515,11 +519,11 @@ internal static class ResourceInterceptionContractVerifier
 			CountAscii(firstRead, "aolaMorphRefresh") != 1 ||
 			CountAscii(firstRead, "aolaMorphShouldHideBackground") != 1 ||
 			CountAscii(firstRead, "aolaMorphResolveIconId") != 1 ||
-			CountAscii(firstRead, "aolaSendCommand") != 1 ||
-			CountAscii(firstRead, "aolaOpenPanel") != 1 ||
-			CountAscii(firstRead, "aolaSetPlayback") != 1 ||
-			CountAscii(firstRead, "ensureAolaCommandBridge") < 1 ||
-			CountAscii(firstRead, "aolaCommandCompleted") != 1)
+			CountAscii(firstRead, "aolaSendCommand") != 0 ||
+			CountAscii(firstRead, "aolaOpenPanel") != 0 ||
+			CountAscii(firstRead, "aolaSetPlayback") != 0 ||
+			CountAscii(firstRead, "ensureAolaCommandBridge") != 0 ||
+			CountAscii(firstRead, "aolaCommandCompleted") != 0)
 		{
 			return false;
 		}
@@ -551,14 +555,144 @@ internal static class ResourceInterceptionContractVerifier
 				"GET",
 				"Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
 			Throws<ArgumentException>(() => new PetPackageLiveResourceRule(
-				CreatePetPackageTemplate(includeIconMarker: false)));
+				CreatePetPackageTemplate(includeIconMarker: false))) &&
+			Throws<ArgumentException>(() => new PetPackageLiveResourceRule(
+				CreatePetPackageTemplate(includeIconMarker: true, includeCommandMarker: true)));
 	}
 
-	private static byte[] CreatePetPackageTemplate(bool includeIconMarker)
+	private static byte[] CreatePetPackageTemplate(
+		bool includeIconMarker,
+		bool includeCommandMarker = false)
 	{
 		string body = "aolaMorphResolveSkinId|aolaMorphRefresh|aolaMorphShouldHideBackground" +
-			"|aolaSendCommand|aolaOpenPanel|aolaSetPlayback|ensureAolaCommandBridge|aolaCommandCompleted" +
-			(includeIconMarker ? "|aolaMorphResolveIconId" : string.Empty);
+			(includeIconMarker ? "|aolaMorphResolveIconId" : string.Empty) +
+			(includeCommandMarker ? "|aolaSendCommand" : string.Empty);
+		byte[] bodyBytes = Encoding.ASCII.GetBytes(body);
+		byte[] content = new byte[8 + bodyBytes.Length];
+		content[0] = (byte)'F';
+		content[1] = (byte)'W';
+		content[2] = (byte)'S';
+		content[3] = 18;
+		Buffer.BlockCopy(BitConverter.GetBytes((uint)content.Length), 0, content, 4, 4);
+		Buffer.BlockCopy(bodyBytes, 0, content, 8, bodyBytes.Length);
+		return content;
+	}
+
+	private static bool VerifyStartBridgeRule()
+	{
+		byte[] template = CreateStartBridgeTemplate(includeLoadBytesMarker: true);
+		StartBridgeResourceRule rule = new StartBridgeResourceRule(template);
+		template[8] = 0;
+		string exactUrl = "https://aola.100bt.com/play/start~" +
+			StartBridgeResourceRule.SupportedVersion + ".swf?cache=1";
+		ResourceInterceptionPlan matched = rule.Evaluate(
+			new ResourceRequestContext(exactUrl, "GET", "Other"));
+		byte[] firstRead = matched.LocalContent;
+		if (!rule.IsAvailable || rule.Priority != 1000 ||
+			matched.Outcome != ResourceInterceptionOutcome.LocalResponse ||
+			matched.ContentType != "application/x-shockwave-flash" || firstRead[8] == 0 ||
+			CountAscii(firstRead, "aolaSendCommand") != 1 ||
+			CountAscii(firstRead, "aolaOpenPanel") != 1 ||
+			CountAscii(firstRead, "aolaSetPlayback") != 1 ||
+			CountAscii(firstRead, "mmo.play.actthings.data.ActClientSender") != 1 ||
+			CountAscii(firstRead, "mmo.play.activity.helper.Panel_Helper") != 1)
+		{
+			return false;
+		}
+		firstRead[8] = 0;
+		if (matched.LocalContent[8] == 0)
+		{
+			return false;
+		}
+
+		StartBridgeResourceRule unavailable = new StartBridgeResourceRule((string)null);
+		return !unavailable.IsAvailable && unavailable.Evaluate(
+				new ResourceRequestContext(exactUrl, "GET", "Other")).Outcome ==
+				ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(
+				"https://aola.100bt.com/play/start~2107300002.swf",
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(
+				"https://aola.100bt.com/play/start~" +
+				StartBridgeResourceRule.SupportedVersion + ".swf.bak",
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(exactUrl, "POST", "Other")).Outcome ==
+				ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(
+				"https://example.test/play/start~" +
+				StartBridgeResourceRule.SupportedVersion + ".swf",
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+			Throws<ArgumentException>(() => new StartBridgeResourceRule(
+				CreateStartBridgeTemplate(includeLoadBytesMarker: false)));
+	}
+
+	private static bool VerifyBattleBridgeRule()
+	{
+		string path = Path.Combine(
+			AppDomain.CurrentDomain.BaseDirectory,
+			"TestData",
+			"petfightnew-battle-presentation-v2-2026082731219998.fws.swf");
+		if (!File.Exists(path)) return false;
+		byte[] template = File.ReadAllBytes(path);
+		PetFightBattleBridgeResourceRule rule = new PetFightBattleBridgeResourceRule(template);
+		template[8] ^= 1;
+		string exactUrl = "https://aola.100bt.com/play/pet/petfightnew~" +
+			PetFightBattleBridgeResourceRule.SupportedVersion + ".swf?cache=1";
+		ResourceInterceptionPlan matched = rule.Evaluate(
+			new ResourceRequestContext(exactUrl, "GET", "Other"));
+		ResourceRulePipeline pipeline;
+		try
+		{
+			pipeline = new ResourceRulePipeline(new IResourceInterceptionRule[] { rule });
+		}
+		catch (ArgumentOutOfRangeException)
+		{
+			return false;
+		}
+		byte[] firstRead = matched.LocalContent;
+		if (pipeline == null || !rule.IsAvailable || rule.Priority != 850 ||
+			matched.Outcome != ResourceInterceptionOutcome.LocalResponse ||
+			matched.ContentType != "application/x-shockwave-flash" ||
+			CountAscii(firstRead, "aolaBattleBridgeReady") < 1 ||
+			CountAscii(firstRead, "aolaBattleApplyOptions") < 1 ||
+			CountAscii(firstRead, "aolaBattleGetState") < 1 ||
+			CountAscii(firstRead, "skipBattlePresentation") < 1 ||
+			CountAscii(firstRead, "skipPetAttackActions") != 0 ||
+			CountAscii(firstRead, "skipBattleVisualDelays") != 0)
+		{
+			return false;
+		}
+		firstRead[8] ^= 1;
+		if (matched.LocalContent[8] == firstRead[8]) return false;
+
+		byte[] tampered = File.ReadAllBytes(path);
+		tampered[tampered.Length - 1] ^= 1;
+		PetFightBattleBridgeResourceRule unavailable = new PetFightBattleBridgeResourceRule((string)null);
+		return !unavailable.IsAvailable &&
+			unavailable.Evaluate(new ResourceRequestContext(exactUrl, "GET", "Other")).Outcome ==
+				ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(
+				"https://aola.100bt.com/play/pet/petfightnew~2026082731219999.swf",
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(
+				"https://aola.100bt.com/play/pet/petfightnew~" +
+				PetFightBattleBridgeResourceRule.SupportedVersion + ".swf.bak",
+				"GET", "Other")).Outcome ==
+				ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(exactUrl, "POST", "Other")).Outcome ==
+				ResourceInterceptionOutcome.PassThrough &&
+			rule.Evaluate(new ResourceRequestContext(
+				"https://example.test/play/pet/petfightnew~" +
+				PetFightBattleBridgeResourceRule.SupportedVersion + ".swf",
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(tampered));
+	}
+
+	private static byte[] CreateStartBridgeTemplate(bool includeLoadBytesMarker)
+	{
+		string body = "aolaSendCommand|aolaOpenPanel|aolaSetPlayback|aolaCommandCompleted|" +
+			"mmo.play.actthings.data.ActClientSender|mmo.play.activity.helper.Panel_Helper|" +
+			"ApplicationDomain|loader.swf" + (includeLoadBytesMarker ? "|loadBytes" : string.Empty);
 		byte[] bodyBytes = Encoding.ASCII.GetBytes(body);
 		byte[] content = new byte[8 + bodyBytes.Length];
 		content[0] = (byte)'F';

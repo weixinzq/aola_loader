@@ -2,7 +2,7 @@
 
 ## 目的与非目标
 
-Aola Loader 是受控站点上的旧版奥拉星 Flash 桌面宿主，提供登录、发送包查看/导出、独立连接发包、接收日志、主题与背包形态资源替换以及战斗状态查看。重构必须保持现有行为和协议语义。当前不升级 .NET、WinForms、CefSharp、PPAPI Flash 或 EasyHook，不重写协议/AMF3/TCP 重组算法，也不增加新的战斗表现功能。
+Aola Loader 是受控站点上的旧版奥拉星 Flash 桌面宿主，提供登录、发送包查看/导出、通过当前 Flash 游戏会话主动发包、接收日志、主题与背包形态资源替换以及战斗状态查看。重构必须保持现有行为和协议语义。当前不升级 .NET、WinForms、CefSharp、PPAPI Flash 或 EasyHook，不重写协议/AMF3/TCP 重组算法。战斗表现 SWF 候选因真实运行破坏特殊换宠状态机而停用，生产固定透传官方战斗资源；候选及设置 UI 仅作为失败证据保留，不得把静态验证视为可部署证明。
 
 ## 技术栈与顶层模块
 
@@ -51,4 +51,3 @@ PCAP 基线必须包含 `exportable=164`、`failures=0`、`export_format=True`�
 - 跨模块决策：[`doc/decisions/`](doc/decisions/)
 - 一次性实施说明与基线：[`task/`](task/)
 - SWF/协议证据：`analysis/reverse-engineering/`、PCAP、运行日志和原始二进制。
-

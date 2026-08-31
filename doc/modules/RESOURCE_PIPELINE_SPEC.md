@@ -60,4 +60,4 @@ Theme、PetMorph 现有分支全部成为独立规则；入口只做适配/管�
 
 ## 已知限制
 
-框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Theme、Pet package、PetMovie 与 Poster 是独立规则。Pet package 只精确替换当前 `newpetpackage~2026082731219998.swf`，模板同时保留既有形态桥并提供 `aolaSendCommand` 与本地面板入口 `aolaOpenPanel`；版本变化时放行官方资源并使桥调用失败关闭。纯算法位于 `ResourceInterception/Transformers`，Cef 入口位于 `ResourceInterception/Cef`。当前模板须通过 FWS 长度、SHA-256、FFDec 复读和 SymbolClass 静态检查，PPAPI Flash 运行验证仍单独执行。
+框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Start bridge、Battle bridge、Theme、Pet package、PetMovie 与 Poster 是独立规则。Start bridge 只精确替换 `start~2107300001.swf`，提供 `aolaSendCommand`、`aolaOpenPanel` 与 `aolaSetPlayback`；Battle bridge 候选只匹配 `petfightnew~2026082731219998.swf`，其 v2 严格桥提供两个独立数字隐藏选项、统一“跳过战斗演出”选项和只读战斗状态；Pet package 只精确替换当前 `newpetpackage~2026082731219998.swf` 并仅保留形态桥。主机、方法、路径、版本、模板哈希或桥标记变化时放行官方资源并使相应桥调用失败关闭。纯算法位于 `ResourceInterception/Transformers`，Cef 入口位于 `ResourceInterception/Cef`。Start 与 Pet package 模板已完成 2026-08-29 的默认/替换 PPAPI Flash 双路径验证。Battle v2 候选虽通过 FWS 长度、SHA-256、FFDec 复读和 649 项相同 SymbolClass 静态检查，但真实运行出现关闭后仍跳过以及献祭换宠状态丢失，因此生产组合根传入空模板并固定透传官方战斗 SWF；候选只保留作失败证据，不得部署。

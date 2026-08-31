@@ -42,6 +42,9 @@
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\Settings\BattleSettings.cs" Link="Features\Battle\Settings\BattleSettings.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\Bridge\BattleBridgeClient.cs" Link="Features\Battle\Bridge\BattleBridgeClient.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\Replay\BattleSequenceValidator.cs" Link="Features\Battle\Replay\BattleSequenceValidator.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\Replay\BattleSequenceRunner.cs" Link="Features\Battle\Replay\BattleSequenceRunner.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AolaLoader\ResourceInterception\Contracts\ResourceRequestContext.cs" Link="ResourceInterception\Contracts\ResourceRequestContext.cs" />
@@ -60,6 +63,8 @@
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\RemoteResourcePlanExecutor.cs" Link="ResourceInterception\Pipeline\RemoteResourcePlanExecutor.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\HttpRemoteResourceFetcher.cs" Link="ResourceInterception\Pipeline\HttpRemoteResourceFetcher.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" Link="Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" />
+    <Compile Include="..\AolaLoader\Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" Link="Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\AolaPetMorphRule.cs" Link="Features\PetMorph\AolaPetMorphRule.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Transformers\AolaSwfClassAdapter.cs" Link="ResourceInterception\Transformers\AolaSwfClassAdapter.cs" />
@@ -68,6 +73,12 @@
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetMovieResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetMovieResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\AolaPetPosterCatalog.cs" Link="Features\PetMorph\AolaPetPosterCatalog.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" />
+  </ItemGroup>
+  <ItemGroup>
+	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-presentation-v2-2026082731219998.fws.swf">
+	  <Link>TestData\petfightnew-battle-presentation-v2-2026082731219998.fws.swf</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AolaLoader\BrowserHost\Contracts\IBrowserSession.cs" Link="BrowserHost\Contracts\IBrowserSession.cs" />

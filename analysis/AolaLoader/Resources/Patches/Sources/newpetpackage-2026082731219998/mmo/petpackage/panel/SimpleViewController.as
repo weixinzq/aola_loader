@@ -26,7 +26,6 @@ package mmo.petpackage.panel
    import mmo.loader.scheduler.ResParams;
    import mmo.loader.scheduler.ResPriority;
    import mmo.loader.scheduler.ResScheduler;
-   import mmo.petpackage.DocClass;
    import mmo.petpackage.controller.event.PetPackageEvent;
    import mmo.petpackage.controller.event.PetPackageEventDispatcher;
    import mmo.petpackage.controller.skin.PackageSkinManager;
@@ -86,7 +85,6 @@ package mmo.petpackage.panel
       {
          super();
          ensureAolaMorphBridge();
-         DocClass.ensureAolaCommandBridge();
          this._labelContainer = this.mclabelcontainer;
          this.canUpdateUI = true;
          this.addEventListener(MouseEvent.CLICK,this.onClickMe);

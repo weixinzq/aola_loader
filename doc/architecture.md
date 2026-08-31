@@ -64,10 +64,12 @@ Winsock bytes -> socket TCP reassembly -> protocol/AMF3 decode
 
 ```text
 Packets UI strict #send -> IAolaCommandSender -> IPageBridge
-  -> controlled JavaScript -> ExternalInterface leaf bridge
+  -> controlled JavaScript -> ExternalInterface start bridge
   -> ActClientSender -> SocketClient -> current Flash game connection
   -> SubmittedToFlash -> UI immediately resumes
 ```
+
+战斗状态回放的候选设计在上述发送链路外增加只读节奏控制：`petfightnew` 的独立补丁暴露战斗 ID、回合、可操作状态和递增的 `readyEpoch`；队列不改写战斗协议参数，也不发送 Flash 自己负责的 `preFightLoad`。v2 运行验证证明通用快速结算会破坏献祭换宠等依赖表现回调的状态机，并出现关闭后仍跳过的回归，因此该资源规则在生产组合根中固定为不可用，官方 `petfightnew` 始终透传。抓包、战斗日志、战斗助手和“完整信息/对战信息”界面不依赖此候选，继续保留。
 
 `SubmittedToFlash` 只表示 Flash API 已接受调用，不表示服务器成功。生产 UI 不等待接收验证，
 不轮询服务器终态，也不弹出模态结果框；本地脚本返回、socket 写入或协议回读均不是服务器成功。

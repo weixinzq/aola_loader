@@ -48,7 +48,6 @@ package mmo.petpackage.panel.inclusion
    import mmo.interfaces.share.IShareService;
    import mmo.loader.LoadingSpriteType;
    import mmo.loader.SimpleCustomLoader;
-   import mmo.petpackage.DocClass;
    import mmo.petpackage.config.MagicChangeConfig;
    import mmo.petpackage.controller.event.PetPackageEvent;
    import mmo.petpackage.controller.event.PetPackageEventDispatcher;
@@ -139,7 +138,6 @@ package mmo.petpackage.panel.inclusion
       {
          super();
          ensureAolaMorphBridge();
-         DocClass.ensureAolaCommandBridge();
          this.initPars();
          this.initFuns();
          CommonEventDispatcher.instance.addEventListener("PetBigIconDetailmcPetIconIsPlay",this.setIsIconPlay);

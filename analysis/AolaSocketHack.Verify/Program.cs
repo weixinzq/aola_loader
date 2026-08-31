@@ -89,6 +89,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("BattleState contract self-test: PASS");
+		if (!BattleReplayContractVerifier.Verify())
+		{
+			Console.Error.WriteLine("BattleReplay contract self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("BattleReplay contract self-test: PASS");
 		if (!VerifyCaptureBoundaries())
 		{
 			Console.Error.WriteLine("Capture boundary self-test: FAIL");

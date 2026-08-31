@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CefSharp;
 using CefSharp.Handler;
+using AolaLoader.Features.ActiveSend.ResourceInterception;
+using AolaLoader.Features.Battle.ResourceInterception;
 using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.ResourceInterception;
@@ -21,6 +23,8 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
 	private const string SupportedPosterResourceSuffix = "~1210";
 	private readonly ThemeLeafResourceRule _themeRule;
+	private readonly StartBridgeResourceRule _startBridgeRule;
+	private readonly PetFightBattleBridgeResourceRule _battleBridgeRule;
 	private readonly PetPackageLiveResourceRule _petPackageRule;
 	private readonly PetMovieResourceRule _petMovieRule;
 	private readonly PetPosterResourceRule _petPosterRule;
@@ -33,10 +37,14 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 	public AolaResourceRequestHandler(
 		string themeDirectory,
 		string posterCatalogPath,
+		string startBridgeTemplatePath,
+		string battleBridgeTemplatePath,
 		string petPackageLiveTemplatePath,
 		bool petMorphLiveBridgeEnabled)
 	{
 		_themeRule = new ThemeLeafResourceRule(themeDirectory);
+		_startBridgeRule = new StartBridgeResourceRule(startBridgeTemplatePath);
+		_battleBridgeRule = new PetFightBattleBridgeResourceRule(battleBridgeTemplatePath);
 		_petMorphLiveBridgeEnabled = petMorphLiveBridgeEnabled;
 		_petPackageRule = new PetPackageLiveResourceRule(petPackageLiveTemplatePath);
 		_petMovieRule = new PetMovieResourceRule();
@@ -45,7 +53,10 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		_swfCaptureSession = AolaSwfCaptureSession.TryStart(AppDomain.CurrentDomain.BaseDirectory);
 		_remoteResourceProbe = new CachingRemoteResourceProbe(new HttpSwfRemoteResourceProbe());
 		_resourceRuleAdapter = new CefResourceRuleAdapter(new ResourceRulePipeline(
-			new IResourceInterceptionRule[] { _themeRule, _petPackageRule, _petMovieRule, _petPosterRule }),
+			new IResourceInterceptionRule[]
+			{
+				_startBridgeRule, _battleBridgeRule, _themeRule, _petPackageRule, _petMovieRule, _petPosterRule
+			}),
 			new RemoteResourcePlanExecutor(_remoteResourceProbe, new HttpRemoteResourceFetcher()));
 	}
 

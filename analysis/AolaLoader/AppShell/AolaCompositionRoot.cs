@@ -6,6 +6,9 @@ using AolaLoader.BrowserHost;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Battle.State;
+using AolaLoader.Features.Battle.Bridge;
+using AolaLoader.Features.Battle.Coordination;
+using AolaLoader.Features.Battle.Settings;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.Settings;
 using AolaLoader.Features.Theme.Coordination;
@@ -32,6 +35,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 	private readonly AolaResourceRequestHandler _resourceRequestHandler;
 	private readonly ThemeCoordinator _themeCoordinator;
 	private readonly PetMorphCoordinator _petMorphCoordinator;
+	private readonly BattlePresentationCoordinator _battlePresentationCoordinator;
 	private readonly ChromiumWebBrowser _browser;
 	private readonly AolaBrowserSession _browserSession;
 	private readonly IPageBridge _pageBridge;
@@ -58,7 +62,9 @@ internal sealed class AolaCompositionRoot : IDisposable
 		_resourceRequestHandler = new AolaResourceRequestHandler(
 			Path.Combine(baseDirectory, "Resources", "Themes"),
 			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"),
-			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-bridge-2026082731219998-v5.fws.swf"),
+			Path.Combine(baseDirectory, "Resources", "Patches", "start-bridge-2107300001.fws.swf"),
+			null,
+			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-2026082731219998.fws.swf"),
 			initialPetMorph.LiveBridgeEnabled);
 		_themeCoordinator = new ThemeCoordinator(
 			settingsStore,
@@ -78,6 +84,10 @@ internal sealed class AolaCompositionRoot : IDisposable
 				new AolaPetMorphLiveBridge()));
 		_browserSession = new AolaBrowserSession(_browser);
 		_pageBridge = new AolaPageBridge(_browserSession);
+		_battlePresentationCoordinator = new BattlePresentationCoordinator(
+			settingsStore,
+			new BattleSettingsCodec(),
+			new BattleBridgeClient(_pageBridge));
 		_commandSender = new AolaFlashCommandSender(_pageBridge);
 		_childWindowCoordinator = new ChildWindowCoordinator();
 		MainForm = new AolaMainForm(
@@ -91,6 +101,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 			_battleTracker,
 			_themeCoordinator,
 			_petMorphCoordinator,
+			_battlePresentationCoordinator,
 			_childWindowCoordinator);
 	}
 
