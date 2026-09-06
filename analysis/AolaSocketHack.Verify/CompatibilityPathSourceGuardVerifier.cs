@@ -199,6 +199,8 @@ internal static class CompatibilityPathSourceGuardVerifier
 			"UseSkill:handleUseSkill",
 			"UseSkill:handleAnnalFeeEight",
 			"UseSkill:handleMovie",
+			"UseSkill:getMuiltHitDecHpDelayFrame",
+			"FightController:startHandle",
 			"SwitchPm:showSwitchMc",
 			"ChangePetView:onGotPet",
 			"ChangePetView:onPetChange",

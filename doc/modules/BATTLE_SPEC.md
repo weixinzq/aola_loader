@@ -6,7 +6,7 @@ OwnerPaths: `analysis/AolaLoader/Features/Battle/**`, `analysis/AolaLoader/UI/Ba
 
 ## 职责
 
-State 子模块消费接收包、解析 roster/增量并发布防御性快照；UI 仅展示已确认的敌方亚比，支持单人 PVP/PVE。内部仍保留识别己方所需资料。Presentation 保存战斗表现设置，通过页面桥向精确版本的 `petfightnew` 注册选项并读取只读战斗状态，供设置窗口和战斗状态回放使用。
+State 子模块消费接收包、解析 roster/增量并发布防御性快照；UI 仅展示已确认的敌方亚比，支持单人 PVP/PVE。内部仍保留识别己方所需资料。Presentation 保存战斗表现设置，通过页面桥向精确版本的 `petfightnew` 注册选项并读取只读战斗状态，供设置窗口和战斗状态回放使用。开启跳过战斗演出后，已收到的战斗事件仍按官方队列顺序结算并写入“完整信息”，但不再在相邻队列项之间固定等待一帧；多段伤害结束回调保留一帧最小延迟。
 
 ## 非职责
 
@@ -72,4 +72,4 @@ State/UI/Presentation 物理边界清晰，Tracker 只依赖 PacketHost，F3 与
 
 ## 已知限制
 
-ContractVersion 1 已冻结；生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不直接订阅静态 IPC。`battle` Section 使用 `BattleSettings`/`BattleSettingsCodec` Version 6；模型、解析器和 tracker 位于 `Features/Battle/State`，F3 助手与“战斗表现”窗口位于 `UI/Battle`。战斗模型第一版仅支持双方 ID 位数相同且均不小于 4445 的位图模型，只改变本地画面，不改变服务器 `raceId/viewId`、技能、属性或结果；变身、召唤物、奥义和额外特效不在范围内。战斗中保存的规则只在官方结束清理完成后用于下一场，无法确认安全边界时必须重启。该模型替换尚待真实 Flash 双方模型与完整动作验收。敌方助手不支持组队、观战；只有已准备编号的图片可显示，其余使用占位。真实单人 PVP/PVE 及常用 DPI 的实机视觉验收仍需单独完成。
+ContractVersion 1 已冻结；生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不直接订阅静态 IPC。`battle` Section 使用 `BattleSettings`/`BattleSettingsCodec` Version 6；模型、解析器和 tracker 位于 `Features/Battle/State`，F3 助手与“战斗表现”窗口位于 `UI/Battle`。跳过战斗演出只能加速已经到达 Flash 的事件；服务器尚未返回的技能、阵亡或换宠结果仍必须等待。战斗模型第一版仅支持双方 ID 位数相同且均不小于 4445 的位图模型，只改变本地画面，不改变服务器 `raceId/viewId`、技能、属性或结果；变身、召唤物、奥义和额外特效不在范围内。战斗中保存的规则只在官方结束清理完成后用于下一场，无法确认安全边界时必须重启。该模型替换尚待真实 Flash 双方模型与完整动作验收。敌方助手不支持组队、观战；只有已准备编号的图片可显示，其余使用占位。真实单人 PVP/PVE 及常用 DPI 的实机视觉验收仍需单独完成。

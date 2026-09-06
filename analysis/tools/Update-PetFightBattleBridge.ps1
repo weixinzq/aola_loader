@@ -272,7 +272,9 @@ function Assert-PcodeTrees([string]$OfficialRoot, [string]$CandidateRoot) {
         'scripts\mmo\petfightnew\PetFightService.pcode' = @('public function init()')
         'scripts\mmo\petfightnew\common\FightPanel.pcode' = @('public function enableClick()')
         'scripts\mmo\petfightnew\common\fightcontroller\UseSkill.pcode' = @(
-            'public function handleUseSkill(', 'private function handleAnnalFeeEight(', 'private function handleMovie(')
+            'public function handleUseSkill(', 'private function handleAnnalFeeEight(', 'private function handleMovie(',
+            'private function getMuiltHitDecHpDelayFrame(')
+        'scripts\mmo\petfightnew\common\FightController.pcode' = @('public function startHandle(')
         'scripts\mmo\petfightnew\common\fightcontroller\SwitchPm.pcode' = @('private function showSwitchMc(')
         'scripts\mmo\petfightnew\common\fightcontroller\ChangePetView.pcode' = @(
             'private function onGotPet(', 'private function onPetChange(')
@@ -443,6 +445,7 @@ if ($Mode -eq 'Prepare') {
         $selectedClasses = @(
             'mmo.petfightnew.PetFightService',
             'mmo.petfightnew.common.FightPanel',
+            'mmo.petfightnew.common.FightController',
             'mmo.petfightnew.DocPetFight',
             'mmo.petfightnew.common.fightcontroller.UseSkill',
             'mmo.petfightnew.common.fightcontroller.SwitchPm',
@@ -493,8 +496,8 @@ if ($Mode -eq 'Prepare') {
         -OutputDirectory $presentationPatchRoot
     if ($LASTEXITCODE -ne 0) { throw 'Battle-presentation patch generation failed.' }
     $presentationPatches = @(($presentationOutput -join [Environment]::NewLine) | ConvertFrom-Json)
-    if ($presentationPatches.Count -ne 16) {
-        throw "Expected 16 battle-presentation method patches, found $($presentationPatches.Count)."
+    if ($presentationPatches.Count -ne 18) {
+        throw "Expected 18 battle-presentation method patches, found $($presentationPatches.Count)."
     }
 
     $candidate = Join-Path $EvidenceRoot "variants\petfightnew-battle-state-$($live.ResourceVersion).fws.swf"
@@ -605,8 +608,9 @@ if ($Mode -eq 'Prepare') {
         "- SymbolClass SHA-256: ``$symbolClassSha256``",
         "- PetFightService.init method body: ``$($serviceBody.methodBodyIndex)``",
         "- FightPanel.enableClick method body: ``$($panelBody.methodBodyIndex)``",
-        '- Changed scope: `DocPetFight`, `PetFightService.init`, `FightPanel.enableClick`, and the 16 approved per-turn presentation methods.',
-        '- The presentation path preserves state settlement and terminal callbacks while bypassing per-turn movies.',
+        '- Changed scope: `DocPetFight`, `PetFightService.init`, `FightPanel.enableClick`, and the 18 approved per-turn presentation methods.',
+        '- The presentation path preserves state settlement, message order, and terminal callbacks while bypassing per-turn movies and draining already-received events without one-frame gaps.',
+        '- Multi-hit completion retains its callback path with a one-frame minimum delay while presentation skipping is enabled.',
         '- Damage and healing number suppression is limited to result-number leaf methods.',
         '- Static verification passed; real Flash runtime verification is still required.'
     ) | Set-Content -LiteralPath $reportPath -Encoding utf8
