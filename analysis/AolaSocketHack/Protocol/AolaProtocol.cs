@@ -105,6 +105,19 @@ internal sealed class AolaProtocolState
 internal static class AolaProtocol
 {
 	private const uint InnerMask = 0x1FFFFFFC;
+	private const int CreateRoomKoAction = 20015;
+	private const int DataObjectAction = 20016;
+	private const int AdminMessageAction = 20017;
+	private const int JoinKoAction = 20018;
+	private const int JoinOkAction = 20019;
+	private const int LeaveRoomAction = 20020;
+	private const int LoginKoAction = 20021;
+	private const int LogoutAction = 20023;
+	private const int PublicMessageAction = 20026;
+	private const int RoomVariablesUpdateAction = 20034;
+	private const int UserEnterRoomAction = 20036;
+	private const int UserGoneAction = 20037;
+	private const int UserVariablesUpdateAction = 20039;
 	private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
 	{
 		Formatting = Formatting.None,
@@ -226,7 +239,11 @@ internal static class AolaProtocol
 			}
 			int type = frame[4];
 			packet.MessageType = type;
-			if (type == 1)
+			if (type == 0)
+			{
+				ParseServerSystem(frame, packet);
+			}
+			else if (type == 1)
 			{
 				object value = new Amf3Reader(frame, 5).ReadObject();
 				packet.ParametersJson = JsonConvert.SerializeObject(value, JsonSettings);
@@ -248,6 +265,189 @@ internal static class AolaProtocol
 			packet.Summary = "解析失败：" + ex.Message;
 		}
 		return packet;
+	}
+
+	private static void ParseServerSystem(byte[] frame, AolaPacketEvent packet)
+	{
+		if (frame.Length < 11)
+		{
+			throw new InvalidOperationException("SYS 服务端帧短于 action/roomId 头");
+		}
+
+		int position = 5;
+		int action = ReadUInt16(frame, position);
+		position += 2;
+		int headerRoomId = ReadInt32(frame, position);
+		position += 4;
+		string command = GetSystemCommand(action);
+		JObject parameters = new JObject
+		{
+			["headerRoomId"] = headerRoomId
+		};
+
+		switch (action)
+		{
+			case JoinOkAction:
+				ParseJoinOk(frame, ref position, parameters);
+				break;
+			case JoinKoAction:
+			case LoginKoAction:
+			case CreateRoomKoAction:
+				parameters["message"] = ReadUtf(frame, ref position);
+				break;
+			case DataObjectAction:
+				parameters["userId"] = ReadInt32(frame, position);
+				position += 4;
+				parameters["data"] = ReadUtf(frame, ref position);
+				break;
+			case AdminMessageAction:
+			case PublicMessageAction:
+				parameters["userId"] = ReadInt32(frame, position);
+				position += 4;
+				parameters["message"] = ReadUtf(frame, ref position);
+				break;
+			case LeaveRoomAction:
+				parameters["roomId"] = ReadInt32(frame, position);
+				position += 4;
+				break;
+			case LogoutAction:
+				break;
+			case RoomVariablesUpdateAction:
+				parameters["variables"] = ReadVariables(frame, ref position, ReadCount(frame, ref position));
+				break;
+			case UserEnterRoomAction:
+				ParseUserEnterRoom(frame, ref position, parameters);
+				break;
+			case UserGoneAction:
+				parameters["userId"] = ReadInt32(frame, position);
+				position += 4;
+				break;
+			case UserVariablesUpdateAction:
+				parameters["userId"] = ReadInt32(frame, position);
+				position += 4;
+				parameters["variables"] = ReadVariables(frame, ref position, ReadCount(frame, ref position));
+				break;
+			default:
+				parameters["payloadHex"] = ToHex(frame, position);
+				position = frame.Length;
+				break;
+		}
+
+		if (position < frame.Length)
+		{
+			parameters["remainingHex"] = ToHex(frame, position);
+		}
+		packet.Action = action;
+		packet.Command = command;
+		packet.ParametersJson = parameters.ToString(Formatting.None);
+		packet.Summary = CreateSystemSummary(command, action, parameters);
+		packet.DecodeSucceeded = true;
+	}
+
+	private static void ParseJoinOk(byte[] frame, ref int position, JObject parameters)
+	{
+		parameters["roomId"] = ReadInt32(frame, position);
+		position += 4;
+		parameters["roomName"] = ReadUtf(frame, ref position);
+		parameters["maxUsers"] = ReadInt32(frame, position);
+		position += 4;
+		parameters["joinData"] = ReadUtf(frame, ref position);
+		parameters["roomVariables"] = ReadVariables(frame, ref position, ReadCount(frame, ref position));
+
+		int userCount = ReadCount(frame, ref position);
+		JArray users = new JArray();
+		for (int index = 0; index < userCount; index++)
+		{
+			JObject user = new JObject
+			{
+				["userId"] = ReadInt32(frame, position)
+			};
+			position += 4;
+			user["name"] = ReadUtf(frame, ref position);
+			user["variables"] = ReadVariables(frame, ref position, ReadCount(frame, ref position));
+			users.Add(user);
+		}
+		parameters["users"] = users;
+	}
+
+	private static void ParseUserEnterRoom(byte[] frame, ref int position, JObject parameters)
+	{
+		parameters["userId"] = ReadInt32(frame, position);
+		position += 4;
+		parameters["name"] = ReadUtf(frame, ref position);
+		if (position >= frame.Length)
+		{
+			throw new InvalidOperationException("SYS 用户进入消息缺少 isInit");
+		}
+		parameters["isInit"] = frame[position++] == (byte)'1';
+		parameters["joinData"] = ReadUtf(frame, ref position);
+		parameters["variables"] = ReadVariables(frame, ref position, ReadCount(frame, ref position));
+	}
+
+	private static JArray ReadVariables(byte[] frame, ref int position, int count)
+	{
+		JArray variables = new JArray();
+		for (int index = 0; index < count; index++)
+		{
+			string name = ReadUtf(frame, ref position);
+			if (position >= frame.Length)
+			{
+				throw new InvalidOperationException("SYS 变量缺少类型");
+			}
+			string type = ((char)frame[position++]).ToString();
+			string value = ReadUtf(frame, ref position);
+			variables.Add(new JObject
+			{
+				["name"] = name,
+				["type"] = type,
+				["value"] = value
+			});
+		}
+		return variables;
+	}
+
+	private static int ReadCount(byte[] frame, ref int position)
+	{
+		short count = unchecked((short)ReadUInt16(frame, position));
+		position += 2;
+		if (count < 0)
+		{
+			throw new InvalidOperationException("SYS 数量字段不能为负数");
+		}
+		return count;
+	}
+
+	private static string GetSystemCommand(int action)
+	{
+		switch (action)
+		{
+			case CreateRoomKoAction: return "createRmKO";
+			case DataObjectAction: return "dataObj";
+			case AdminMessageAction: return "dmnMsg";
+			case JoinKoAction: return "joinKO";
+			case JoinOkAction: return "joinOK";
+			case LeaveRoomAction: return "leaveRoom";
+			case LoginKoAction: return "logKO";
+			case LogoutAction: return "logout";
+			case PublicMessageAction: return "pubMsg";
+			case RoomVariablesUpdateAction: return "rVarsUpdate";
+			case UserEnterRoomAction: return "uER";
+			case UserGoneAction: return "userGone";
+			case UserVariablesUpdateAction: return "uVarsUpdate";
+			case 20041: return "xtRes";
+			case 20042: return "crossDomain";
+			case 20043: return "xtResB";
+			default: return "system_" + action.ToString(CultureInfo.InvariantCulture);
+		}
+	}
+
+	private static string CreateSystemSummary(string command, int action, JObject parameters)
+	{
+		if (action == JoinOkAction)
+		{
+			return string.Format(CultureInfo.InvariantCulture, "joinOK room={0}, roomId={1}", parameters["roomName"], parameters["roomId"]);
+		}
+		return string.Format(CultureInfo.InvariantCulture, "{0} action={1}, roomId={2}", command, action, parameters["headerRoomId"]);
 	}
 
 	public static AolaPacketEvent CreatePolicyEvent(long socket, int processId, byte[] policy)
@@ -447,6 +647,18 @@ internal static class AolaProtocol
 	private static string ToHex(byte[] data)
 	{
 		return data == null ? string.Empty : BitConverter.ToString(data).Replace("-", " ").ToLowerInvariant();
+	}
+
+	private static string ToHex(byte[] data, int offset)
+	{
+		return data == null || offset >= data.Length
+			? string.Empty
+			: BitConverter.ToString(data, offset).Replace("-", " ").ToLowerInvariant();
+	}
+
+	private static int ReadInt32(byte[] data, int offset)
+	{
+		return unchecked((int)ReadUInt32(data, offset));
 	}
 
 	internal static ushort ReadUInt16(byte[] data, int offset)

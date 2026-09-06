@@ -6,9 +6,12 @@ using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using AolaLoader;
 using AolaLoader.Features.ActiveSend.ResourceInterception;
+using AolaLoader.Features.Battle.Coordination;
 using AolaLoader.Features.Battle.ResourceInterception;
+using AolaLoader.Features.Battle.Settings;
 using AolaLoader.Features.PetMorph.ResourceInterception;
 using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Contracts;
@@ -35,6 +38,7 @@ internal static class ResourceInterceptionContractVerifier
 			VerifyBattleBridgeRule() &&
 			VerifyPetPackageLiveRule() &&
 			VerifyRemotePlanExecutor() &&
+			VerifyBattlePetMovieRule() &&
 			VerifyPetMovieRule() &&
 			VerifyPetPosterRule();
 	}
@@ -628,16 +632,18 @@ internal static class ResourceInterceptionContractVerifier
 
 	private static bool VerifyBattleBridgeRule()
 	{
-		string path = Path.Combine(
+		string testData = Path.Combine(
 			AppDomain.CurrentDomain.BaseDirectory,
-			"TestData",
-			"petfightnew-battle-presentation-v2-2026082731219998.fws.swf");
-		if (!File.Exists(path)) return false;
+			"TestData");
+		string path = Path.Combine(testData, PetFightBattleBridgeArtifact.CandidateFileName);
+		string manifestPath = Path.Combine(testData, PetFightBattleBridgeArtifact.ManifestFileName);
+		if (!File.Exists(path) || !File.Exists(manifestPath)) return false;
 		byte[] template = File.ReadAllBytes(path);
-		PetFightBattleBridgeResourceRule rule = new PetFightBattleBridgeResourceRule(template);
+		string manifestJson = File.ReadAllText(manifestPath, Encoding.UTF8);
+		PetFightBattleBridgeResourceRule rule = new PetFightBattleBridgeResourceRule(manifestJson, template);
 		template[8] ^= 1;
 		string exactUrl = "https://aola.100bt.com/play/pet/petfightnew~" +
-			PetFightBattleBridgeResourceRule.SupportedVersion + ".swf?cache=1";
+			rule.SupportedVersion + ".swf?cache=1";
 		ResourceInterceptionPlan matched = rule.Evaluate(
 			new ResourceRequestContext(exactUrl, "GET", "Other"));
 		ResourceRulePipeline pipeline;
@@ -656,7 +662,11 @@ internal static class ResourceInterceptionContractVerifier
 			CountAscii(firstRead, "aolaBattleBridgeReady") < 1 ||
 			CountAscii(firstRead, "aolaBattleApplyOptions") < 1 ||
 			CountAscii(firstRead, "aolaBattleGetState") < 1 ||
-			CountAscii(firstRead, "skipBattlePresentation") < 1 ||
+			CountAscii(firstRead, "noteInputReady") < 1 ||
+			CountAscii(firstRead, "skipBattlePresentation") != 1 ||
+			CountAscii(firstRead, "hideDamageNumbers") != 1 ||
+			CountAscii(firstRead, "hideHealingNumbers") != 1 ||
+			CountAscii(firstRead, "skipAttackAnimation") != 0 ||
 			CountAscii(firstRead, "skipPetAttackActions") != 0 ||
 			CountAscii(firstRead, "skipBattleVisualDelays") != 0)
 		{
@@ -668,24 +678,83 @@ internal static class ResourceInterceptionContractVerifier
 		byte[] tampered = File.ReadAllBytes(path);
 		tampered[tampered.Length - 1] ^= 1;
 		PetFightBattleBridgeResourceRule unavailable = new PetFightBattleBridgeResourceRule((string)null);
-		return !unavailable.IsAvailable &&
+		string temporaryRoot = Path.Combine(
+			Path.GetTempPath(),
+			"aola-battle-bridge-manifest-" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(temporaryRoot);
+		bool fileLoadChecks;
+		try
+		{
+			string temporaryManifest = Path.Combine(
+				temporaryRoot,
+				PetFightBattleBridgeArtifact.ManifestFileName);
+			string temporaryCandidate = Path.Combine(
+				temporaryRoot,
+				PetFightBattleBridgeArtifact.CandidateFileName);
+			File.WriteAllText(temporaryManifest, manifestJson, new UTF8Encoding(false));
+			File.WriteAllBytes(temporaryCandidate, File.ReadAllBytes(path));
+			PetFightBattleBridgeResourceRule loaded = new PetFightBattleBridgeResourceRule(temporaryManifest);
+			File.Delete(temporaryCandidate);
+			PetFightBattleBridgeResourceRule missingCandidate =
+				new PetFightBattleBridgeResourceRule(temporaryManifest);
+			fileLoadChecks = loaded.IsAvailable && loaded.SupportedVersion == rule.SupportedVersion &&
+				!missingCandidate.IsAvailable;
+		}
+		finally
+		{
+			Directory.Delete(temporaryRoot, recursive: true);
+		}
+
+		string unknownFieldManifest = manifestJson.Insert(manifestJson.IndexOf('{') + 1, "\n  \"unknown\": true,");
+		string duplicateFieldManifest = manifestJson.Insert(
+			manifestJson.IndexOf('{') + 1,
+			"\n  \"schemaVersion\": 1,");
+		string invalidSchemaManifest = manifestJson.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2");
+		string traversalManifest = manifestJson.Replace(
+			PetFightBattleBridgeArtifact.CandidateFileName,
+			"..\\escape.swf");
+		string invalidHashManifest = manifestJson.Replace(
+			rule.ExpectedTemplateSha256,
+			new string('0', 64));
+		JObject invalidLengthDocument = JObject.Parse(manifestJson);
+		invalidLengthDocument["candidateLength"] = File.ReadAllBytes(path).Length + 1;
+		JObject invalidTypeDocument = JObject.Parse(manifestJson);
+		invalidTypeDocument["candidateLength"] = "6555602";
+		JObject missingFieldDocument = JObject.Parse(manifestJson);
+		missingFieldDocument.Property("symbolClassSha256")?.Remove();
+		JObject invalidUrlDocument = JObject.Parse(manifestJson);
+		invalidUrlDocument["officialUrl"] = "https://example.test/petfightnew.swf";
+		return fileLoadChecks && !unavailable.IsAvailable &&
 			unavailable.Evaluate(new ResourceRequestContext(exactUrl, "GET", "Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(
-				"https://aola.100bt.com/play/pet/petfightnew~2026082731219999.swf",
+				"https://aola.100bt.com/play/pet/petfightnew~0.swf",
 				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(
 				"https://aola.100bt.com/play/pet/petfightnew~" +
-				PetFightBattleBridgeResourceRule.SupportedVersion + ".swf.bak",
+				rule.SupportedVersion + ".swf.bak",
 				"GET", "Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(exactUrl, "POST", "Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(
 				"https://example.test/play/pet/petfightnew~" +
-				PetFightBattleBridgeResourceRule.SupportedVersion + ".swf",
+					rule.SupportedVersion + ".swf",
 				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
-			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(tampered));
+			rule.Evaluate(new ResourceRequestContext(
+				"https://aola.100bt.com/PLAY/pet/petfightnew~" +
+					rule.SupportedVersion + ".swf",
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(manifestJson, tampered)) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(unknownFieldManifest, File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(duplicateFieldManifest, File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(invalidSchemaManifest, File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(traversalManifest, File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(invalidHashManifest, File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(invalidLengthDocument.ToString(), File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(invalidTypeDocument.ToString(), File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(missingFieldDocument.ToString(), File.ReadAllBytes(path))) &&
+			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(invalidUrlDocument.ToString(), File.ReadAllBytes(path)));
 	}
 
 	private static byte[] CreateStartBridgeTemplate(bool includeLoadBytesMarker)
@@ -772,6 +841,145 @@ internal static class ResourceInterceptionContractVerifier
 				"bad.status",
 				"bad",
 				99));
+	}
+
+	private static bool VerifyBattlePetMovieRule()
+	{
+		if (BattleMorphRuleValidation.Validate(new BattleMorphRule("ok", 6000, 6047)) != null ||
+			BattleMorphRuleValidation.Validate(new BattleMorphRule("old", 4400, 6047)) == null ||
+			BattleMorphRuleValidation.Validate(new BattleMorphRule("digits", 6000, 10000)) == null ||
+			BattleMorphRuleValidation.Validate(new BattleMorphRule("same", 6000, 6000)) == null)
+		{
+			return false;
+		}
+
+		string catalogPath = Path.GetTempFileName();
+		try
+		{
+			File.WriteAllText(catalogPath,
+				"{\"schemaVersion\":1,\"versionDataVersion\":\"20260904363779370\"," +
+				"\"versionDataSha256\":\"" + new string('a', 64) + "\",\"defaultVersion\":\"1210\"," +
+				"\"entries\":{\"fightassets/bitmap/pet6047/pet6047_1_0\":\"777\"}}",
+				new UTF8Encoding(false));
+			BattlePetMovieVersionCatalog catalog = BattlePetMovieVersionCatalog.Load(catalogPath);
+			if (!catalog.IsAvailable ||
+				catalog.GetVersion("fightassets/bitmap/pet6047/pet6047_1_0") != "777" ||
+				catalog.GetVersion("fightassets/bitmap/pet6047/pet6047_2_2") != "1210" ||
+				catalog.GetVersion("pet6047_2_2") != null)
+			{
+				return false;
+			}
+
+			Dictionary<int, string> versions = new Dictionary<int, string>();
+			Dictionary<int, byte[]> contents = new Dictionary<int, byte[]>();
+			for (int face = 1; face <= 2; face++)
+			{
+				for (int part = 0; part <= 2; part++)
+				{
+					string path = "fightassets/bitmap/pet6047/pet6047_" + face + "_" + part;
+					int key = face * 10 + part;
+					versions[key] = catalog.GetVersion(path);
+					string body = (part == 0 ? "Pet6047Config_" + face + "|" : string.Empty) +
+						"mmo.petfight.bitmap.pet6047_" + face + "_stand_0|pet6047_" + face + "_attack_0";
+					ResourceTransformResult transformed = new BattlePetMovieResourceTransformer(6000, 6047, face, part)
+						.Transform(new ResourceTransformInput(
+							"https://aola.100bt.com/play/" + path + "~" + versions[key] + ".swf",
+							200,
+							"application/x-shockwave-flash",
+							CreateBattlePetTemplate(body)));
+					if (!transformed.Succeeded) return false;
+					contents[key] = transformed.Content;
+				}
+			}
+			BattlePetMovieResourceRule rule = new BattlePetMovieResourceRule();
+			const string firstUrl =
+				"https://aola.100bt.com/play/fightassets/bitmap/pet6000/pet6000_1_0~999.swf?cache=1";
+			if (rule.Evaluate(new ResourceRequestContext(firstUrl, "GET", "Other")).Outcome !=
+				ResourceInterceptionOutcome.PassThrough)
+			{
+				return false;
+			}
+			rule.SetRules(new[]
+			{
+				new PreparedBattleMorphRule(new BattleMorphRule("证据", 6000, 6047), versions, contents)
+			}, enabled: true);
+
+			for (int face = 1; face <= 2; face++)
+			{
+				for (int part = 0; part <= 2; part++)
+				{
+					string originalUrl = "https://aola.100bt.com/play/fightassets/bitmap/pet6000/pet6000_" +
+						face + "_" + part + "~999.swf?cache=1";
+					ResourceInterceptionPlan plan = rule.Evaluate(
+						new ResourceRequestContext(originalUrl, "GET", "Other"));
+					string expectedVersion = face == 1 && part == 0 ? "777" : "1210";
+					if (plan.Outcome != ResourceInterceptionOutcome.LocalResponse ||
+						!plan.CacheKey.EndsWith(":" + expectedVersion, StringComparison.Ordinal) ||
+						CountAscii(plan.LocalContent, "pet6047") != 0 ||
+						CountAscii(plan.LocalContent, "pet6000") == 0)
+					{
+						return false;
+					}
+				}
+			}
+			string evidenceRoot = Path.Combine(
+				AppDomain.CurrentDomain.BaseDirectory,
+				"TestData",
+				"BattlePetMovie");
+			for (int face = 1; face <= 2; face++)
+			{
+				for (int part = 0; part <= 2; part++)
+				{
+					string evidencePath = Path.Combine(evidenceRoot, "pet6047_" + face + "_" + part + "~1210.swf");
+					if (!File.Exists(evidencePath)) return false;
+					ResourceTransformResult evidence = new BattlePetMovieResourceTransformer(6000, 6047, face, part).Transform(
+						new ResourceTransformInput(
+							"https://aola.100bt.com/play/fightassets/bitmap/pet6047/pet6047_" + face + "_" + part + "~1210.swf",
+							200,
+							"application/x-shockwave-flash",
+							File.ReadAllBytes(evidencePath)));
+					if (!evidence.Succeeded || evidence.Content.Length < 8 || evidence.Content[0] != (byte)'F' ||
+						BitConverter.ToUInt32(evidence.Content, 4) != evidence.Content.Length ||
+						CountAscii(evidence.Content, "pet6047") != 0 || CountAscii(evidence.Content, "pet6000") == 0)
+					{
+						return false;
+					}
+				}
+			}
+
+			ResourceTransformResult mixed = new BattlePetMovieResourceTransformer(6000, 6047, 1, 0).Transform(
+				new ResourceTransformInput(firstUrl, 200, "application/x-shockwave-flash",
+					CreateBattlePetTemplate("Pet6047|pet6047|pet6000")));
+			ResourceTransformResult damaged = new BattlePetMovieResourceTransformer(6000, 6047, 1, 0).Transform(
+				new ResourceTransformInput(firstUrl, 200, "application/x-shockwave-flash", new byte[] { 1, 2, 3 }));
+			return !mixed.Succeeded && mixed.RejectionCode == "battle.class_contract_mixed" &&
+				!damaged.Succeeded && damaged.RejectionCode == "battle.swf_decode_failed" &&
+				rule.Evaluate(new ResourceRequestContext(firstUrl, "POST", "Other")).Outcome ==
+					ResourceInterceptionOutcome.PassThrough &&
+				rule.Evaluate(new ResourceRequestContext(
+					"https://example.test/play/fightassets/bitmap/pet6000/pet6000_1_0~999.swf",
+					"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+				rule.Evaluate(new ResourceRequestContext(
+					"https://aola.100bt.com/play/fightassets/bitmap/pet6000/pet6001_1_0~999.swf",
+					"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough;
+		}
+		finally
+		{
+			File.Delete(catalogPath);
+		}
+	}
+
+	private static byte[] CreateBattlePetTemplate(string body)
+	{
+		byte[] bodyBytes = Encoding.ASCII.GetBytes(body);
+		byte[] content = new byte[8 + bodyBytes.Length];
+		content[0] = (byte)'F';
+		content[1] = (byte)'W';
+		content[2] = (byte)'S';
+		content[3] = 18;
+		Buffer.BlockCopy(BitConverter.GetBytes((uint)content.Length), 0, content, 4, 4);
+		Buffer.BlockCopy(bodyBytes, 0, content, 8, bodyBytes.Length);
+		return content;
 	}
 
 	private static bool VerifyPetMovieRule()

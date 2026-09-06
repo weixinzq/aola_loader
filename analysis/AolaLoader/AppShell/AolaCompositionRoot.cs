@@ -63,7 +63,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 			Path.Combine(baseDirectory, "Resources", "Themes"),
 			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"),
 			Path.Combine(baseDirectory, "Resources", "Patches", "start-bridge-2107300001.fws.swf"),
-			null,
+			Path.Combine(baseDirectory, "Resources", "Patches", "petfightnew-battle-state.current.json"),
+			Path.Combine(baseDirectory, "Resources", "Data", "battle-pet-movie-versions.current.json"),
 			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-2026082731219998.fws.swf"),
 			initialPetMorph.LiveBridgeEnabled);
 		_themeCoordinator = new ThemeCoordinator(
@@ -87,7 +88,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 		_battlePresentationCoordinator = new BattlePresentationCoordinator(
 			settingsStore,
 			new BattleSettingsCodec(),
-			new BattleBridgeClient(_pageBridge));
+			new BattleBridgeClient(_pageBridge),
+			_resourceRequestHandler);
 		_commandSender = new AolaFlashCommandSender(_pageBridge);
 		_childWindowCoordinator = new ChildWindowCoordinator();
 		MainForm = new AolaMainForm(

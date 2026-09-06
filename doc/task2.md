@@ -1,5 +1,16 @@
 # 战斗表现控制与战斗亚比模型替换设计方案
 
+> 历史设计（2026-08-21），保留以下原始证据和候选思路；旧字段、实施步骤及“仅屏蔽攻击者动作”的范围不作为当前实现指令。2026-09-05 的当前契约见 [Battle](modules/BATTLE_SPEC.md)、[资源管线](modules/RESOURCE_PIPELINE_SPEC.md) 和 [周更手册](runbooks/PETFIGHTNEW_WEEKLY_UPDATE.md)。
+
+## 当前实现与原方案差异（2026-09-05）
+
+- 当前设置为 Battle Version 6：`HideDamageNumbers`、`HideHealingNumbers`、`SkipBattlePresentation`、`BattleMorphEnabled` 和 `MorphRules[{Note,SourceViewId,TargetViewId}]`。
+- `SkipBattlePresentation` 跳过每回合演出，不再等同于仅跳过攻击者动作；当前桥 Version 4 使用 16 个白名单方法补丁，保留状态结算和终端回调，不修改全局技能特效或画质选项。
+- 战斗模型独立于背包规则；仅支持源/目标 ID 均不小于 4445、不同且位数相同的位图模型。目标双方六分片预检全部通过才可启用；失败保留现有规则，未启用时使用官方资源。桥确认 `active=false` 且 `ended=false` 才切换，无法确认则等待重启。
+- 当前生产资源版本为 `2026090340574444`，本地演出候选已静态验证并接入生产清单，但新的真实 Flash 演出及完整模型动作验收仍未完成。
+
+以下章节是历史设计正文。
+
 ## 一、需求范围
 
 新增三项互相独立的功能：

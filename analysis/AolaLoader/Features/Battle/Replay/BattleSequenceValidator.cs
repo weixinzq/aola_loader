@@ -23,6 +23,7 @@ internal static class BattleSequenceValidator
 	private static readonly FieldRule[] EntrySchema = Fields(
 		"si:i", "dr:i", "isHurtFight:b", "index:i", "type:i", "ddr:i",
 		"t:i", "bb:i", "lv:i", "handler:s", "pb:i");
+	private static readonly FieldRule[] PreludeSchema = Fields("eventId:i");
 	private static readonly FieldRule[] PreFightSchema = Fields("ul:s", "msg:s");
 
 	public static BattleSequencePlan Validate(IReadOnlyList<AolaSendRequest> requests)
@@ -31,23 +32,48 @@ internal static class BattleSequenceValidator
 		{
 			throw new InvalidOperationException("战斗状态发送至少需要一条消息。");
 		}
-		List<BattleSequenceItem> items = new List<BattleSequenceItem>();
+		List<BattleSequenceItem> setupItems = new List<BattleSequenceItem>();
+		List<BattleTurnGroup> turnGroups = new List<BattleTurnGroup>();
+		List<BattleSequenceItem> currentTurnItems = null;
+		int currentTurn = -1;
+		bool preludeSeen = false;
 		bool entrySeen = false;
 		bool actionSeen = false;
+		bool battlePhaseStarted = false;
 		for (int index = 0; index < requests.Count; index++)
 		{
 			AolaSendRequest request = requests[index] ?? throw new InvalidOperationException(
 				string.Format("第 {0} 条消息为空。", index + 1));
 			JObject parameters = JObject.Parse(request.ParametersJson ?? "{}");
+			if (request.ExtensionId == 13 && (request.Command == "1408" || request.Command == "1409"))
+			{
+				throw Invalid(index, "状态模式不接受 1408/1409 自动战斗开关");
+			}
+			if (request.ExtensionId == 42 && request.Command == "74_1")
+			{
+				if (preludeSeen || battlePhaseStarted)
+				{
+					throw Invalid(index, "74_1 活动入口最多出现一次，并且必须位于 54_22 之前");
+				}
+				ValidateObject(index, parameters, PreludeSchema);
+				if (parameters.Value<int>("eventId") <= 0)
+				{
+					throw Invalid(index, "eventId 必须为正整数");
+				}
+				preludeSeen = true;
+				setupItems.Add(new BattleSequenceItem(request, BattleSequenceItemKind.Prelude));
+				continue;
+			}
 			if (request.ExtensionId == 15 && request.Command == "54_22")
 			{
-				if (entrySeen || actionSeen)
+				if (entrySeen || battlePhaseStarted)
 				{
-					throw Invalid(index, "战斗入口必须只出现一次，并位于所有回合操作之前");
+					throw Invalid(index, "一份状态序列只允许一个战斗入口，并且入口必须位于所有回合操作之前");
 				}
 				ValidateObject(index, parameters, EntrySchema);
 				entrySeen = true;
-				items.Add(new BattleSequenceItem(request, BattleSequenceItemKind.Entry, null));
+				battlePhaseStarted = true;
+				setupItems.Add(new BattleSequenceItem(request, BattleSequenceItemKind.Entry));
 				continue;
 			}
 			if (request.ExtensionId == 16 && request.Command == "preFightLoad")
@@ -57,38 +83,56 @@ internal static class BattleSequenceValidator
 					throw Invalid(index, "preFightLoad 只能紧随战斗入口，由 Flash 自行发送");
 				}
 				ValidateObject(index, parameters, PreFightSchema);
-				items.Add(new BattleSequenceItem(request, BattleSequenceItemKind.FlashOwned, null));
+				setupItems.Add(new BattleSequenceItem(request, BattleSequenceItemKind.FlashOwned));
 				continue;
 			}
-			if (request.ExtensionId == 13)
+			if (request.ExtensionId == 13 && ActionSchemas.TryGetValue(request.Command, out FieldRule[] schema))
 			{
-				if (!entrySeen)
-				{
-					throw Invalid(index, "回合操作前缺少已验证的 id=15 / cmd=54_22 战斗入口");
-				}
-				if (!ActionSchemas.TryGetValue(request.Command, out FieldRule[] schema))
-				{
-					throw Invalid(index, request.Command == "1408" || request.Command == "1409"
-						? "状态模式不接受 1408/1409 自动战斗开关"
-						: "不是已验证的 PetClient 回合命令 1401-1407 或 1410");
-				}
 				ValidateObject(index, parameters, schema);
 				int turn = parameters.Value<int>("turn");
 				if (turn < 0)
 				{
 					throw Invalid(index, "turn 不能为负数");
 				}
+				battlePhaseStarted = true;
 				actionSeen = true;
-				items.Add(new BattleSequenceItem(request, BattleSequenceItemKind.TurnAction, turn));
+				if (currentTurnItems == null || turn != currentTurn)
+				{
+					if (currentTurnItems != null)
+					{
+						if ((long)turn != (long)currentTurn + 1L)
+						{
+							throw Invalid(index, string.Format(
+								"回合组必须严格连续递增；上一组 turn={0}，当前 turn={1}", currentTurn, turn));
+						}
+						turnGroups.Add(new BattleTurnGroup(currentTurn, currentTurnItems));
+					}
+					currentTurn = turn;
+					currentTurnItems = new List<BattleSequenceItem>();
+				}
+				currentTurnItems.Add(new BattleSequenceItem(request, BattleSequenceItemKind.TurnAction));
 				continue;
 			}
-			throw Invalid(index, "状态模式只接受战斗入口、preFightLoad 和已验证的 id=13 回合操作");
+			if (!battlePhaseStarted)
+			{
+				setupItems.Add(new BattleSequenceItem(request, BattleSequenceItemKind.PrefixPassThrough));
+				continue;
+			}
+			throw Invalid(index, "战斗阶段开始后只接受 preFightLoad 和已验证的 id=13 回合操作");
 		}
-		if (!entrySeen)
+		if (currentTurnItems != null)
 		{
-			throw new InvalidOperationException("战斗状态发送缺少 id=15 / cmd=54_22 入口消息。");
+			turnGroups.Add(new BattleTurnGroup(currentTurn, currentTurnItems));
 		}
-		return new BattleSequencePlan(items);
+		if (preludeSeen && !entrySeen)
+		{
+			throw new InvalidOperationException("id=42/cmd=74_1 活动入口必须与 id=15/cmd=54_22 一起使用。");
+		}
+		if (!entrySeen && !actionSeen)
+		{
+			throw new InvalidOperationException("战斗状态发送至少需要一条已验证的 id=13 回合操作。");
+		}
+		return new BattleSequencePlan(setupItems, turnGroups, entrySeen);
 	}
 
 	private static void ValidateObject(int lineIndex, JObject value, FieldRule[] schema)
@@ -135,6 +179,8 @@ internal static class BattleSequenceValidator
 
 internal enum BattleSequenceItemKind
 {
+	PrefixPassThrough,
+	Prelude,
 	Entry,
 	FlashOwned,
 	TurnAction
@@ -142,19 +188,40 @@ internal enum BattleSequenceItemKind
 
 internal sealed class BattleSequenceItem
 {
-	public BattleSequenceItem(AolaSendRequest request, BattleSequenceItemKind kind, int? turn)
+	public BattleSequenceItem(AolaSendRequest request, BattleSequenceItemKind kind)
 	{
 		Request = request;
 		Kind = kind;
-		Turn = turn;
 	}
 	public AolaSendRequest Request { get; }
 	public BattleSequenceItemKind Kind { get; }
-	public int? Turn { get; }
+}
+
+internal sealed class BattleTurnGroup
+{
+	public BattleTurnGroup(int turn, IReadOnlyList<BattleSequenceItem> items)
+	{
+		Turn = turn;
+		Items = items ?? throw new ArgumentNullException(nameof(items));
+	}
+
+	public int Turn { get; }
+	public IReadOnlyList<BattleSequenceItem> Items { get; }
 }
 
 internal sealed class BattleSequencePlan
 {
-	public BattleSequencePlan(IReadOnlyList<BattleSequenceItem> items) { Items = items; }
-	public IReadOnlyList<BattleSequenceItem> Items { get; }
+	public BattleSequencePlan(
+		IReadOnlyList<BattleSequenceItem> setupItems,
+		IReadOnlyList<BattleTurnGroup> turnGroups,
+		bool startsNewBattle)
+	{
+		SetupItems = setupItems;
+		TurnGroups = turnGroups;
+		StartsNewBattle = startsNewBattle;
+	}
+
+	public IReadOnlyList<BattleSequenceItem> SetupItems { get; }
+	public IReadOnlyList<BattleTurnGroup> TurnGroups { get; }
+	public bool StartsNewBattle { get; }
 }

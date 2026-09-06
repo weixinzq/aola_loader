@@ -14,7 +14,7 @@ OwnerPaths: `analysis/AolaLoader/Features/PetMorph/**`, `analysis/AolaLoader/UI/
 
 ## 公开契约
 
-`IPetMorphCoordinator` 提供启用状态、规则快照、校验、保存与页面推送结果；独立资源规则实现 `IResourceRule`；`PetMorphSettings { Version, Enabled, LiveBridgeEnabled, Rules }`。规则键与冲突判定必须确定。
+`IPetMorphCoordinator` 提供启用状态、规则快照、校验、保存与页面推送结果；独立资源规则实现 `IResourceInterceptionRule`；`PetMorphSettings { Version, Enabled, LiveBridgeEnabled, Rules }`。规则键与冲突判定必须确定。
 
 ## 输入与输出
 

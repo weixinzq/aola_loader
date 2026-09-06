@@ -101,27 +101,6 @@ internal sealed class AolaBattleStateTracker : IBattleStateSource
 			}
 		}
 
-		if (!_snapshot.SelfPmmId.HasValue)
-		{
-			AolaBattleSideSnapshot positive = _snapshot.Sides.FirstOrDefault(side => side.PmmId > 0);
-			AolaBattleSideSnapshot negative = _snapshot.Sides.FirstOrDefault(side => side.PmmId < 0);
-			if (positive != null && negative != null)
-			{
-				_snapshot.SelfPmmId = positive.PmmId;
-			}
-		}
-
-		foreach (AolaBattleSideSnapshot side in _snapshot.Sides)
-		{
-			if (_snapshot.SelfPmmId.HasValue)
-			{
-				side.SideName = side.PmmId == _snapshot.SelfPmmId.Value ? "己方" : "敌方";
-			}
-			else
-			{
-				side.SideName = side.PmmId < 0 ? "敌方" : "未知";
-			}
-		}
 	}
 
 	private AolaBattleSnapshot CreateBattleSnapshotWithRecentRoster(AolaBattlePacketUpdate update)
@@ -130,7 +109,7 @@ internal sealed class AolaBattleStateTracker : IBattleStateSource
 		TimeSpan age = update.TimestampUtc - _snapshot.LastUpdatedUtc;
 		bool recentRoster = (string.Equals(_snapshot.LastCommand, "2303", StringComparison.Ordinal) ||
 			string.Equals(_snapshot.LastCommand, "2304", StringComparison.Ordinal)) &&
-			_snapshot.LastUpdatedUtc != default && age >= TimeSpan.Zero && age <= TimeSpan.FromSeconds(10);
+			_snapshot.LastUpdatedUtc != default && age >= TimeSpan.Zero;
 		bool sameParticipants = update.Sides.Any(incoming =>
 			_snapshot.Sides.Any(existing => existing.PmmId == incoming.PmmId));
 		if (recentRoster && sameParticipants)
@@ -146,6 +125,7 @@ internal sealed class AolaBattleStateTracker : IBattleStateSource
 
 	private static void MergeIncrementalSide(AolaBattleSideSnapshot target, AolaBattleSideSnapshot incoming)
 	{
+		if (!string.IsNullOrEmpty(incoming.SideName)) target.SideName = incoming.SideName;
 		target.LastHpChange = incoming.LastHpChange;
 		target.LastHpChangeDetails = incoming.LastHpChangeDetails;
 		target.LastHpChangeType = incoming.LastHpChangeType;
@@ -170,6 +150,7 @@ internal sealed class AolaBattleStateTracker : IBattleStateSource
 			if (index >= 0)
 			{
 				AolaBattlePetSnapshot replacement = incomingPet.Clone();
+				AolaBattleLoadoutParser.PreserveMissing(replacement, target.Pets[index]);
 				if (!replacement.BattleSlotId.HasValue && target.Pets[index].BattleSlotId.HasValue)
 				{
 					replacement.BattleSlotId = target.Pets[index].BattleSlotId;

@@ -1,0 +1,2 @@
+[console_scripts]
+aola-offline = aola_offline.cli:main

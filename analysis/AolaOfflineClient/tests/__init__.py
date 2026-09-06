@@ -1,0 +1,2 @@
+"""AolaOfflineClient tests."""
+

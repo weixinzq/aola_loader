@@ -75,6 +75,8 @@ internal sealed class AolaBattleSideSnapshot
 
 internal sealed class AolaBattlePetSnapshot
 {
+	public Dictionary<string, BattleConfigurationGroup> Loadout { get; } = new Dictionary<string, BattleConfigurationGroup>(StringComparer.Ordinal);
+
 	public int? BattleSlotId { get; set; }
 
 	public long UniqueId { get; set; }
@@ -121,6 +123,7 @@ internal sealed class AolaBattlePetSnapshot
 		{
 			clone.Abilities.Add(ability.Clone());
 		}
+		foreach (var pair in Loadout) clone.Loadout[pair.Key] = pair.Value.Clone();
 		foreach (AolaBattleSkillSnapshot skill in Skills)
 		{
 			clone.Skills.Add(skill.Clone());

@@ -9,7 +9,7 @@ analysis/runtime/pepflashplayer.dll
 
 The build copies it to `runtime/pepflashplayer.dll` beside the executable.
 
-Pinned file evidence:
+Pinned file evidence (local size, SHA-256 and Authenticode status rechecked on 2026-09-05; no binary change):
 
 ```text
 Size: 16089056 bytes

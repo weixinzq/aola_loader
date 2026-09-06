@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aola-offline"
+version = "0.1.0"
+description = "Independent Aola account client with structured send/receive and trusted scripts."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.9,<4",
+    "websockets>=14,<16",
+]
+
+[project.scripts]
+aola-offline = "aola_offline.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

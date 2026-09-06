@@ -20,6 +20,8 @@ Hook Winsock、快速分类游戏 socket、有界复制入队、按 socket 重�
 
 输入为 `send/WSASend/recv/WSARecv/connect/closesocket` 数据；输出为有方向、socket/进程上下文的完整帧及限频指标。
 
+接收事件的 `ConnectionPlayerId` 从该 socket 的既有 `Protocol.UserId` 附加，身份未知为 null。连接清理后不会沿用旧编号。仅公开玩家编号，不发布登录凭证，也不创建额外连接。
+
 ## 允许依赖
 
 EasyHook 仅限 Hooking、Winsock native、线程安全有界集合和 Protocol 帧边界识别。
@@ -42,7 +44,7 @@ Hook 回调只复制至多 16 MiB 并 `TryAdd` 到 4096 项队列。后台 worke
 
 ## 安全约束
 
-登录帧只能交给注入端受控发送状态；不得随捕获 DTO 发布。独立 sidecar socket 必须排除。
+登录材料只允许留在注入进程内存，不随捕获 DTO 发布，也不交给其他账号连接。生产入口拒绝遗留旁路发送；保留 sidecar 排除机制仅用于隔离遗留/诊断路径。
 
 ## 缓存语义
 
@@ -58,4 +60,4 @@ Hook 回调只复制至多 16 MiB 并 `TryAdd` 到 4096 项队列。后台 worke
 
 ## 已知限制
 
-捕获实现与独立项目边界已完成审计。阶段 9 已在真实登录、抓包、日志、独立发包和战斗中验证运行路径；PCAP 继续覆盖碎片/粘包、分类、边界、清理和 sidecar 排除。
+捕获实现与独立项目边界已完成审计。阶段 9 已在真实登录、抓包、日志、当时的发包和战斗中验证运行路径；该记录不代表当前旁路仍启用。PCAP 继续覆盖碎片/粘包、分类、边界、清理和 sidecar 排除。

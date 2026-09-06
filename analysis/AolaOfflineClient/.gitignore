@@ -1,0 +1,11 @@
+/accounts.json
+/logs/
+/evidence/*
+!/evidence/.gitkeep
+/.venv/
+/build/
+/dist/
+/*.egg-info/
+**/__pycache__/
+*.py[cod]
+

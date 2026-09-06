@@ -50,7 +50,7 @@ internal static class AolaBattlePacketParser
 			EndsBattle = string.Equals(packet.Command, "2404", StringComparison.Ordinal) ||
 				string.Equals(packet.Command, "2309", StringComparison.Ordinal),
 			BattleUniqueId = ReadText(parameters["battleUniqueId"]),
-			SelfPmmId = ReadSelfPmmId(parameters, packet.Command),
+			SelfPmmId = packet.ConnectionPlayerId,
 			Command = packet.Command,
 			Description = ReadDescription(packet.Command, parameters),
 			TimestampUtc = packet.TimestampUtc
@@ -73,6 +73,12 @@ internal static class AolaBattlePacketParser
 			}
 		}
 		update.Sides.AddRange(sides.Values);
+		if (update.SelfPmmId.HasValue && update.Sides.Count <= 2 &&
+			(packet.Command == "2303" || packet.Command == "2304" || packet.Command == "2401"))
+		{
+			foreach (AolaBattleSideSnapshot side in update.Sides)
+				side.SideName = side.PmmId == update.SelfPmmId.Value ? "己方" : "敌方";
+		}
 		return true;
 	}
 
@@ -160,6 +166,7 @@ internal static class AolaBattlePacketParser
 			MaximumHp = ReadCompositeNumber(view["s0"])
 		};
 
+		AolaBattleLoadoutParser.Parse(petObject, view, pet);
 		for (int index = 0; index < AbilityNames.Length; index++)
 		{
 			AolaBattleAbilitySnapshot ability = ParseAbility(view["ea" + index], index);
@@ -219,6 +226,7 @@ internal static class AolaBattlePacketParser
 		}
 		if (index >= 0)
 		{
+			AolaBattleLoadoutParser.PreserveMissing(incoming, pets[index]);
 			if (!incoming.BattleSlotId.HasValue && pets[index].BattleSlotId.HasValue)
 			{
 				incoming.BattleSlotId = pets[index].BattleSlotId;
@@ -268,20 +276,6 @@ internal static class AolaBattlePacketParser
 		return ability.Segments.Count == 0 ? null : ability;
 	}
 
-	private static long? ReadSelfPmmId(JObject parameters, string command)
-	{
-		long? battleRole = ReadLong(parameters["br"]);
-		if (!battleRole.HasValue && string.Equals(command, "2303", StringComparison.Ordinal))
-		{
-			battleRole = ReadLong(parameters["battleId"]);
-		}
-		if (!battleRole.HasValue)
-		{
-			return null;
-		}
-		return battleRole.Value == long.MinValue ? (long?)null : Math.Abs(battleRole.Value);
-	}
-
 	private static string ReadDescription(string command, JObject parameters)
 	{
 		string description = ReadText(parameters["desc"]);
@@ -291,8 +285,8 @@ internal static class AolaBattlePacketParser
 		}
 		switch (command)
 		{
-			case "2303": return "已接收己方完整背包资料";
-			case "2304": return "已接收敌方战斗资料";
+			case "2303": return "已接收战斗参与者资料";
+			case "2304": return "已接收新增参与者资料";
 			case "2401": return "战斗初始化";
 			case "2426": return "双方参战单位已上场";
 			case "2411": return "收到技能与回合结算";

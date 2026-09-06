@@ -9,7 +9,7 @@ Date: 2026-08-21
 
 ## 决定
 
-引入框架无关 `IResourceRule` 和有序 `ResourceRulePipeline`。规则只返回 `PassThrough`、`LocalResponse` 或 `RemoteTransform` 计划；首个非放行计划获胜。CefRequestAdapter 独占请求修改、handler/response 创建和回调生命周期。
+引入框架无关 `IResourceInterceptionRule` 和有序 `ResourceRulePipeline`。规则只返回 `PassThrough`、`LocalResponse` 或 `RewriteRemote` 计划；按优先级降序选择首个唯一命中计划；同优先级多命中诊断并放行。CefRequestAdapter 独占请求修改、handler/response 创建和回调生命周期。
 
 ## 放弃的替代方案
 

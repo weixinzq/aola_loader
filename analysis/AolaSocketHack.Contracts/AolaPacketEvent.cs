@@ -11,6 +11,9 @@ public sealed class AolaPacketEvent
 
 	public long SocketHandle { get; set; }
 
+	[field: System.Runtime.Serialization.OptionalField]
+	public long? ConnectionPlayerId { get; set; }
+
 	public string Direction { get; set; }
 
 	public int FrameLength { get; set; }

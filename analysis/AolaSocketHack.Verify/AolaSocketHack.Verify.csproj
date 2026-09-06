@@ -42,6 +42,8 @@
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\Settings\BattleSettings.cs" Link="Features\Battle\Settings\BattleSettings.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\Coordination\BattleMorphCoordinationContracts.cs" Link="Features\Battle\Coordination\BattleMorphCoordinationContracts.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\Coordination\BattlePresentationCoordinator.cs" Link="Features\Battle\Coordination\BattlePresentationCoordinator.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Bridge\BattleBridgeClient.cs" Link="Features\Battle\Bridge\BattleBridgeClient.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Replay\BattleSequenceValidator.cs" Link="Features\Battle\Replay\BattleSequenceValidator.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Replay\BattleSequenceRunner.cs" Link="Features\Battle\Replay\BattleSequenceRunner.cs" />
@@ -65,6 +67,10 @@
     <Compile Include="..\AolaLoader\Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" Link="Features\Theme\ResourceInterception\ThemeLeafResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" Link="Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeArtifact.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeArtifact.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieVersionCatalog.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieVersionCatalog.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieResourceRule.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieResourceRule.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieResourceTransformer.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieResourceTransformer.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPackageLiveResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\AolaPetMorphRule.cs" Link="Features\PetMorph\AolaPetMorphRule.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Transformers\AolaSwfClassAdapter.cs" Link="ResourceInterception\Transformers\AolaSwfClassAdapter.cs" />
@@ -75,8 +81,16 @@
     <Compile Include="..\AolaLoader\Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" Link="Features\PetMorph\ResourceInterception\PetPosterResourceRule.cs" />
   </ItemGroup>
   <ItemGroup>
-	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-presentation-v2-2026082731219998.fws.swf">
-	  <Link>TestData\petfightnew-battle-presentation-v2-2026082731219998.fws.swf</Link>
+	<Content Include="..\reverse-engineering\battle-visual-morph-20260821\source\pet6047_*.swf">
+	  <Link>TestData\BattlePetMovie\%(Filename)%(Extension)</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-state-current.fws.swf">
+	  <Link>TestData\petfightnew-battle-state-current.fws.swf</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-state.current.json">
+	  <Link>TestData\petfightnew-battle-state.current.json</Link>
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
   </ItemGroup>
@@ -94,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattleModels.cs" Link="Battle\AolaBattleModels.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattleLoadoutParser.cs" Link="Battle\AolaBattleLoadoutParser.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattlePacketParser.cs" Link="Battle\AolaBattlePacketParser.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\State\AolaBattleStateTracker.cs" Link="Battle\AolaBattleStateTracker.cs" />
     <Compile Include="..\AolaLoader\Features\Battle\State\IBattleStateSource.cs" Link="Battle\State\IBattleStateSource.cs" />

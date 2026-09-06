@@ -20,7 +20,7 @@ OwnerPaths: `analysis/AolaLoader/AppShell/**`, `analysis/AolaLoader/UI/**`
 
 ## 输入与输出
 
-输入为用户命令、窗口生命周期事件和模块状态；输出为导航、功能调用、子窗口动作及状态呈现。
+输入为用户命令、窗口生命周期事件和模块状态；输出为导航、功能调用、子窗口动作及状态呈现。主窗口“保留日志”在后台调用 logger 的 `TryRetain`，成功后显示路径与缓存丢弃数量；默认仅内存暂存日志。主窗口提供“抓包 / 发包”“战斗助手”和“战斗表现”入口；Packets 子窗口提供“抓包 / 发包 / 打开映射面板”三页导航，发包页可切换普通发送与按战斗状态逐条发送。
 
 ## 允许依赖
 
@@ -52,7 +52,7 @@ AppShell 不拥有功能设置，只调用各协调器的加载/保存入口。�
 
 ## 验证入口
 
-构造/释放替身测试；子窗口复用与关闭测试；主窗最小化/恢复；源码守卫禁止主窗体引用协议、SWF 转换器和静态 IPC 事件。
+构造/释放替身测试；子窗口复用与关闭测试；主窗最小化/恢复；Packets UI 源码守卫验证三页导航、send-only 表格、复选追加、清空和 UTF-8 导入；源码守卫禁止主窗体引用协议、SWF 转换器和静态 IPC 事件。
 
 ## 完成标准
 
@@ -60,4 +60,4 @@ AppShell 不拥有功能设置，只调用各协调器的加载/保存入口。�
 
 ## 已知限制
 
-`AolaBrowserSession`、`ChildWindowCoordinator` 与 `AolaCompositionRoot` 已落地：`Program.Main` 只做进程初始化、创建 CompositionRoot、运行主窗体并最终释放；长期服务由组合根构造，主窗体只接收已构造依赖。共同窗口基类位于 `UI/Common`，`AolaHookController` 与 `AolaMainForm` 位于 `AppShell`。主窗体保留控件布局、命令转发、状态呈现，以及两项已记录的运行集成：Hook 注入轮询和 `FrameLoadEnd` Flash 兼容探针/形态推送。阶段 9 已验证真实启动/登录、子窗口关闭重开、最小化恢复和新进程路径；源码守卫继续禁止组合边界退化。
+`AolaBrowserSession`、`ChildWindowCoordinator` 与 `AolaCompositionRoot` 已落地：`Program.Main` 只做进程初始化、创建 CompositionRoot、运行主窗体并最终释放；长期服务由组合根构造，主窗体只接收已构造依赖。共同窗口基类位于 `UI/Common`，Packets 与战斗表现窗口复用 Cupertino 风格按钮/卡片。抓包页只显示可严格导出的发送记录，复选结果追加到独立编辑器而不自动切页；战斗表现窗口保存后尝试应用当前 Flash 桥，桥未加载时保留设置并在后续页面加载时重推。主窗体仍保留 Hook 注入轮询和 `FrameLoadEnd` 兼容探针/设置推送。阶段 9 已验证启动/登录、子窗口关闭重开、最小化恢复和新进程路径；2026-09-01 的截图与实测覆盖三页 Packets UI 和战斗状态发送入口。

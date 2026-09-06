@@ -28,11 +28,15 @@ internal static class CompatibilityPathSourceGuardVerifier
 		string normalizedCompositionSource = compositionSource.Replace("\r\n", "\n");
 		string loaderProjectSource = File.ReadAllText(Path.Combine(loaderRoot, "AolaLoader.csproj"));
 		if (normalizedCompositionSource.IndexOf(
-			"Path.Combine(baseDirectory, \"Resources\", \"Patches\", \"start-bridge-2107300001.fws.swf\"),\n\t\t\tnull,",
+			"Path.Combine(baseDirectory, \"Resources\", \"Patches\", \"start-bridge-2107300001.fws.swf\"),\n\t\t\tPath.Combine(baseDirectory, \"Resources\", \"Patches\", \"petfightnew-battle-state.current.json\"),",
 			StringComparison.Ordinal) < 0 ||
-			loaderProjectSource.IndexOf("petfightnew-battle-presentation-v2-2026082731219998.fws.swf", StringComparison.Ordinal) >= 0)
+			loaderProjectSource.IndexOf("petfightnew-battle-state-current.fws.swf", StringComparison.Ordinal) < 0 ||
+			loaderProjectSource.IndexOf("petfightnew-battle-state.current.json", StringComparison.Ordinal) < 0 ||
+			loaderProjectSource.IndexOf("petfightnew-battle-state-2026082731219998.fws.swf", StringComparison.Ordinal) >= 0 ||
+			loaderProjectSource.IndexOf("petfightnew-battle-presentation-v2-2026082731219998.fws.swf", StringComparison.Ordinal) >= 0 ||
+			loaderProjectSource.IndexOf("petfightnew-battle-2026082731219998.fws.swf", StringComparison.Ordinal) >= 0)
 		{
-			Console.Error.WriteLine("Compatibility path source guard requires the rejected battle SWF to remain disabled in production.");
+			Console.Error.WriteLine("Compatibility path source guard requires the stable battle-state manifest and rejects versioned or presentation production candidates.");
 			return false;
 		}
 		string[] removedPaths =
@@ -129,16 +133,15 @@ internal static class CompatibilityPathSourceGuardVerifier
 		}
 
 		string battleBridgePath = Path.Combine(
-			loaderRoot, "Resources", "Patches", "Sources", "petfightnew-2026082731219998",
-			"mmo", "petfightnew", "DocPetFight.as");
+			repositoryRoot, "analysis", "tools", "petfight", "DocPetFight.bridge.template.as");
 		string battleBridgeSource = File.ReadAllText(battleBridgePath);
 		string[] requiredBattleTokens =
 		{
-			"private static const BRIDGE_VERSION:int = 3",
-			"public static var skipAttackAnimation:Boolean = false",
+			"private static const BRIDGE_VERSION:int = 4",
+			"public static var skipBattlePresentation:Boolean = false",
 			"ExternalInterface.addCallback(\"aolaBattleApplyOptions\",onAolaBattleApplyOptions)",
 			"int(options.version) != options.version",
-			"typeof options.skipAttackAnimation != \"boolean\""
+			"typeof options.skipBattlePresentation != \"boolean\""
 		};
 		foreach (string token in requiredBattleTokens)
 		{
@@ -156,13 +159,70 @@ internal static class CompatibilityPathSourceGuardVerifier
 			"IGameOptionService",
 			"skipPetAttackActions",
 			"skipBattleVisualDelays",
-			"skipBattlePresentation"
+			"skipAttackAnimation"
 		};
 		foreach (string token in forbiddenBattleTokens)
 		{
 			if (battleBridgeSource.IndexOf(token, StringComparison.Ordinal) >= 0)
 			{
 				Console.Error.WriteLine("Compatibility path source guard rejected battle bridge token " + token + ".");
+				return false;
+			}
+		}
+
+		string updateScriptPath = Path.Combine(
+			repositoryRoot, "analysis", "tools", "Update-PetFightBattleBridge.ps1");
+		string updateScriptSource = File.ReadAllText(updateScriptPath);
+		string[] requiredUpdateTokens =
+		{
+			"[ValidateSet('Check', 'Prepare', 'Promote')]",
+			"start.xml",
+			"pet/petfightnew",
+			"PetFightService:init",
+			"FightPanel:enableClick",
+			"Assert-PcodeTrees",
+			"Promote requires -CandidateManifest with an explicit path."
+		};
+		foreach (string token in requiredUpdateTokens)
+		{
+			if (updateScriptSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires weekly update token " + token + ".");
+				return false;
+			}
+		}
+		string presentationBuilderPath = Path.Combine(
+			repositoryRoot, "analysis", "tools", "petfight", "New-PetFightPresentationPatches.ps1");
+		string presentationBuilderSource = File.ReadAllText(presentationBuilderPath);
+		string[] requiredPresentationTokens =
+		{
+			"UseSkill:handleUseSkill",
+			"UseSkill:handleAnnalFeeEight",
+			"UseSkill:handleMovie",
+			"SwitchPm:showSwitchMc",
+			"ChangePetView:onGotPet",
+			"ChangePetView:onPetChange",
+			"BattlePmDying:showPetDieEffect",
+			"BattleNextTurn:checkPlayMovie",
+			"SkillResultMovieHandler:showMultipleHit",
+			"hideHealingNumbers",
+			"hideDamageNumbers",
+			"setBackGroundUp",
+			"handleSkillEnd"
+		};
+		foreach (string token in requiredPresentationTokens)
+		{
+			if (presentationBuilderSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires presentation patch token " + token + ".");
+				return false;
+			}
+		}
+		foreach (string token in new[] { "fightSkillEffect", "FightData.isLowQuality", "startMovie('" })
+		{
+			if (presentationBuilderSource.IndexOf(token, StringComparison.Ordinal) >= 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard rejected presentation patch token " + token + ".");
 				return false;
 			}
 		}

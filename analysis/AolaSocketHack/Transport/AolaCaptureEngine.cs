@@ -147,7 +147,9 @@ internal sealed class AolaCaptureEngine : IDisposable
 			while (state.Incoming.TryTakeFrame(out byte[] frame, out invalidLength))
 			{
 				state.Confirmed = true;
-				_publish(AolaProtocol.ParseServerFrame(socket, _processId, frame));
+				AolaPacketEvent packet = AolaProtocol.ParseServerFrame(socket, _processId, frame);
+				packet.ConnectionPlayerId = state.Protocol.HasLogin ? state.Protocol.UserId : (long?)null;
+				_publish(packet);
 			}
 			if (invalidLength)
 			{

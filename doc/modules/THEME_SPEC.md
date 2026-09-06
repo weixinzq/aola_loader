@@ -14,7 +14,7 @@ OwnerPaths: `analysis/AolaLoader/Features/Theme/**`, `analysis/AolaLoader/Resour
 
 ## 公开契约
 
-`IThemeCoordinator` 提供当前选择、可选项和保存/应用；`ThemeResourceRule` 实现资源规则；`ThemeSettings { Version, SelectedThemeId }`。0 表示默认且完全放行，1..9 表示本地模板。
+`IThemeCoordinator` 提供当前选择、可选项和保存/应用；`ThemeLeafResourceRule` 实现资源规则；`ThemeSettings { Version, SelectedThemeId }`。0 表示默认且完全放行，1..9 表示本地模板。
 
 ## 输入与输出
 

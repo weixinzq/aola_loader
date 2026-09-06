@@ -89,7 +89,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 			errorMessage = null;
 			if (_disposed)
 			{
-				errorMessage = "接收日志记录器已经关闭。";
+				errorMessage = "收发日志记录器已经关闭。";
 				return false;
 			}
 			if (_writer != null)
@@ -98,7 +98,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 			}
 			if (_retaining)
 			{
-				errorMessage = "接收日志正在保留，请稍候。";
+				errorMessage = "收发日志正在保留，请稍候。";
 				return false;
 			}
 			_retaining = true;
@@ -127,7 +127,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 					{
 						_retaining = false;
 						writer.Dispose();
-						errorMessage = "接收日志记录器已经关闭。";
+						errorMessage = "收发日志记录器已经关闭。";
 						return false;
 					}
 					if (_pendingLines.Count == 0)
@@ -196,7 +196,9 @@ internal sealed class AolaReceiveLogger : IDisposable
 
 	private void OnPacketReceived(AolaPacketEvent packet)
 	{
-		if (packet == null || !string.Equals(packet.Direction, "接收", StringComparison.Ordinal))
+		if (packet == null ||
+			!string.Equals(packet.Direction, "接收", StringComparison.Ordinal) &&
+			!string.Equals(packet.Direction, "发送", StringComparison.Ordinal))
 		{
 			return;
 		}
@@ -208,13 +210,14 @@ internal sealed class AolaReceiveLogger : IDisposable
 		}
 		catch (Exception ex) when (ex is JsonException || ex is FormatException || ex is InvalidOperationException)
 		{
+			bool redactLogin = IsLoginPacket(packet);
 			line = new JObject
 			{
 				["timeUtc"] = packet.TimestampUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-				["direction"] = "接收",
+				["direction"] = packet.Direction,
 				["decoded"] = false,
 				["logError"] = ex.Message,
-				["rawHex"] = packet.RawHex ?? string.Empty
+				["rawHex"] = redactLogin ? "<登录帧已脱敏>" : packet.RawHex ?? string.Empty
 			}.ToString(Formatting.None);
 		}
 
@@ -256,7 +259,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 			{
 				TimestampUtc = DateTime.UtcNow,
 				Level = "ERROR",
-				Message = "接收日志写入失败：" + writeError
+				Message = "收发日志写入失败：" + writeError
 			});
 		}
 	}
@@ -281,6 +284,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 
 	private static JObject CreateRecord(AolaPacketEvent packet)
 	{
+		bool redactLogin = IsLoginPacket(packet);
 		JObject record = new JObject
 		{
 			["timeUtc"] = packet.TimestampUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
@@ -288,6 +292,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 			["direction"] = packet.Direction,
 			["processId"] = packet.ProcessId,
 			["socket"] = packet.SocketHandle,
+			["connectionPlayerId"] = packet.ConnectionPlayerId,
 			["length"] = packet.FrameLength,
 			["decoded"] = packet.DecodeSucceeded
 		};
@@ -298,7 +303,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 		AddText(record, "cmd", packet.Command);
 		AddText(record, "summary", packet.Summary);
 
-		if (!string.IsNullOrWhiteSpace(packet.ParametersJson))
+		if (!redactLogin && !string.IsNullOrWhiteSpace(packet.ParametersJson))
 		{
 			try
 			{
@@ -309,9 +314,22 @@ internal sealed class AolaReceiveLogger : IDisposable
 				record["paramText"] = packet.ParametersJson;
 			}
 		}
-		AddText(record, "innerPlainHex", packet.InnerPlainHex);
-		AddText(record, "rawHex", packet.RawHex);
+		if (!redactLogin)
+		{
+			AddText(record, "innerPlainHex", packet.InnerPlainHex);
+			AddText(record, "rawHex", packet.RawHex);
+		}
+		else
+		{
+			record["rawHex"] = "<登录帧已脱敏>";
+		}
 		return record;
+	}
+
+	private static bool IsLoginPacket(AolaPacketEvent packet)
+	{
+		return string.Equals(packet.Direction, "发送", StringComparison.Ordinal) &&
+			(packet.Action == 10016 || string.Equals(packet.Command, "logIn", StringComparison.Ordinal));
 	}
 
 	private static void AddValue(JObject record, string name, long? value)

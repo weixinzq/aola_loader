@@ -6,6 +6,7 @@
 !/.gitignore
 !/README.md
 !/PROJECT_CONTEXT.md
+!/AGENTS.md
 !/AolaLoader.sln
 !/.github/**
 
@@ -44,6 +45,7 @@
 !/analysis/AolaSocketHack/**
 !/analysis/AolaSocketHack.Contracts/**
 !/analysis/AolaSocketHack.Verify/**
+!/analysis/AolaOfflineClient/**
 
 # Keep runtime setup documentation, but never publish local runtime binaries.
 !/analysis/runtime/
@@ -54,4 +56,10 @@
 # Retained private/reverse-engineering work stays out of the public repository.
 /analysis/loader/
 /analysis/reverse-engineering/
-/analysis/tools/
+/analysis/tools/*
+!/analysis/tools/Update-PetFightBattleBridge.ps1
+!/analysis/tools/Prepare-BattleAssistantAssets.ps1
+!/analysis/tools/prepare_battle_assistant_assets.py
+!/analysis/tools/petfight_bridge_abc.py
+!/analysis/tools/petfight/
+!/analysis/tools/petfight/DocPetFight.bridge.template.as

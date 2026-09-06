@@ -1,0 +1,29 @@
+{
+  "source": {
+    "protocol": "analysis/AolaSocketHack/Protocol/AolaProtocol.cs",
+    "protocol_sha256": "997dc24d22b9e7a68ac5b008d1f828eb54201b13b53ecfe0112f017d6693cb97",
+    "amf3_writer": "analysis/AolaSocketHack/Protocol/Amf3Writer.cs",
+    "amf3_writer_sha256": "ebca508fa06b61994022ec7589ca39798cfe2fe2dba6712648e951033853be2e"
+  },
+  "identity": {
+    "user_id": 123456,
+    "session_id": "fixture-session",
+    "zone": "1025 Fixture"
+  },
+  "outer_sequences": [79, 845, 6207],
+  "inner_sequences": [75, 194, 73],
+  "amf_object_hex": "0a0b0107636d64060f666978747572650b76616c756504120d6e65737465640a0b01056f6b030101",
+  "inner_plain_hex": "0a0b060501000000",
+  "inner_sequence_for_crypto": 72,
+  "inner_encrypted_hex": "060b0a0101040000",
+  "login_frame_hex": "0000003200000000002720ffffffff000c3130323520466978747572650006313233343536000f666978747572652d73657373696f6e",
+  "extension": {
+    "extension_id": 42,
+    "command": "fixture_cmd",
+    "parameters": {"value": 7, ":ext_seq;": 999},
+    "outer_sequence": 79,
+    "inner_sequence": 75,
+    "frame_hex": "0000003d0000004f012731b0ffffff4f2a000b296978743a72655f2c6d640a440109642e74610c7e010b0a4076716c2e070465583a70782a65735f3a3b054b4b01"
+  }
+}
+

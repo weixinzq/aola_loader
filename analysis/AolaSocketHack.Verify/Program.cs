@@ -17,12 +17,26 @@ internal static class Program
 	[STAThread]
 	private static int Main(string[] args)
 	{
+		if ((args.Length == 2 || args.Length == 4) && args[0] == "--battle-sample")
+		{
+			bool contract = BattleStateContractVerifier.Verify();
+			Console.WriteLine("Battle contract: " + contract);
+			bool sample = args.Length == 4 ? BattleStateContractVerifier.VerifySample(args[1], long.Parse(args[2], CultureInfo.InvariantCulture), long.Parse(args[3], CultureInfo.InvariantCulture)) : BattleStateContractVerifier.VerifySample(args[1]);
+			Console.WriteLine("Battle sample: " + sample);
+			return contract && sample ? 0 : 1;
+		}
 		if (!PacketHostBoundaryVerifier.Verify())
 		{
 			Console.Error.WriteLine("PacketHost boundary self-test: FAIL");
 			return 1;
 		}
 		Console.WriteLine("PacketHost boundary self-test: PASS");
+		if (!SystemMessageContractVerifier.Verify())
+		{
+			Console.Error.WriteLine("SystemMessage contract self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("SystemMessage contract self-test: PASS");
 		if (!SettingsBoundaryVerifier.Verify())
 		{
 			Console.Error.WriteLine("Settings boundary self-test: FAIL");
@@ -41,6 +55,12 @@ internal static class Program
 			return 1;
 		}
 		Console.WriteLine("PetMorphCoordinator boundary self-test: PASS");
+		if (!BattleMorphCoordinatorVerifier.Verify())
+		{
+			Console.Error.WriteLine("BattleMorphCoordinator boundary self-test: FAIL");
+			return 1;
+		}
+		Console.WriteLine("BattleMorphCoordinator boundary self-test: PASS");
 		if (!ChildWindowCoordinatorVerifier.Verify())
 		{
 			Console.Error.WriteLine("ChildWindowCoordinator boundary self-test: FAIL");

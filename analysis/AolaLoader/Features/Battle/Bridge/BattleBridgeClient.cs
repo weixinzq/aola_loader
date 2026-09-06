@@ -28,11 +28,11 @@ internal sealed class BattleBridgeClient
 		}
 		JObject arguments = new JObject
 		{
-			["version"] = 3,
+			["version"] = 4,
 			["revision"] = revision,
 			["hideDamageNumbers"] = settings.HideDamageNumbers,
 			["hideHealingNumbers"] = settings.HideHealingNumbers,
-			["skipAttackAnimation"] = settings.SkipAttackAnimation
+			["skipBattlePresentation"] = settings.SkipBattlePresentation
 		};
 		PageBridgeResult result = await _pageBridge.InvokeAsync(
 			new PageBridgeRequest("battle.apply", arguments, Timeout),
@@ -79,17 +79,17 @@ internal sealed class BattleBridgeClient
 
 	private static bool IsStrictState(JObject state)
 	{
-		if (state.Count != 7 || state["version"]?.Type != JTokenType.Integer || state.Value<int>("version") != 3 ||
+		if (state.Count != 7 || state["version"]?.Type != JTokenType.Integer || state.Value<int>("version") != 4 ||
 			state["active"]?.Type != JTokenType.Boolean || state["inputReady"]?.Type != JTokenType.Boolean ||
 			state["ended"]?.Type != JTokenType.Boolean || state["battleId"]?.Type != JTokenType.Integer ||
 			state["turn"]?.Type != JTokenType.Integer || state["readyEpoch"]?.Type != JTokenType.Integer)
 		{
 			return false;
 		}
-		return state.Value<int>("battleId") >= 0 && state.Value<int>("turn") >= 0 &&
-			state.Value<int>("readyEpoch") >= 0;
+		return state.Value<int>("turn") >= 0 && state.Value<int>("readyEpoch") >= 0;
 	}
 }
+
 
 internal sealed class BattleBridgeApplyResult
 {

@@ -194,23 +194,23 @@ internal sealed class AolaPageBridge : IPageBridge
 		}
 		if (operation === 'battle.apply') {
 			var optionKeys = ['version', 'revision', 'hideDamageNumbers', 'hideHealingNumbers',
-				'skipAttackAnimation'];
+				'skipBattlePresentation'];
 			var actualKeys = Object.keys(args).sort();
 			var expectedKeys = optionKeys.slice(0).sort();
 			if (actualKeys.length !== expectedKeys.length ||
 				actualKeys.some(function (key, index) { return key !== expectedKeys[index]; }) ||
-				typeof args.version !== 'number' || args.version !== 3 ||
+				typeof args.version !== 'number' || args.version !== 4 ||
 				typeof args.revision !== 'number' || Math.floor(args.revision) !== args.revision || args.revision < 0 ||
 				typeof args.hideDamageNumbers !== 'boolean' || typeof args.hideHealingNumbers !== 'boolean' ||
-				typeof args.skipAttackAnimation !== 'boolean') {
+				typeof args.skipBattlePresentation !== 'boolean') {
 				return envelope(false, null, 'InvocationFailed', 'Invalid battle options.');
 			}
 			state.battle.options = {
-				version: 3,
+				version: 4,
 				revision: Number(args.revision),
 				hideDamageNumbers: args.hideDamageNumbers,
 				hideHealingNumbers: args.hideHealingNumbers,
-				skipAttackAnimation: args.skipAttackAnimation
+				skipBattlePresentation: args.skipBattlePresentation
 			};
 			state.battle.revision = Number(args.revision);
 			state.battle.appliedRevision = -1;
@@ -232,9 +232,10 @@ internal sealed class AolaPageBridge : IPageBridge
 			var requiredStateKeys = stateKeys.slice(0).sort();
 			if (!battleState || returnedKeys.length !== requiredStateKeys.length ||
 				returnedKeys.some(function (key, index) { return key !== requiredStateKeys[index]; }) ||
-				Number(battleState.version) !== 3 || typeof battleState.active !== 'boolean' ||
+				Number(battleState.version) !== 4 || typeof battleState.active !== 'boolean' ||
 				typeof battleState.inputReady !== 'boolean' || typeof battleState.ended !== 'boolean' ||
-				typeof battleState.battleId !== 'number' || Math.floor(battleState.battleId) !== battleState.battleId || battleState.battleId < 0 ||
+				typeof battleState.battleId !== 'number' || Math.floor(battleState.battleId) !== battleState.battleId ||
+				battleState.battleId < -2147483648 || battleState.battleId > 2147483647 ||
 				typeof battleState.turn !== 'number' || Math.floor(battleState.turn) !== battleState.turn || battleState.turn < 0 ||
 				typeof battleState.readyEpoch !== 'number' || Math.floor(battleState.readyEpoch) !== battleState.readyEpoch || battleState.readyEpoch < 0) {
 				return envelope(false, null, 'InvocationFailed', 'Flash returned an invalid battle state.');

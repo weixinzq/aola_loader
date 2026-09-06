@@ -19,7 +19,19 @@
 	<Content Include="Resources\Data\pet-poster-catalog.json">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
+	<Content Include="Resources\Data\battle-pet-movie-versions.current.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="Resources\BattleAssistant\**\*;Resources\Data\battle-assistant-assets.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
 	<Content Include="Resources\Patches\start-bridge-2107300001.fws.swf">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="Resources\Patches\petfightnew-battle-state-current.fws.swf">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="Resources\Patches\petfightnew-battle-state.current.json">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
 	<Content Include="Resources\Patches\newpetpackage-morph-2026082731219998.fws.swf">

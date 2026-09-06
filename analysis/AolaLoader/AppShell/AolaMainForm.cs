@@ -36,6 +36,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly ToolStripDropDownButton _playbackMenu = new ToolStripDropDownButton("速度");
 	private readonly ToolStripDropDownButton _qualityMenu = new ToolStripDropDownButton("画质");
 	private readonly System.Windows.Forms.Timer _injectTimer = new System.Windows.Forms.Timer();
+	private readonly System.Windows.Forms.Timer _battleMorphTimer = new System.Windows.Forms.Timer();
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
 	private readonly IThemeCoordinator _themeCoordinator;
 	private readonly IPetMorphCoordinator _petMorphCoordinator;
@@ -51,6 +52,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly Dictionary<int, ToolStripMenuItem> _themeItems = new Dictionary<int, ToolStripMenuItem>();
 	private ToolStripMenuItem _themeMenu;
 	private bool _injectCheckInProgress;
+	private bool _battleMorphCheckInProgress;
 	private bool _isClosing;
 	private bool _mainWindowMinimized;
 
@@ -105,13 +107,39 @@ internal sealed class AolaMainForm : AolaFormBase
 
 		_injectTimer.Interval = 750;
 		_injectTimer.Tick += delegate { EnsureHookInjectedAsync(); };
+		_battleMorphTimer.Interval = 500;
+		_battleMorphTimer.Tick += async delegate
+		{
+			if (_battleMorphCheckInProgress) return;
+			_battleMorphCheckInProgress = true;
+			try
+			{
+				if (await _battlePresentationCoordinator.TryActivatePendingMorphRulesAsync(CancellationToken.None))
+				{
+					_status.Text = "战斗模型规则已在官方资源清理后切换；下一场战斗生效。";
+				}
+			}
+			finally
+			{
+				_battleMorphCheckInProgress = false;
+			}
+		};
 		_packetEventSource.StatusReceived += HookStatusReceived;
-		Shown += delegate
+		Shown += async delegate
 		{
 			ShowPackets();
 			_injectTimer.Start();
+			_battleMorphTimer.Start();
 			EnsureHookInjectedAsync();
-			_status.Text = "接收日志正在内存中暂存；点击“保留日志”后写入文件。";
+			_status.Text = "收发日志正在内存中暂存；点击“保留日志”后写入文件。";
+			BattleMorphPreparationResult morph = await _battlePresentationCoordinator
+				.RestoreMorphRulesAsync(CancellationToken.None);
+			if (_battlePresentationCoordinator.Current.BattleMorphEnabled)
+			{
+				_status.Text = morph.Succeeded
+					? "战斗模型规则已准备；请使用全新游戏进程验证替换。"
+					: "战斗模型规则未启用：" + morph.Message;
+			}
 		};
 	}
 
@@ -121,6 +149,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetEventSource.StatusReceived -= HookStatusReceived;
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
+		_battleMorphTimer.Stop();
+		_battleMorphTimer.Dispose();
 		_childWindowCoordinator.Dispose();
 		base.OnFormClosed(e);
 	}
@@ -313,14 +343,14 @@ internal sealed class AolaMainForm : AolaFormBase
 			{
 				retainLog.Text = "日志已保留";
 				long discarded = _receiveLogger.DiscardedRecordCount;
-				_status.Text = "接收日志已保留：" + logPath + (discarded > 0
+				_status.Text = "收发日志已保留：" + logPath + (discarded > 0
 					? "（内存上限前已丢弃 " + discarded + " 条较早记录）"
 					: string.Empty);
 			}
 			else
 			{
 				retainLog.Enabled = true;
-				_status.Text = "接收日志保留失败：" + errorMessage;
+				_status.Text = "收发日志保留失败：" + errorMessage;
 				MessageBox.Show(this, errorMessage, "保留日志失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		};

@@ -50,7 +50,7 @@ UTF-8 无 BOM；设置中不得存储 SID、登录帧、账号密码或浏览器
 
 ## 验证入口
 
-`AolaSocketHack.Verify --self-test` 覆盖无文件、SchemaVersion 5 迁移、缺字段、单 Section 损坏、未知内容保留、写入中断、无 BOM、Theme/PetMorph 独立更新和防御性快照。Theme 强类型 codec 验证版本拒绝、ID 规范化和旧值迁移；PetMorph 强类型 codec 验证缺失字段默认值、无效规则过滤、损坏字段拒绝、规则内未知字段保留，以及 Theme 与 PetMorph 按任意顺序保存时互不覆盖。Battle 强类型 codec 验证无文件默认、旧迁移建立 Version 1、缺字段默认、版本与字段类型拒绝、MorphRules 数组校验、规则对象保留、任意顺序独立保存、损坏 Section 隔离和保存失败保留旧文件。
+`AolaSocketHack.Verify --self-test` 覆盖无文件、SchemaVersion 5 迁移、缺字段、单 Section 损坏、未知内容保留、写入中断、无 BOM、Theme/PetMorph 独立更新和防御性快照。Theme 强类型 codec 验证版本拒绝、ID 规范化和旧值迁移；PetMorph 强类型 codec 验证缺失字段默认值、无效规则过滤、损坏字段拒绝、规则内未知字段保留，以及 Theme 与 PetMorph 按任意顺序保存时互不覆盖。Battle 强类型 codec 验证无文件默认、旧迁移建立 Version 6、Version 1/2 的 `SkipPetAttackActions`、Version 3 的 `SkipBattlePresentation` 与 Version 4 的 `SkipAttackAnimation` 均迁移为当前 `SkipBattlePresentation`，并覆盖缺字段默认、版本与字段类型拒绝、强类型 MorphRules、无法识别旧规则的禁用报告、任意顺序独立保存、损坏 Section 隔离和保存失败保留旧文件。
 
 ## 完成标准
 
@@ -58,4 +58,4 @@ UTF-8 无 BOM；设置中不得存储 SID、登录帧、账号密码或浏览器
 
 ## 已知限制
 
-Theme、PetMorph 与 Battle 分别使用模块自有 Version 1 codec 和 Section；旧 SchemaVersion 5 只经 `LegacySettingsMigrator` 单向原子迁移，不存在旧格式回写或双写路径。中央设置类型、临时 store 和根目录注释壳均已删除，并由兼容路径守卫防止回流。阶段 9 已验证真实保存、窗口重开和新进程恢复；损坏/缺失/旧格式及独立更新语义继续由自测覆盖。
+Theme 与 PetMorph 使用模块自有 Version 1 codec，Battle 使用 Version 6；旧 SchemaVersion 5 只经 `LegacySettingsMigrator` 单向原子迁移，不存在旧格式回写或双写路径。Battle Version 6 规范字段为 `HideDamageNumbers`、`HideHealingNumbers`、`SkipBattlePresentation`、`BattleMorphEnabled` 和 `MorphRules[{Note,SourceViewId,TargetViewId}]`，序列化后不保留已迁移的旧跳过字段。旧版模型规则只迁移可识别字段，未知形状不猜测转换且不会自动启用。模型规则保存时完成六分片预检；状态桥成功返回 `active=false` 且 `ended=false` 时切换，战斗中则等待该清理边界后用于下一场，无法确认时由下次进程启动恢复。

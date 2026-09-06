@@ -81,7 +81,7 @@ internal static class ActiveSendContractVerifier
 			{
 				battleStateScript = script.Script;
 				return Task.FromResult(BrowserScriptResult.Success(
-					JValue.CreateString("{\"ok\":true,\"value\":{\"version\":3,\"active\":true,\"battleId\":7,\"turn\":0,\"inputReady\":true,\"readyEpoch\":1,\"ended\":false},\"failure\":\"\",\"message\":\"\"}")));
+					JValue.CreateString("{\"ok\":true,\"value\":{\"version\":4,\"active\":true,\"battleId\":-94617668,\"turn\":0,\"inputReady\":true,\"readyEpoch\":1,\"ended\":false},\"failure\":\"\",\"message\":\"\"}")));
 			}
 			sendScript = script.Script;
 			return Task.FromResult(BrowserScriptResult.Success(
@@ -111,9 +111,9 @@ internal static class ActiveSendContractVerifier
 				"battle.apply",
 				new JObject
 				{
-					["version"] = 3, ["revision"] = 1,
+					["version"] = 4, ["revision"] = 1,
 					["hideDamageNumbers"] = true, ["hideHealingNumbers"] = false,
-					["skipAttackAnimation"] = true
+					["skipBattlePresentation"] = true
 				},
 				TimeSpan.FromSeconds(1)),
 			CancellationToken.None).GetAwaiter().GetResult();
@@ -126,7 +126,7 @@ internal static class ActiveSendContractVerifier
 			ready.Succeeded && ready.Value.Value<string>("status") == "SubmittedToFlash" &&
 			panel.Succeeded && panel.Value.Value<string>("status") == "PanelOpenRequested" &&
 			playback.Succeeded && playback.Value.Value<int>("frameRate") == 50 &&
-			battleApply.Succeeded && battleState.Succeeded && battleState.Value.Value<int>("battleId") == 7 &&
+			battleApply.Succeeded && battleState.Succeeded && battleState.Value.Value<int>("battleId") == -94617668 &&
 			sendScript != null && panelScript != null && playbackScript != null &&
 			battleApplyScript != null && battleStateScript != null &&
 			sendScript.IndexOf("aolaSendCommand", StringComparison.Ordinal) >= 0 &&
@@ -137,9 +137,10 @@ internal static class ActiveSendContractVerifier
 			playbackScript.IndexOf("aolaSetPlayback", StringComparison.Ordinal) >= 0 &&
 			playbackScript.IndexOf("[0, 25, 50, 75]", StringComparison.Ordinal) >= 0 &&
 			battleApplyScript.IndexOf("aolaBattleApplyOptions", StringComparison.Ordinal) >= 0 &&
-			battleApplyScript.IndexOf("skipAttackAnimation", StringComparison.Ordinal) >= 0 &&
+			battleApplyScript.IndexOf("skipBattlePresentation", StringComparison.Ordinal) >= 0 &&
 			battleStateScript.IndexOf("aolaBattleGetState", StringComparison.Ordinal) >= 0 &&
 			battleStateScript.IndexOf("readyEpoch", StringComparison.Ordinal) >= 0 &&
+			battleStateScript.IndexOf("-2147483648", StringComparison.Ordinal) >= 0 &&
 			sendScript.IndexOf("游戏桥尚未就绪，请等待游戏加载完成", StringComparison.Ordinal) >= 0 &&
 			sendScript.IndexOf("请先打开精灵背包", StringComparison.Ordinal) < 0 &&
 			sendScript.IndexOf("logIn", StringComparison.OrdinalIgnoreCase) < 0 &&

@@ -6,6 +6,7 @@ using AolaLoader.PacketHost.Consumers;
 using AolaLoader.PacketHost.Testing;
 using AolaLoader.UI.Packets;
 using AolaSocketHack.Contracts;
+using Newtonsoft.Json.Linq;
 
 namespace AolaSocketHack.Verify;
 
@@ -116,7 +117,15 @@ internal static class PacketHostBoundaryVerifier
 			{
 				TimestampUtc = DateTime.UtcNow,
 				Direction = "发送",
-				RawHex = "FFFF"
+				ProcessId = 41,
+				FrameLength = 12,
+				DecodeSucceeded = true,
+				MessageType = 1,
+				Action = 10033,
+				ExtensionId = 15,
+				Command = "54_22",
+				ParametersJson = "{\"handler\":\"TP230818\"}",
+				InnerPlainHex = "0304"
 			});
 			source.PublishPacket(new AolaPacketEvent
 			{
@@ -128,6 +137,24 @@ internal static class PacketHostBoundaryVerifier
 				ParametersJson = "{\"ok\":true}",
 				InnerPlainHex = "0102",
 				RawHex = "AABB"
+			});
+			source.PublishPacket(new AolaPacketEvent
+			{
+				TimestampUtc = DateTime.UtcNow,
+				Direction = "发送",
+				DecodeSucceeded = true,
+				MessageType = 0,
+				Action = 10016,
+				Command = "logIn",
+				ParametersJson = "{\"session\":\"SECRET_SESSION\"}",
+				InnerPlainHex = "SECRET_INNER",
+				RawHex = "SECRET_FRAME"
+			});
+			source.PublishPacket(new AolaPacketEvent
+			{
+				TimestampUtc = DateTime.UtcNow,
+				Direction = "SEND",
+				RawHex = "IGNORED_DIRECTION"
 			});
 			if (!logger.TryRetain(out string path, out string error) || error != null || !File.Exists(path))
 			{
@@ -145,12 +172,44 @@ internal static class PacketHostBoundaryVerifier
 				bytes = copy.ToArray();
 			}
 			string text = new UTF8Encoding(false, true).GetString(bytes);
+			string[] lines = text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 			if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ||
-				text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Length != 1 ||
-				!text.Contains("\"direction\":\"接收\"") ||
-				!text.Contains("\"param\":{\"ok\":true}") ||
-				!text.Contains("\"innerPlainHex\":\"0102\"") ||
-				!text.Contains("\"rawHex\":\"AABB\""))
+				lines.Length != 3 ||
+				text.Contains("SECRET_") ||
+				text.Contains("IGNORED_DIRECTION"))
+			{
+				return false;
+			}
+
+			JObject send = null;
+			JObject receive = null;
+			JObject login = null;
+			foreach (string line in lines)
+			{
+				JObject record = JObject.Parse(line);
+				string command = (string)record["cmd"];
+				if (command == "54_22")
+				{
+					send = record;
+				}
+				else if (command == "logIn")
+				{
+					login = record;
+				}
+				else if ((string)record["direction"] == "接收")
+				{
+					receive = record;
+				}
+			}
+			if (send == null || (string)send["direction"] != "发送" ||
+				(int?)send["extensionId"] != 15 ||
+				(string)send["param"]?["handler"] != "TP230818" ||
+				(string)send["innerPlainHex"] != "0304" ||
+				receive == null || (bool?)receive["param"]?["ok"] != true ||
+				(string)receive["innerPlainHex"] != "0102" ||
+				(string)receive["rawHex"] != "AABB" ||
+				login == null || (string)login["rawHex"] != "<登录帧已脱敏>" ||
+				login["param"] != null || login["innerPlainHex"] != null)
 			{
 				return false;
 			}

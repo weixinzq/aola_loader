@@ -155,8 +155,13 @@ internal static class SettingsBoundaryVerifier
 			["Version"] = 3,
 			["SkipBattlePresentation"] = true
 		});
-		if (!migratedV1.SkipAttackAnimation || !migratedV2.SkipAttackAnimation ||
-			!migratedV3.SkipAttackAnimation)
+		BattleSettings migratedV4 = codec.DeserializeAndMigrate(new JObject
+		{
+			["Version"] = 4,
+			["SkipAttackAnimation"] = true
+		});
+		if (!migratedV1.SkipBattlePresentation || !migratedV2.SkipBattlePresentation ||
+			!migratedV3.SkipBattlePresentation || !migratedV4.SkipBattlePresentation)
 		{
 			Console.Error.WriteLine("typed-battle: visual-migration");
 			return false;
@@ -166,10 +171,10 @@ internal static class SettingsBoundaryVerifier
 			foreach (bool hideHealing in new[] { false, true })
 			{
 				BattleSettings combination = codec.DeserializeAndMigrate(codec.Serialize(
-					new BattleSettings(hideDamage, hideHealing, true, Array.Empty<JObject>())));
+					new BattleSettings(hideDamage, hideHealing, true, false, Array.Empty<BattleMorphRule>())));
 				if (combination.HideDamageNumbers != hideDamage ||
 					combination.HideHealingNumbers != hideHealing ||
-					!combination.SkipAttackAnimation)
+					!combination.SkipBattlePresentation)
 				{
 					Console.Error.WriteLine("typed-battle: number-combination");
 					return false;
@@ -177,7 +182,7 @@ internal static class SettingsBoundaryVerifier
 			}
 		}
 
-		// 缺字段使用默认值；未知 Section 字段和规则对象整体保留；保存后无 BOM。
+		// 旧版仅迁移可识别的强类型规则；未知规则禁用并报告；保存后无 BOM。
 		string path = Path.Combine(root, "typed-battle.json");
 		WriteJson(path, new JObject
 		{
@@ -199,16 +204,19 @@ internal static class SettingsBoundaryVerifier
 		SettingsSectionLoadResult<BattleSettings> loaded =
 			store.Load(BattleSettingsCodec.SectionKey, codec);
 		if (loaded.UsedDefault || loaded.Value.HideDamageNumbers || loaded.Value.HideHealingNumbers ||
-			loaded.Value.SkipAttackAnimation ||
-			loaded.Value.MorphRules.Count != 1 ||
-			loaded.Value.MorphRules[0].Value<int>("FutureRuleField") != 91)
+			loaded.Value.SkipBattlePresentation ||
+			loaded.Value.BattleMorphEnabled || loaded.Value.MorphRules.Count != 0 ||
+			loaded.Value.IgnoredLegacyMorphRuleCount != 1)
 		{
 			Console.Error.WriteLine("typed-battle: v1-load");
 			return false;
 		}
 		if (!store.Save(
 			BattleSettingsCodec.SectionKey,
-			new BattleSettings(true, false, true, loaded.Value.MorphRules),
+			new BattleSettings(true, false, true, true, new[]
+			{
+				new BattleMorphRule("测试", 6000, 6047)
+			}),
 			codec).Succeeded)
 		{
 			Console.Error.WriteLine("typed-battle: save");
@@ -218,10 +226,12 @@ internal static class SettingsBoundaryVerifier
 		JObject section = (JObject)saved["Sections"]["battle"];
 		JObject savedRule = (JObject)((JArray)section["MorphRules"])[0];
 		if (section.Value<string>("UnknownBattleField") != "keep-battle" ||
-			savedRule.Value<int>("FutureRuleField") != 91 ||
+			savedRule.Value<string>("Note") != "测试" ||
+			savedRule.Value<int>("SourceViewId") != 6000 || savedRule.Value<int>("TargetViewId") != 6047 ||
 			!section.Value<bool>("HideDamageNumbers") || section.Value<bool>("HideHealingNumbers") ||
-			!section.Value<bool>("SkipAttackAnimation") || section.Value<int>("Version") != 4 ||
-			section["SkipBattlePresentation"] != null ||
+			!section.Value<bool>("SkipBattlePresentation") || !section.Value<bool>("BattleMorphEnabled") ||
+			section.Value<int>("Version") != 6 ||
+			section["SkipAttackAnimation"] != null ||
 			section["SkipPetAttackActions"] != null || section["SkipBattleVisualDelays"] != null ||
 			section["FightSkillEffect"] != null ||
 			HasUtf8Bom(path))
@@ -232,22 +242,14 @@ internal static class SettingsBoundaryVerifier
 		SettingsSectionLoadResult<BattleSettings> roundTrip =
 			store.Load(BattleSettingsCodec.SectionKey, codec);
 		if (roundTrip.UsedDefault || !roundTrip.Value.HideDamageNumbers ||
-			roundTrip.Value.HideHealingNumbers || !roundTrip.Value.SkipAttackAnimation ||
-			roundTrip.Value.MorphRules.Count != 1)
+			roundTrip.Value.HideHealingNumbers || !roundTrip.Value.SkipBattlePresentation ||
+			!roundTrip.Value.BattleMorphEnabled || roundTrip.Value.MorphRules.Count != 1 ||
+			roundTrip.Value.MorphRules[0].SourceViewId != 6000 ||
+			roundTrip.Value.MorphRules[0].TargetViewId != 6047)
 		{
 			Console.Error.WriteLine("typed-battle: roundtrip");
 			return false;
 		}
-		roundTrip.Value.MorphRules[0]["FutureRuleField"] = 999;
-		SettingsSectionLoadResult<BattleSettings> defensive =
-			store.Load(BattleSettingsCodec.SectionKey, codec);
-		if (defensive.Value.MorphRules.Count != 1 ||
-			defensive.Value.MorphRules[0].Value<int>("FutureRuleField") != 91)
-		{
-			Console.Error.WriteLine("typed-battle: defensive-copy");
-			return false;
-		}
-
 		// 不支持版本时回退默认并保留原文件。
 		string versionPath = Path.Combine(root, "typed-battle-version.json");
 		WriteJson(versionPath, new JObject
@@ -255,7 +257,7 @@ internal static class SettingsBoundaryVerifier
 			["DocumentVersion"] = 1,
 			["Sections"] = new JObject
 			{
-				["battle"] = new JObject { ["Version"] = 5 }
+				["battle"] = new JObject { ["Version"] = 7 }
 			}
 		});
 		byte[] versionBefore = File.ReadAllBytes(versionPath);
@@ -278,8 +280,8 @@ internal static class SettingsBoundaryVerifier
 			{
 				["battle"] = new JObject
 				{
-					["Version"] = 4,
-					["SkipAttackAnimation"] = "invalid",
+					["Version"] = 6,
+					["SkipBattlePresentation"] = "invalid",
 					["MorphRules"] = new JArray()
 				}
 			}
@@ -318,7 +320,7 @@ internal static class SettingsBoundaryVerifier
 			return false;
 		}
 
-		// 旧 SchemaVersion 5 迁移时建立 Battle Version 4 默认 Section。
+		// 旧 SchemaVersion 5 迁移时建立 Battle Version 6 默认 Section。
 		string legacyPath = Path.Combine(root, "typed-battle-legacy.json");
 		WriteJson(legacyPath, new JObject
 		{
@@ -339,10 +341,10 @@ internal static class SettingsBoundaryVerifier
 		}
 		JObject migratedDoc = JObject.Parse(File.ReadAllText(legacyPath, Encoding.UTF8));
 		JObject battle = (JObject)migratedDoc["Sections"]["battle"];
-		if (battle.Value<int>("Version") != 4 ||
+		if (battle.Value<int>("Version") != 6 ||
 			battle.Value<bool>("HideDamageNumbers") || battle.Value<bool>("HideHealingNumbers") ||
-			battle.Value<bool>("SkipAttackAnimation") ||
-			battle["SkipBattlePresentation"] != null ||
+			battle.Value<bool>("SkipBattlePresentation") || battle.Value<bool>("BattleMorphEnabled") ||
+			battle["SkipAttackAnimation"] != null ||
 			battle["SkipPetAttackActions"] != null || battle["FightSkillEffect"] != null ||
 			((JArray)battle["MorphRules"]).Count != 0)
 		{
@@ -377,7 +379,7 @@ internal static class SettingsBoundaryVerifier
 		PetMorphSettingsCodec petMorphCodec = new PetMorphSettingsCodec();
 		if (!orderStore.Save(
 			BattleSettingsCodec.SectionKey,
-			new BattleSettings(true, true, true, Array.Empty<JObject>()),
+			new BattleSettings(true, true, true, false, Array.Empty<BattleMorphRule>()),
 			codec).Succeeded ||
 			!orderStore.Save(ThemeSettingsCodec.SectionKey, new ThemeSettings(6), themeCodec).Succeeded ||
 			!orderStore.Save(
@@ -386,7 +388,7 @@ internal static class SettingsBoundaryVerifier
 				petMorphCodec).Succeeded ||
 			!orderStore.Save(
 				BattleSettingsCodec.SectionKey,
-				new BattleSettings(false, false, false, Array.Empty<JObject>()),
+				new BattleSettings(false, false, false, false, Array.Empty<BattleMorphRule>()),
 				codec).Succeeded)
 		{
 			Console.Error.WriteLine("typed-battle: independent-save");
@@ -402,8 +404,9 @@ internal static class SettingsBoundaryVerifier
 			orderedSections["futureModule"].Value<int>("Value") != 99 ||
 			orderedBattle.Value<bool>("HideDamageNumbers") ||
 			orderedBattle.Value<bool>("HideHealingNumbers") ||
-			orderedBattle.Value<bool>("SkipAttackAnimation") ||
-			orderedBattle["SkipBattlePresentation"] != null ||
+			orderedBattle.Value<bool>("SkipBattlePresentation") ||
+			orderedBattle.Value<bool>("BattleMorphEnabled") ||
+			orderedBattle["SkipAttackAnimation"] != null ||
 			orderedBattle["SkipPetAttackActions"] != null ||
 			orderedBattle["SkipBattleVisualDelays"] != null ||
 			orderedBattle["FightSkillEffect"] != null ||
@@ -453,7 +456,7 @@ internal static class SettingsBoundaryVerifier
 			new FailingSettingsWriter(),
 			new LegacySettingsMigrator()).Save(
 			BattleSettingsCodec.SectionKey,
-			new BattleSettings(false, false, false, Array.Empty<JObject>()),
+			new BattleSettings(false, false, false, false, Array.Empty<BattleMorphRule>()),
 			codec);
 		bool failurePreserved = !failed.Succeeded && !string.IsNullOrWhiteSpace(failed.Error) &&
 			failureBefore.SequenceEqual(File.ReadAllBytes(failurePath));
@@ -466,7 +469,8 @@ internal static class SettingsBoundaryVerifier
 		return value != null &&
 			!value.HideDamageNumbers &&
 			!value.HideHealingNumbers &&
-			!value.SkipAttackAnimation &&
+			!value.SkipBattlePresentation &&
+			!value.BattleMorphEnabled &&
 			value.MorphRules != null &&
 			value.MorphRules.Count == 0;
 	}
