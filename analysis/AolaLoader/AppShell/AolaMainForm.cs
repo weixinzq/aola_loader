@@ -127,11 +127,10 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetEventSource.StatusReceived += HookStatusReceived;
 		Shown += async delegate
 		{
-			ShowPackets();
 			_injectTimer.Start();
 			_battleMorphTimer.Start();
 			EnsureHookInjectedAsync();
-			_status.Text = "收发日志正在内存中暂存；点击“保留日志”后写入文件。";
+			_status.Text = "收发日志默认关闭；点击“保留日志”后开始写入文件。";
 			BattleMorphPreparationResult morph = await _battlePresentationCoordinator
 				.RestoreMorphRulesAsync(CancellationToken.None);
 			if (_battlePresentationCoordinator.Current.BattleMorphEnabled)

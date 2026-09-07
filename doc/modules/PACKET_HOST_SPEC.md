@@ -46,11 +46,11 @@ WinForms、CefSharp、Settings、战斗解析器、日志实现和敏感注入�
 
 ## 缓存语义
 
-适配器不缓存包历史；消费者 `AolaReceiveLogger` 默认最多缓存 64 MiB 的 UTF-8 JSONL，超限丢弃最早记录并计数。调用 `TryRetain` 后才创建文件、写出缓存并转为持续写入；未保留即 Dispose 时丢弃缓存。保留失败恢复缓存并返回错误，持续写入失败则回到有界缓存。兼容 IPC 队列仅用于接收并拒绝遗留请求，不是生产发送通路。
+适配器不缓存包历史；消费者 `AolaReceiveLogger` 默认不序列化或缓存完整收发日志。调用 `TryRetain` 后创建文件并从该时刻起持续写入；开始保留或持续写入失败期间使用最多 8 MiB 的 UTF-8 JSONL 有界缓存，超限丢弃最早记录并计数。保留失败恢复过渡缓存并返回错误；兼容 IPC 队列仅用于接收并拒绝遗留请求，不是生产发送通路。
 
 ## 验证入口
 
-`AolaSocketHack.Verify --self-test` 验证事件转发、异常隔离、Dispose 后静默、结构化发送，ReceiveLogger 的精确收发方向过滤、默认不创建文件、显式保留、UTF-8 无 BOM、双向解密参数/原始帧记录、登录发送二次脱敏和释放后停止写入；SystemMessage 契约验证 `type=0` 的 `action/headerRoomId`、`joinOK` 动态房间及未知 payload 保留。Battle tracker 仍只消费接收方向，PacketsForm 仍使用精确“发送”方向可见性策略。Packets UI 源码守卫还要求抓包表只加入 `CanExport` 且能生成严格 `#send` 的消息，保留复选追加、清空和文件导入入口，并拒绝恢复 Inner 明文详情控件。源码守卫要求三个静态事件只允许出现在 `AolaHookHostAdapter`；PCAP 回放继续验证严格导出格式和主动发送。UI marshal 保留现有 `InvokeRequired/BeginInvoke` 路径，并在真实窗口验证时复核。
+`AolaSocketHack.Verify --self-test` 验证事件转发、异常隔离、Dispose 后静默、结构化发送，ReceiveLogger 的精确收发方向过滤、启用前不记录、显式保留、UTF-8 无 BOM、双向解密参数/原始帧记录、登录发送二次脱敏和释放后停止写入；SystemMessage 契约验证 `type=0` 的 `action/headerRoomId`、`joinOK` 动态房间及未知 payload 保留。Battle tracker 仍只消费接收方向，PacketsForm 仍使用精确“发送”方向可见性策略。Packets UI 源码守卫还要求抓包表只加入 `CanExport` 且能生成严格 `#send` 的消息，保留复选追加、清空和文件导入入口，并拒绝恢复 Inner 明文详情控件。源码守卫要求三个静态事件只允许出现在 `AolaHookHostAdapter`；PCAP 回放继续验证严格导出格式和主动发送。UI marshal 保留现有 `InvokeRequired/BeginInvoke` 路径，并在真实窗口验证时复核。
 
 ## 完成标准
 

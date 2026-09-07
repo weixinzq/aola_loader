@@ -50,6 +50,8 @@ Cef 回调按框架线程规则进入；对外事件不承诺 UI 线程。会话
 
 明确区分会话状态、CEF 内存/磁盘缓存和 Flash 缓存；接口不承诺刷新能替换已进入 ApplicationDomain 的类。
 
+WinForms `ChromiumWebBrowser` 使用默认窗口化渲染和 GPU 合成；不得为它启用 `WindowlessRenderingEnabled` 或 `SetOffScreenRenderingBestPerformanceArgs()`。如需兼容特定显卡，应以独立、可回退且经过真实 Flash 验证的设置处理，不能默认关闭 GPU。
+
 ## 验证入口
 
 `AolaSocketHack.Verify --self-test` 当前验证导航/刷新、主 frame 生命周期、订阅者异常隔离、脚本结果、桥失败分类、状态 revision、防御性副本和关闭语义，并验证主动发送脚本不含登录/SID、未知扩展拒绝及结构化发送状态。生产适配仍需真实页面启动、桥加载、服务器回调和新进程实测。

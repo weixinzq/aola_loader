@@ -13,7 +13,7 @@ namespace AolaLoader.PacketHost.Consumers;
 
 internal sealed class AolaReceiveLogger : IDisposable
 {
-	private const int MaximumBufferedBytes = 64 * 1024 * 1024;
+	private const int MaximumBufferedBytes = 8 * 1024 * 1024;
 	private readonly object _syncRoot = new object();
 	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly string _baseDirectory;
@@ -201,6 +201,13 @@ internal sealed class AolaReceiveLogger : IDisposable
 			!string.Equals(packet.Direction, "发送", StringComparison.Ordinal))
 		{
 			return;
+		}
+		lock (_syncRoot)
+		{
+			if (_disposed || _writer == null && !_retaining)
+			{
+				return;
+			}
 		}
 
 		string line;

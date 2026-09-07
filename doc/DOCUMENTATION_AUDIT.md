@@ -13,7 +13,7 @@ README 和 PROJECT_CONTEXT 是入口；architecture、modules 与 runbooks 描�
 | 文档/主题 | 当前代码或本地证据 | 结论 |
 | --- | --- | --- |
 | ActiveSend、Protocol/IPC、NetworkCapture | MainClass.RejectLegacySendRequest；AolaPageBridge；FlashCommandSender | 生产复用 Flash 原连接；sidecar 源码仍在但生产入口不实例化，遗留队列返回拒绝 |
-| README、AppShell、PacketHost | AolaPacketsForm；AolaMainForm.BuildToolbar；AolaReceiveLogger.TryRetain/BufferLine | 抓包页只显示严格 #send；日志默认 64 MiB 内存缓存，手动保留后才落盘 |
+| README、AppShell、PacketHost | AolaPacketsForm；AolaMainForm.BuildToolbar；AolaReceiveLogger.TryRetain/BufferLine | 抓包页只显示严格 #send 且按需打开；完整日志手动启用，过渡/故障缓存上限 8 MiB |
 | ResourceInterception、ADR-0002 | ResourceRulePipeline；各叶资源规则 Priority | 契约为 IResourceInterceptionRule、RewriteRemote；按优先级降序，同级多命中透传 |
 | Battle、Settings、task2 | BattleSettingsCodec.CurrentVersion；BattleBridgeClient；BattlePresentationCoordinator | 设置 Version 6，桥 Version 4；模型切换须 active=false 且 ended=false |
 | 周更与回滚 | Update-PetFightBattleBridge.ps1；PetFightBattleBridgeArtifact | 当前候选包括演出补丁；所有模式检查本地依赖；旧 Version 3 与当前宿主不兼容 |

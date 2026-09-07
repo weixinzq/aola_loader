@@ -29,8 +29,7 @@ internal static class AolaCefInitializer
 		{
 			CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache"),
 			LogFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cef.log"),
-			LogSeverity = LogSeverity.Warning,
-			WindowlessRenderingEnabled = true
+			LogSeverity = LogSeverity.Warning
 		};
 		settings.CefCommandLineArgs["ppapi-flash-version"] = "99.0.0.999";
 		settings.CefCommandLineArgs["ppapi-flash-path"] = flashPath;
@@ -39,7 +38,6 @@ internal static class AolaCefInitializer
 		settings.CefCommandLineArgs["plugin-policy"] = "allow";
 		settings.CefCommandLineArgs["enable-features"] = "RunAllFlashInAllowMode";
 		settings.CefCommandLineArgs["disable-features"] = "PreferHtmlOverPlugins";
-		settings.SetOffScreenRenderingBestPerformanceArgs();
 		if (!Cef.Initialize(settings))
 		{
 			throw new InvalidOperationException("CEF 初始化失败");

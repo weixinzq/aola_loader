@@ -65,7 +65,7 @@ Winsock bytes -> socket TCP reassembly -> protocol/AMF3 decode
      └─ 发送/接收 -> JSONL logger
 ```
 
-登录帧和 SID 不跨越注入进程信任边界。抓包 UI 保持 send-only；日志默认最多暂存 64 MiB（按 UTF-8 字节计数），超限丢弃最早记录并计数；点击主窗口“保留日志”后才创建兼容命名的 `aola-recv-*.jsonl`，写入现存缓存并持续记录收发两个方向，日志层再次脱敏登录发送。未保留的缓存退出即丢弃。服务端 `type=0` 按 `action + headerRoomId + action-specific payload` 解析，已知房间/用户系统消息写入结构化 `cmd/param`，未知 action 保留结构化头和剩余 payload HEX。
+登录帧和 SID 不跨越注入进程信任边界。抓包 UI 保持 send-only 且按需打开；完整日志默认关闭，点击主窗口“保留日志”后才创建兼容命名的 `aola-recv-*.jsonl` 并从该时刻持续记录收发两个方向。开始保留或持续写入失败期间最多暂存 8 MiB（按 UTF-8 字节计数），超限丢弃最早记录并计数；日志层再次脱敏登录发送。服务端 `type=0` 按 `action + headerRoomId + action-specific payload` 解析，已知房间/用户系统消息写入结构化 `cmd/param`，未知 action 保留结构化头和剩余 payload HEX。
 
 Packets 子窗口采用“抓包 / 发包 / 打开映射面板”三页导航：抓包页只列出可转换为严格 `#send` 的发送消息并支持复选追加；发包页提供直接编辑、UTF-8 文件导入和“按战斗状态逐条发送”；映射面板页只调用 Flash 自身面板加载入口。主窗口另提供“战斗表现”设置窗口，保存隐藏伤害数字、隐藏治疗数字、“跳过每回合战斗演出”和独立的战斗模型替换规则；战斗模型规则不复用背包/海报规则。
 

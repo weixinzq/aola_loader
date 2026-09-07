@@ -116,6 +116,16 @@ internal static class PacketHostBoundaryVerifier
 			source.PublishPacket(new AolaPacketEvent
 			{
 				TimestampUtc = DateTime.UtcNow,
+				Direction = "接收",
+				RawHex = "BEFORE_RETAIN"
+			});
+			if (!logger.TryRetain(out string path, out string error) || error != null || !File.Exists(path))
+			{
+				return false;
+			}
+			source.PublishPacket(new AolaPacketEvent
+			{
+				TimestampUtc = DateTime.UtcNow,
 				Direction = "发送",
 				ProcessId = 41,
 				FrameLength = 12,
@@ -156,10 +166,6 @@ internal static class PacketHostBoundaryVerifier
 				Direction = "SEND",
 				RawHex = "IGNORED_DIRECTION"
 			});
-			if (!logger.TryRetain(out string path, out string error) || error != null || !File.Exists(path))
-			{
-				return false;
-			}
 			byte[] bytes;
 			using (FileStream stream = new FileStream(
 				path,
@@ -175,6 +181,7 @@ internal static class PacketHostBoundaryVerifier
 			string[] lines = text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 			if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ||
 				lines.Length != 3 ||
+				text.Contains("BEFORE_RETAIN") ||
 				text.Contains("SECRET_") ||
 				text.Contains("IGNORED_DIRECTION"))
 			{

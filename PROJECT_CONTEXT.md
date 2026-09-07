@@ -20,7 +20,7 @@ Aola Loader 是受控站点上的旧版奥拉星 Flash 桌面宿主，提供登�
 ## 不可违反的约束
 
 - 抓包表格只显示 `Direction == "发送"`；接收流量只进入 JSONL 日志和战斗等消费者。
-- 抓包页只显示可导出的 `#send`，没有 HEX 详情窗格。收发日志默认在最多 64 MiB 的内存缓存中，点击“保留日志”才落盘并持续写入；未保留的缓存随退出丢弃。
+- 抓包页只显示可导出的 `#send`，没有 HEX 详情窗格，且不会随主窗口启动自动打开。完整收发日志默认关闭，点击“保留日志”后才开始落盘并持续写入；开始保留或写入失败期间的有界缓存上限为 8 MiB。
 - 导出仅接受严格 `#send={"id":42,"param":{},"cmd":"CMD"}|`，UTF-8 无 BOM；发送前移除用户提供的 `:ext_seq;`。
 - 登录 SID/帧仅可存在于注入进程内存，socket 关闭/释放时清除；不得进入 IPC、UI、日志、导出或文档。
 - ActiveSend 通过页面桥、ExternalInterface 和 `ActClientSender` 使用 Flash 原连接；OuterSeq、InnerSeq、加密与排序归 Flash 所有，不重放登录帧、不创建第二连接、不注入自制密文。`SubmittedToFlash` 仅表示调用提交。
