@@ -5,7 +5,9 @@ param(
     [string]$FFDecPath = 'D:\Programs\FFdec\ffdec-cli.exe',
     [string]$EvidenceRoot,
     [string]$CandidateManifest,
-    [string]$StartUrl = 'https://aola.100bt.com/play/start.xml'
+    [string]$StartUrl = 'https://aola.100bt.com/play/start.xml',
+    [ValidateSet('DiagnosticOnly', 'ConservativeCleanup')]
+    [string]$ResourceCleanupMode = 'DiagnosticOnly'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,10 +23,21 @@ $requiredMarkers = @(
     'aolaBattleBridgeReady',
     'aolaBattleApplyOptions',
     'aolaBattleGetState',
+    'aolaBattleGetDiagnostics',
+    'aolaBattleDrainTraceEvents',
     'mmo.petfightnew.DocPetFight',
     'mmo.petfightnew.common.FightPanel',
     'ensureAolaBattleBridge',
     'noteInputReady',
+    'noteDiagnosticPanel',
+    'noteDiagnosticPanelDisposeStarted',
+    'noteDiagnosticPanelDisposed',
+    'noteDiagnosticStartMovie',
+    'noteDiagnosticApplicationDomain',
+    'noteDiagnosticPreloadStarted',
+    'noteDiagnosticResourceStarted',
+    'noteDiagnosticResourceEnded',
+    'longFrame100Count',
     'skipBattlePresentation',
     'hideDamageNumbers',
     'hideHealingNumbers'
@@ -201,6 +214,153 @@ function Add-BeforeUniqueReturn([Collections.Generic.List[string]]$Lines, [strin
     $Lines.InsertRange([int]$matches[0], $Addition)
 }
 
+function Add-AfterDisposedGuard([Collections.Generic.List[string]]$Lines, [string[]]$Addition) {
+    $matches = @()
+    for ($index = 0; $index -le $Lines.Count - 4; $index++) {
+        $branch = [regex]::Match($Lines[$index + 1].Trim(), '^iffalse (?<label>[A-Za-z0-9_]+)$')
+        if ($Lines[$index].Contains('getproperty QName(PrivateNamespace(null,') -and
+            $Lines[$index].Contains('"_isDisposed")') -and $branch.Success -and
+            $Lines[$index + 2].Trim() -eq 'returnvoid' -and
+            $Lines[$index + 3].Trim() -ceq ($branch.Groups['label'].Value + ':')) {
+            $matches += $index + 4
+        }
+    }
+    if ($matches.Count -ne 1) {
+        throw "Expected one _isDisposed guard in target method, found $($matches.Count)."
+    }
+    $Lines.InsertRange([int]$matches[0], $Addition)
+}
+
+function Add-BeforeLastReturn([Collections.Generic.List[string]]$Lines, [string[]]$Addition) {
+    $matches = @()
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        if ($Lines[$index].Trim() -eq 'returnvoid') { $matches += $index }
+    }
+    if ($matches.Count -lt 1) {
+        throw 'Target method has no returnvoid.'
+    }
+    $Lines.InsertRange([int]$matches[-1], $Addition)
+}
+
+function Add-AfterInitialScope([Collections.Generic.List[string]]$Lines, [string[]]$Addition) {
+    $matches = @()
+    for ($index = 0; $index -lt $Lines.Count - 1; $index++) {
+        if ($Lines[$index].Trim() -eq 'getlocal0' -and $Lines[$index + 1].Trim() -eq 'pushscope') {
+            $matches += $index + 2
+        }
+    }
+    if ($matches.Count -ne 1) {
+        throw "Expected one initial getlocal0/pushscope sequence, found $($matches.Count)."
+    }
+    $Lines.InsertRange([int]$matches[0], $Addition)
+}
+
+function Add-BeforeUniqueInstruction(
+    [Collections.Generic.List[string]]$Lines,
+    [string]$Instruction,
+    [string[]]$Addition) {
+    $matches = @()
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        if ($Lines[$index].Trim() -ceq $Instruction) { $matches += $index }
+    }
+    if ($matches.Count -ne 1) {
+        throw "Expected one instruction '$Instruction', found $($matches.Count)."
+    }
+    $Lines.InsertRange([int]$matches[0], $Addition)
+}
+
+function Get-PrivatePropertyOperand([Collections.Generic.List[string]]$Lines, [string]$PropertyName) {
+    $escaped = [regex]::Escape($PropertyName)
+    $operands = @()
+    foreach ($line in $Lines) {
+        $match = [regex]::Match(
+            $line.Trim(),
+            '^(?:get|set|init)property (?<operand>QName\(PrivateNamespace\(.+\),"' + $escaped + '"\))$')
+        if ($match.Success -and $operands -cnotcontains $match.Groups['operand'].Value) {
+            $operands += $match.Groups['operand'].Value
+        }
+    }
+    if ($operands.Count -ne 1) {
+        throw "Expected one private namespace operand for '$PropertyName', found $($operands.Count)."
+    }
+    return $operands[0]
+}
+
+function Set-MinimumLocalCount([Collections.Generic.List[string]]$Lines, [int]$Minimum) {
+    $matches = @()
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        $match = [regex]::Match($Lines[$index], '^(?<indent>\s*)localcount (?<count>\d+)\s*$')
+        if ($match.Success) { $matches += [pscustomobject]@{ Index = $index; Match = $match } }
+    }
+    if ($matches.Count -ne 1) { throw "Expected one localcount, found $($matches.Count)." }
+    if ([int]$matches[0].Match.Groups['count'].Value -lt $Minimum) {
+        $Lines[$matches[0].Index] = $matches[0].Match.Groups['indent'].Value + "localcount $Minimum"
+    }
+}
+
+function Apply-ConservativePreloadCompletion(
+    [Collections.Generic.List[string]]$Lines,
+    [string]$CallBackOperand,
+    [string]$LoadQueueOperand,
+    [string]$PreloadQueueOperand) {
+    $startIndexes = @()
+    for ($index = 0; $index -lt $Lines.Count - 3; $index++) {
+        if ($Lines[$index].Trim() -eq 'getlocal0' -and
+            $Lines[$index + 1].Trim() -ceq "getproperty $CallBackOperand" -and
+            $Lines[$index + 2].Trim() -eq 'pushnull' -and
+            $Lines[$index + 3].Trim().StartsWith('ifeq ')) {
+            $startIndexes += $index
+        }
+    }
+    $returns = @()
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        if ($Lines[$index].Trim() -eq 'returnvoid') { $returns += $index }
+    }
+    if ($startIndexes.Count -ne 1 -or $returns.Count -ne 1 -or $startIndexes[0] -ge $returns[0]) {
+        throw 'PreLoadAssetsUtil.onLoadCompleted no longer matches its approved callback tail.'
+    }
+    Set-MinimumLocalCount $Lines 2
+    $start = [int]$startIndexes[0]
+    $end = [int]$returns[0]
+    $Lines.RemoveRange($start, $end - $start)
+    $Lines.InsertRange($start, [string[]]@(
+        ' getlocal0',
+        " getproperty $CallBackOperand",
+        ' setlocal1',
+        ' getlocal0',
+        ' pushnull',
+        " setproperty $CallBackOperand",
+        ' getlocal0',
+        ' pushnull',
+        " setproperty $LoadQueueOperand",
+        ' getlocal0',
+        ' pushnull',
+        " setproperty $PreloadQueueOperand",
+        ' getlocal1',
+        ' pushnull',
+        ' ifeq aola_cleanup_done',
+        ' getlocal1',
+        ' callpropvoid QName(Namespace("http://adobe.com/AS3/2006/builtin"),"apply"), 0',
+        'aola_cleanup_done:'
+    ))
+}
+
+function Apply-ConservativePreloadDispose(
+    [Collections.Generic.List[string]]$Lines,
+    [string]$CallBackOperand) {
+    $instanceInstruction = @($Lines | Where-Object {
+        $_.Trim().StartsWith('findproperty QName(PrivateNamespace(null,') -and $_.Contains('"_instance")')
+    })
+    if ($instanceInstruction.Count -ne 1) {
+        throw 'PreLoadAssetsUtil.dispose no longer has one singleton release instruction.'
+    }
+    Add-BeforeUniqueInstruction $Lines $instanceInstruction[0].Trim() @(
+        ' getlocal0',
+        ' pushnull',
+        " setproperty $CallBackOperand"
+    )
+}
+
 function Normalize-Pcode([string[]]$Lines) {
     return (($Lines | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }) -join "`n")
 }
@@ -223,16 +383,28 @@ function Assert-PcodeEquivalent([string[]]$Expected, [string[]]$Actual, [string]
     }
 }
 
-function Normalize-ControlFlowLine([string]$Line) {
-    $normalized = $Line.Trim()
-    $normalized = [regex]::Replace($normalized, '\bofs[0-9a-f]+\b', '<label>')
-    $normalized = [regex]::Replace($normalized, '\baola_[A-Za-z0-9_]+\b', '<label>')
-    return $normalized
+function Normalize-ControlFlowLines([string[]]$Lines) {
+    $normalizedLines = @($Lines | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+    $labels = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    foreach ($line in $normalizedLines) {
+        foreach ($match in [regex]::Matches($line, '\b(?:ofs[0-9a-f]+|aola_[A-Za-z0-9_]+)\b')) {
+            if (-not $labels.ContainsKey($match.Value)) {
+                $labels.Add($match.Value, "<label$($labels.Count)>")
+            }
+        }
+    }
+    return @($normalizedLines | ForEach-Object {
+        $line = $_
+        foreach ($label in $labels.Keys) {
+            $line = [regex]::Replace($line, "\b$([regex]::Escape($label))\b", $labels[$label])
+        }
+        $line
+    })
 }
 
 function Assert-PatchedMethodEquivalent([string[]]$Expected, [string[]]$Actual, [string]$Description) {
-    $expectedLines = @($Expected | ForEach-Object { Normalize-ControlFlowLine $_ } | Where-Object { $_ -ne '' })
-    $actualLines = @($Actual | ForEach-Object { Normalize-ControlFlowLine $_ } | Where-Object { $_ -ne '' })
+    $expectedLines = @(Normalize-ControlFlowLines $Expected)
+    $actualLines = @(Normalize-ControlFlowLines $Actual)
     if ($expectedLines.Count -ne $actualLines.Count) {
         throw "$Description line count differs."
     }
@@ -270,11 +442,20 @@ function Assert-PcodeTrees([string]$OfficialRoot, [string]$CandidateRoot) {
     $docRelative = 'scripts\mmo\petfightnew\DocPetFight.pcode'
     $approvedMethods = @{
         'scripts\mmo\petfightnew\PetFightService.pcode' = @('public function init()')
-        'scripts\mmo\petfightnew\common\FightPanel.pcode' = @('public function enableClick()')
+        'scripts\mmo\petfightnew\common\FightPanel.pcode' = @(
+            'public function enableClick()', 'public function dispose()')
         'scripts\mmo\petfightnew\common\fightcontroller\UseSkill.pcode' = @(
             'public function handleUseSkill(', 'private function handleAnnalFeeEight(', 'private function handleMovie(',
             'private function getMuiltHitDecHpDelayFrame(')
-        'scripts\mmo\petfightnew\common\FightController.pcode' = @('public function startHandle(')
+        'scripts\mmo\petfightnew\common\FightController.pcode' = @(
+            'public function init(', 'public function startHandle(')
+        'scripts\mmo\petfightnew\common\FightData.pcode' = @(
+            'private function initDomain()', 'public function dispose()')
+        'scripts\mmo\petfightnew\common\startmovie\StartMovie.pcode' = @(
+            'public function StartMovie(', 'private function dispose()')
+        'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode' = @(
+            'public function loadAssets(', 'private function loadNext()', 'private function onLoadEnd(',
+            'private function onLoadCompleted()', 'public function dispose()')
         'scripts\mmo\petfightnew\common\fightcontroller\SwitchPm.pcode' = @('private function showSwitchMc(')
         'scripts\mmo\petfightnew\common\fightcontroller\ChangePetView.pcode' = @(
             'private function onGotPet(', 'private function onPetChange(')
@@ -344,7 +525,7 @@ function Read-StrictManifest([string]$Path, [bool]$Production) {
     if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $expected -notcontains $_ }).Count -ne 0) {
         throw 'Manifest fields do not match schema version 1.'
     }
-    if ($document.schemaVersion -ne 1 -or $document.bridgeVersion -ne 4 -or
+    if ($document.schemaVersion -ne 1 -or $document.bridgeVersion -ne 5 -or
         [string]$document.resourceVersion -notmatch '^\d{1,32}$' -or
         [string]$document.candidateSha256 -notmatch '^[0-9a-f]{64}$' -or
         [string]$document.officialZwsSha256 -notmatch '^[0-9a-f]{64}$' -or
@@ -441,11 +622,21 @@ if ($Mode -eq 'Prepare') {
     $selectedPcode = Join-Path $EvidenceRoot 'exports\official-pcode'
     $servicePcodePath = Join-Path $selectedPcode 'scripts\mmo\petfightnew\PetFightService.pcode'
     $panelPcodePath = Join-Path $selectedPcode 'scripts\mmo\petfightnew\common\FightPanel.pcode'
-    if (-not (Test-Path -LiteralPath $servicePcodePath) -or -not (Test-Path -LiteralPath $panelPcodePath)) {
+    $controllerPcodePath = Join-Path $selectedPcode 'scripts\mmo\petfightnew\common\FightController.pcode'
+    $fightDataPcodePath = Join-Path $selectedPcode 'scripts\mmo\petfightnew\common\FightData.pcode'
+    $startMoviePcodePath = Join-Path $selectedPcode 'scripts\mmo\petfightnew\common\startmovie\StartMovie.pcode'
+    $preloadPcodePath = Join-Path $selectedPcode 'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode'
+    $selectedPcodePaths = @(
+        $servicePcodePath, $panelPcodePath, $controllerPcodePath, $fightDataPcodePath,
+        $startMoviePcodePath, $preloadPcodePath)
+    if (@($selectedPcodePaths | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) }).Count -gt 0) {
         $selectedClasses = @(
             'mmo.petfightnew.PetFightService',
             'mmo.petfightnew.common.FightPanel',
             'mmo.petfightnew.common.FightController',
+            'mmo.petfightnew.common.FightData',
+            'mmo.petfightnew.common.startmovie.StartMovie',
+            'mmo.petfightnew.common.util.PreLoadAssetsUtil',
             'mmo.petfightnew.DocPetFight',
             'mmo.petfightnew.common.fightcontroller.UseSkill',
             'mmo.petfightnew.common.fightcontroller.SwitchPm',
@@ -463,11 +654,33 @@ if ($Mode -eq 'Prepare') {
 
     $methodOutput = & python $helperPath methods --input $originalFws `
         --target 'mmo.petfightnew.PetFightService:init' `
-        --target 'mmo.petfightnew.common.FightPanel:enableClick'
+        --target 'mmo.petfightnew.common.FightPanel:enableClick' `
+        --target 'mmo.petfightnew.common.FightPanel:dispose' `
+        --target 'mmo.petfightnew.common.FightController:init' `
+        --target 'mmo.petfightnew.common.FightData:initDomain' `
+        --target 'mmo.petfightnew.common.FightData:dispose' `
+        --target 'mmo.petfightnew.common.startmovie.StartMovie:$iinit' `
+        --target 'mmo.petfightnew.common.startmovie.StartMovie:dispose' `
+        --target 'mmo.petfightnew.common.util.PreLoadAssetsUtil:loadAssets' `
+        --target 'mmo.petfightnew.common.util.PreLoadAssetsUtil:loadNext' `
+        --target 'mmo.petfightnew.common.util.PreLoadAssetsUtil:onLoadEnd' `
+        --target 'mmo.petfightnew.common.util.PreLoadAssetsUtil:onLoadCompleted' `
+        --target 'mmo.petfightnew.common.util.PreLoadAssetsUtil:dispose'
     if ($LASTEXITCODE -ne 0) { throw 'Method-body index discovery failed.' }
     $methodBodies = (($methodOutput -join [Environment]::NewLine) | ConvertFrom-Json)
     $serviceBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.PetFightService' })[0]
-    $panelBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.FightPanel' })[0]
+    $panelBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.FightPanel' -and $_.methodName -ceq 'enableClick' })[0]
+    $panelDisposeBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.FightPanel' -and $_.methodName -ceq 'dispose' })[0]
+    $controllerBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.FightController' -and $_.methodName -ceq 'init' })[0]
+    $fightDataInitBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.FightData' -and $_.methodName -ceq 'initDomain' })[0]
+    $fightDataDisposeBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.FightData' -and $_.methodName -ceq 'dispose' })[0]
+    $startMovieConstructorBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.startmovie.StartMovie' -and $_.methodName -ceq '$iinit' })[0]
+    $startMovieDisposeBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.startmovie.StartMovie' -and $_.methodName -ceq 'dispose' })[0]
+    $preloadLoadAssetsBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.util.PreLoadAssetsUtil' -and $_.methodName -ceq 'loadAssets' })[0]
+    $preloadLoadNextBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.util.PreLoadAssetsUtil' -and $_.methodName -ceq 'loadNext' })[0]
+    $preloadLoadEndBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.util.PreLoadAssetsUtil' -and $_.methodName -ceq 'onLoadEnd' })[0]
+    $preloadCompletedBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.util.PreLoadAssetsUtil' -and $_.methodName -ceq 'onLoadCompleted' })[0]
+    $preloadDisposeBody = @($methodBodies | Where-Object { $_.className -ceq 'mmo.petfightnew.common.util.PreLoadAssetsUtil' -and $_.methodName -ceq 'dispose' })[0]
 
     $serviceFragment = Get-MethodFragment $servicePcodePath 'public function init()'
     Add-BeforeUniqueReturn $serviceFragment @(
@@ -479,11 +692,122 @@ if ($Mode -eq 'Prepare') {
         ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
         ' callpropvoid QName(PackageNamespace(""),"noteInputReady"), 0'
     )
+    $panelDisposeFragment = Get-MethodFragment $panelPcodePath 'public function dispose()'
+    Add-AfterDisposedGuard $panelDisposeFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticPanelDisposeStarted"), 1'
+    )
+    Add-BeforeLastReturn $panelDisposeFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticPanelDisposed"), 1'
+    )
+    $controllerFragment = Get-MethodFragment $controllerPcodePath 'public function init('
+    Add-BeforeUniqueReturn $controllerFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal1',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticPanel"), 1'
+    )
+    $fightDataPcodeLines = [Collections.Generic.List[string]]::new([string[]](Get-Content -LiteralPath $fightDataPcodePath))
+    $fightDomainOperand = Get-PrivatePropertyOperand $fightDataPcodeLines '_domain'
+    $fightDataInitFragment = Get-MethodFragment $fightDataPcodePath 'private function initDomain()'
+    Add-BeforeUniqueReturn $fightDataInitFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        " getproperty $fightDomainOperand",
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticApplicationDomain"), 1'
+    )
+    $fightDataDisposeFragment = Get-MethodFragment $fightDataPcodePath 'public function dispose()'
+    Add-AfterInitialScope $fightDataDisposeFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        " getproperty $fightDomainOperand",
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticApplicationDomainReleased"), 1'
+    )
+    $startMovieConstructorFragment = Get-MethodFragment $startMoviePcodePath 'public function StartMovie('
+    Add-BeforeUniqueReturn $startMovieConstructorFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticStartMovie"), 1'
+    )
+    $startMovieDisposeFragment = Get-MethodFragment $startMoviePcodePath 'private function dispose()'
+    Add-BeforeUniqueReturn $startMovieDisposeFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticStartMovieDisposed"), 1'
+    )
+    $preloadPcodeLines = [Collections.Generic.List[string]]::new([string[]](Get-Content -LiteralPath $preloadPcodePath))
+    $preloadCallBackOperand = Get-PrivatePropertyOperand $preloadPcodeLines 'callBack'
+    $preloadLoadQueueOperand = Get-PrivatePropertyOperand $preloadPcodeLines 'loadQueue'
+    $preloadQueueOperand = Get-PrivatePropertyOperand $preloadPcodeLines '_preloadQueue'
+    $preloadLoadAssetsFragment = Get-MethodFragment $preloadPcodePath 'public function loadAssets('
+    Add-AfterInitialScope $preloadLoadAssetsFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticPreloadStarted"), 1'
+    )
+    $preloadLoadNextFragment = Get-MethodFragment $preloadPcodePath 'private function loadNext()'
+    Add-BeforeUniqueInstruction $preloadLoadNextFragment `
+        'getlex QName(PackageNamespace("mmo.loader.scheduler"),"ResScheduler")' @(
+            ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+            ' getlocal0',
+            ' getlocal1',
+            ' getlocal0',
+            " getproperty $preloadLoadQueueOperand",
+            ' getproperty QName(PackageNamespace(""),"length")',
+            ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticResourceStarted"), 3'
+        )
+    $preloadLoadEndFragment = Get-MethodFragment $preloadPcodePath 'private function onLoadEnd('
+    Add-AfterInitialScope $preloadLoadEndFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticResourceEnded"), 1'
+    )
+    $preloadCompletedFragment = Get-MethodFragment $preloadPcodePath 'private function onLoadCompleted()'
+    Add-AfterInitialScope $preloadCompletedFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticPreloadCompleted"), 1'
+    )
+    $preloadDisposeFragment = Get-MethodFragment $preloadPcodePath 'public function dispose()'
+    Add-AfterInitialScope $preloadDisposeFragment @(
+        ' getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")',
+        ' getlocal0',
+        ' callpropvoid QName(PackageNamespace(""),"noteDiagnosticPreloadDisposed"), 1'
+    )
+    if ($ResourceCleanupMode -ceq 'ConservativeCleanup') {
+        Apply-ConservativePreloadCompletion `
+            $preloadCompletedFragment $preloadCallBackOperand $preloadLoadQueueOperand $preloadQueueOperand
+        Apply-ConservativePreloadDispose $preloadDisposeFragment $preloadCallBackOperand
+    }
     $servicePatch = Join-Path $EvidenceRoot 'exports\patches\PetFightService.init.pcode'
     $panelPatch = Join-Path $EvidenceRoot 'exports\patches\FightPanel.enableClick.pcode'
+    $panelDisposePatch = Join-Path $EvidenceRoot 'exports\patches\FightPanel.dispose.pcode'
+    $controllerPatch = Join-Path $EvidenceRoot 'exports\patches\FightController.init.pcode'
+    $fightDataInitPatch = Join-Path $EvidenceRoot 'exports\patches\FightData.initDomain.pcode'
+    $fightDataDisposePatch = Join-Path $EvidenceRoot 'exports\patches\FightData.dispose.pcode'
+    $startMovieConstructorPatch = Join-Path $EvidenceRoot 'exports\patches\StartMovie.constructor.pcode'
+    $startMovieDisposePatch = Join-Path $EvidenceRoot 'exports\patches\StartMovie.dispose.pcode'
+    $preloadLoadAssetsPatch = Join-Path $EvidenceRoot 'exports\patches\PreLoadAssetsUtil.loadAssets.pcode'
+    $preloadLoadNextPatch = Join-Path $EvidenceRoot 'exports\patches\PreLoadAssetsUtil.loadNext.pcode'
+    $preloadLoadEndPatch = Join-Path $EvidenceRoot 'exports\patches\PreLoadAssetsUtil.onLoadEnd.pcode'
+    $preloadCompletedPatch = Join-Path $EvidenceRoot 'exports\patches\PreLoadAssetsUtil.onLoadCompleted.pcode'
+    $preloadDisposePatch = Join-Path $EvidenceRoot 'exports\patches\PreLoadAssetsUtil.dispose.pcode'
     $generatedDoc = Join-Path $EvidenceRoot 'exports\patches\DocPetFight.as'
     Set-GeneratedText $servicePatch ([string[]]$serviceFragment)
     Set-GeneratedText $panelPatch ([string[]]$panelFragment)
+    Set-GeneratedText $panelDisposePatch ([string[]]$panelDisposeFragment)
+    Set-GeneratedText $controllerPatch ([string[]]$controllerFragment)
+    Set-GeneratedText $fightDataInitPatch ([string[]]$fightDataInitFragment)
+    Set-GeneratedText $fightDataDisposePatch ([string[]]$fightDataDisposeFragment)
+    Set-GeneratedText $startMovieConstructorPatch ([string[]]$startMovieConstructorFragment)
+    Set-GeneratedText $startMovieDisposePatch ([string[]]$startMovieDisposeFragment)
+    Set-GeneratedText $preloadLoadAssetsPatch ([string[]]$preloadLoadAssetsFragment)
+    Set-GeneratedText $preloadLoadNextPatch ([string[]]$preloadLoadNextFragment)
+    Set-GeneratedText $preloadLoadEndPatch ([string[]]$preloadLoadEndFragment)
+    Set-GeneratedText $preloadCompletedPatch ([string[]]$preloadCompletedFragment)
+    Set-GeneratedText $preloadDisposePatch ([string[]]$preloadDisposeFragment)
     $template = Get-Content -LiteralPath $bridgeTemplatePath -Raw
     if ([regex]::Matches($template, '__EMBED_SYMBOL__').Count -ne 1) { throw 'Bridge template placeholder is invalid.' }
     Set-GeneratedText $generatedDoc @($template.Replace('__EMBED_SYMBOL__', $embedMatches[0].Groups['symbol'].Value).TrimEnd("`r", "`n"))
@@ -516,6 +840,83 @@ if ($Mode -eq 'Prepare') {
                 signature = 'public function enableClick()'
                 methodBodyIndex = [int]$panelBody.methodBodyIndex
                 fragment = $panelPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.FightController'
+                methodName = 'init'
+                signature = 'public function init('
+                methodBodyIndex = [int]$controllerBody.methodBodyIndex
+                fragment = $controllerPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.FightPanel'
+                methodName = 'dispose'
+                signature = 'public function dispose()'
+                methodBodyIndex = [int]$panelDisposeBody.methodBodyIndex
+                fragment = $panelDisposePatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.FightData'
+                methodName = 'initDomain'
+                signature = 'private function initDomain()'
+                methodBodyIndex = [int]$fightDataInitBody.methodBodyIndex
+                fragment = $fightDataInitPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.FightData'
+                methodName = 'dispose'
+                signature = 'public function dispose()'
+                methodBodyIndex = [int]$fightDataDisposeBody.methodBodyIndex
+                fragment = $fightDataDisposePatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.startmovie.StartMovie'
+                methodName = 'StartMovie'
+                signature = 'public function StartMovie('
+                methodBodyIndex = [int]$startMovieConstructorBody.methodBodyIndex
+                fragment = $startMovieConstructorPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.startmovie.StartMovie'
+                methodName = 'dispose'
+                signature = 'private function dispose()'
+                methodBodyIndex = [int]$startMovieDisposeBody.methodBodyIndex
+                fragment = $startMovieDisposePatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.util.PreLoadAssetsUtil'
+                methodName = 'loadAssets'
+                signature = 'public function loadAssets('
+                methodBodyIndex = [int]$preloadLoadAssetsBody.methodBodyIndex
+                fragment = $preloadLoadAssetsPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.util.PreLoadAssetsUtil'
+                methodName = 'loadNext'
+                signature = 'private function loadNext()'
+                methodBodyIndex = [int]$preloadLoadNextBody.methodBodyIndex
+                fragment = $preloadLoadNextPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.util.PreLoadAssetsUtil'
+                methodName = 'onLoadEnd'
+                signature = 'private function onLoadEnd('
+                methodBodyIndex = [int]$preloadLoadEndBody.methodBodyIndex
+                fragment = $preloadLoadEndPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.util.PreLoadAssetsUtil'
+                methodName = 'onLoadCompleted'
+                signature = 'private function onLoadCompleted()'
+                methodBodyIndex = [int]$preloadCompletedBody.methodBodyIndex
+                fragment = $preloadCompletedPatch
+            },
+            [pscustomobject]@{
+                className = 'mmo.petfightnew.common.util.PreLoadAssetsUtil'
+                methodName = 'dispose'
+                signature = 'public function dispose()'
+                methodBodyIndex = [int]$preloadDisposeBody.methodBodyIndex
+                fragment = $preloadDisposePatch
             }
         ) + $presentationPatches
         $currentStage = $originalFws
@@ -568,10 +969,43 @@ if ($Mode -eq 'Prepare') {
 
     $candidateService = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\PetFightService.pcode') 'public function init()'
     $candidatePanel = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\FightPanel.pcode') 'public function enableClick()'
-    Assert-PcodeEquivalent ([string[]]$serviceFragment) ([string[]]$candidateService) `
+    $candidatePanelDispose = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\FightPanel.pcode') 'public function dispose()'
+    $candidateController = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\FightController.pcode') 'public function init('
+    $candidateFightDataInit = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\FightData.pcode') 'private function initDomain()'
+    $candidateFightDataDispose = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\FightData.pcode') 'public function dispose()'
+    $candidateStartMovieConstructor = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\startmovie\StartMovie.pcode') 'public function StartMovie('
+    $candidateStartMovieDispose = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\startmovie\StartMovie.pcode') 'private function dispose()'
+    $candidatePreloadLoadAssets = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode') 'public function loadAssets('
+    $candidatePreloadLoadNext = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode') 'private function loadNext()'
+    $candidatePreloadLoadEnd = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode') 'private function onLoadEnd('
+    $candidatePreloadCompleted = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode') 'private function onLoadCompleted()'
+    $candidatePreloadDispose = Get-MethodFragment (Join-Path $candidatePcodeRoot 'scripts\mmo\petfightnew\common\util\PreLoadAssetsUtil.pcode') 'public function dispose()'
+    Assert-PatchedMethodEquivalent ([string[]]$serviceFragment) ([string[]]$candidateService) `
         'PetFightService.init reread does not match the generated patch.'
-    Assert-PcodeEquivalent ([string[]]$panelFragment) ([string[]]$candidatePanel) `
+    Assert-PatchedMethodEquivalent ([string[]]$panelFragment) ([string[]]$candidatePanel) `
         'FightPanel.enableClick reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$panelDisposeFragment) ([string[]]$candidatePanelDispose) `
+        'FightPanel.dispose reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$controllerFragment) ([string[]]$candidateController) `
+        'FightController.init reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$fightDataInitFragment) ([string[]]$candidateFightDataInit) `
+        'FightData.initDomain reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$fightDataDisposeFragment) ([string[]]$candidateFightDataDispose) `
+        'FightData.dispose reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$startMovieConstructorFragment) ([string[]]$candidateStartMovieConstructor) `
+        'StartMovie constructor reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$startMovieDisposeFragment) ([string[]]$candidateStartMovieDispose) `
+        'StartMovie.dispose reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$preloadLoadAssetsFragment) ([string[]]$candidatePreloadLoadAssets) `
+        'PreLoadAssetsUtil.loadAssets reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$preloadLoadNextFragment) ([string[]]$candidatePreloadLoadNext) `
+        'PreLoadAssetsUtil.loadNext reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$preloadLoadEndFragment) ([string[]]$candidatePreloadLoadEnd) `
+        'PreLoadAssetsUtil.onLoadEnd reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$preloadCompletedFragment) ([string[]]$candidatePreloadCompleted) `
+        'PreLoadAssetsUtil.onLoadCompleted reread does not match the generated patch.'
+    Assert-PatchedMethodEquivalent ([string[]]$preloadDisposeFragment) ([string[]]$candidatePreloadDispose) `
+        'PreLoadAssetsUtil.dispose reread does not match the generated patch.'
     foreach ($patch in $presentationPatches) {
         $relativeClass = ([string]$patch.className).Replace('.', '\') + '.pcode'
         $candidateMethod = Get-MethodFragment (Join-Path $candidatePcodeRoot ('scripts\' + $relativeClass)) ([string]$patch.signature)
@@ -591,7 +1025,7 @@ if ($Mode -eq 'Prepare') {
         candidateFile = "..\variants\$([IO.Path]::GetFileName($candidate))"
         candidateLength = [int64]$candidateDetails.fileSize
         candidateSha256 = $candidateSha256
-        bridgeVersion = 4
+        bridgeVersion = 5
         symbolClassSha256 = $symbolClassSha256
     }
     $manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding utf8
@@ -608,7 +1042,15 @@ if ($Mode -eq 'Prepare') {
         "- SymbolClass SHA-256: ``$symbolClassSha256``",
         "- PetFightService.init method body: ``$($serviceBody.methodBodyIndex)``",
         "- FightPanel.enableClick method body: ``$($panelBody.methodBodyIndex)``",
-        '- Changed scope: `DocPetFight`, `PetFightService.init`, `FightPanel.enableClick`, and the 18 approved per-turn presentation methods.',
+        "- FightPanel.dispose method body: ``$($panelDisposeBody.methodBodyIndex)``",
+        "- FightController.init method body: ``$($controllerBody.methodBodyIndex)``",
+        "- Resource cleanup mode: ``$ResourceCleanupMode``",
+        "- FightData.initDomain/dispose method bodies: ``$($fightDataInitBody.methodBodyIndex)`` / ``$($fightDataDisposeBody.methodBodyIndex)``",
+        "- StartMovie constructor/dispose method bodies: ``$($startMovieConstructorBody.methodBodyIndex)`` / ``$($startMovieDisposeBody.methodBodyIndex)``",
+        "- PreLoadAssetsUtil method bodies: loadAssets ``$($preloadLoadAssetsBody.methodBodyIndex)``, loadNext ``$($preloadLoadNextBody.methodBodyIndex)``, onLoadEnd ``$($preloadLoadEndBody.methodBodyIndex)``, onLoadCompleted ``$($preloadCompletedBody.methodBodyIndex)``, dispose ``$($preloadDisposeBody.methodBodyIndex)``",
+        '- Changed scope: `DocPetFight`, the approved panel/domain/start-movie/preloader lifecycle methods, and the existing per-turn presentation methods.',
+        '- Diagnostics schema 3 records weakly tracked panels, start movies, application domains, preloader sessions, a 512-entry resource-event ring, and per-sample frame gaps without adding a new GC call.',
+        '- `DiagnosticOnly` changes observation only; `ConservativeCleanup` additionally clears the completed/disposed preloader callback and local queues without cancelling `ResScheduler` or clearing global caches.',
         '- The presentation path preserves state settlement, message order, and terminal callbacks while bypassing per-turn movies and draining already-received events without one-frame gaps.',
         '- Multi-hit completion retains its callback path with a one-frame minimum delay while presentation skipping is enabled.',
         '- Damage and healing number suppression is limited to result-number leaf methods.',
@@ -618,6 +1060,7 @@ if ($Mode -eq 'Prepare') {
     [pscustomobject]@{
         status = 'Prepared'
         version = $live.ResourceVersion
+        resourceCleanupMode = $ResourceCleanupMode
         candidate = $candidate
         candidateSha256 = $candidateSha256
         candidateManifest = $manifestPath
@@ -662,7 +1105,7 @@ $productionDocument = [ordered]@{
     candidateFile = 'petfightnew-battle-state-current.fws.swf'
     candidateLength = [int64]$candidateDocument.candidateLength
     candidateSha256 = [string]$candidateDocument.candidateSha256
-    bridgeVersion = 4
+    bridgeVersion = 5
     symbolClassSha256 = [string]$candidateDocument.symbolClassSha256
 }
 $candidateTemp = Join-Path $patchDirectory ('.petfightnew-candidate-' + [Guid]::NewGuid().ToString('N') + '.tmp')

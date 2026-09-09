@@ -217,10 +217,14 @@ def parse_abc(data: bytes, targets: set[tuple[str, str]]) -> list[dict[str, int 
             reader.u30()
         for _ in range(reader.u30()):
             reader.u30()
-        reader.u30()
+        initializer_method_index = reader.u30()
         traits = skip_traits(reader, reader.u30())
         class_name = multiname_text(class_name_index, strings, namespaces, multinames)
         if class_name:
+            if (class_name, "$iinit") in targets:
+                if initializer_method_index in target_methods:
+                    raise ParseError(f"duplicate target method index {initializer_method_index}")
+                target_methods[initializer_method_index] = (class_name, "$iinit")
             for trait_name_index, _, method_index in traits:
                 trait_name = multiname_text(trait_name_index, strings, namespaces, multinames)
                 method_name = trait_name.rsplit(".", 1)[-1] if trait_name else ""
@@ -385,7 +389,7 @@ def load_manifest(path: Path, production: bool) -> dict[str, int | str]:
         raise ParseError("manifest fields do not match schema version 1")
     if type(document["schemaVersion"]) is not int or document["schemaVersion"] != 1:
         raise ParseError("unsupported manifest schemaVersion")
-    if type(document["bridgeVersion"]) is not int or document["bridgeVersion"] != 4:
+    if type(document["bridgeVersion"]) is not int or document["bridgeVersion"] != 5:
         raise ParseError("unsupported bridgeVersion")
     if type(document["candidateLength"]) is not int or not (
         8 <= document["candidateLength"] <= MAX_PRODUCTION_SWF_BYTES

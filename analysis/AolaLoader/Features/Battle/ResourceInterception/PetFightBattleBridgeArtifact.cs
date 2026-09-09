@@ -14,7 +14,7 @@ internal sealed class PetFightBattleBridgeArtifact
 	internal const string ManifestFileName = "petfightnew-battle-state.current.json";
 	internal const string CandidateFileName = "petfightnew-battle-state-current.fws.swf";
 	private const int ManifestSchemaVersion = 1;
-	private const int BridgeVersion = 4;
+	private const int BridgeVersion = 5;
 	private const int MaximumManifestBytes = 16 * 1024;
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
 	private static readonly Regex VersionPattern = new Regex(

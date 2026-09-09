@@ -137,9 +137,17 @@ internal static class CompatibilityPathSourceGuardVerifier
 		string battleBridgeSource = File.ReadAllText(battleBridgePath);
 		string[] requiredBattleTokens =
 		{
-			"private static const BRIDGE_VERSION:int = 4",
+			"private static const BRIDGE_VERSION:int = 5",
 			"public static var skipBattlePresentation:Boolean = false",
 			"ExternalInterface.addCallback(\"aolaBattleApplyOptions\",onAolaBattleApplyOptions)",
+			"ExternalInterface.addCallback(\"aolaBattleGetDiagnostics\",onAolaBattleGetDiagnostics)",
+			"ExternalInterface.addCallback(\"aolaBattleDrainTraceEvents\",onAolaBattleDrainTraceEvents)",
+			"new Dictionary(true)",
+			"new Array(MAX_TRACE_EVENTS)",
+			"_diagnosticTraceHead",
+			"noteDiagnosticPanelDisposeStarted",
+			"LoaderContainer.instance.addEventListener(Event.ENTER_FRAME,onDiagnosticFrame,false,0,true)",
+			"\"version\":DIAGNOSTICS_VERSION",
 			"int(options.version) != options.version",
 			"typeof options.skipBattlePresentation != \"boolean\""
 		};
@@ -159,7 +167,10 @@ internal static class CompatibilityPathSourceGuardVerifier
 			"IGameOptionService",
 			"skipPetAttackActions",
 			"skipBattleVisualDelays",
-			"skipAttackAnimation"
+			"skipAttackAnimation",
+			"System.gc(",
+			"DomainLoader.unloadRes",
+			"ResScheduler.cancel"
 		};
 		foreach (string token in forbiddenBattleTokens)
 		{
@@ -180,6 +191,10 @@ internal static class CompatibilityPathSourceGuardVerifier
 			"pet/petfightnew",
 			"PetFightService:init",
 			"FightPanel:enableClick",
+			"StartMovie:$iinit",
+			"PreLoadAssetsUtil:onLoadCompleted",
+			"ResourceCleanupMode",
+			"Apply-ConservativePreloadCompletion",
 			"Assert-PcodeTrees",
 			"Promote requires -CandidateManifest with an explicit path."
 		};

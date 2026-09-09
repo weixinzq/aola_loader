@@ -7,6 +7,7 @@ using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.BrowserHost.Testing;
 using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Battle.Bridge;
+using AolaLoader.Features.Battle.Diagnostics;
 using AolaLoader.Features.Battle.Replay;
 using AolaLoader.PacketHost.Testing;
 using AolaSocketHack.Contracts;
@@ -18,7 +19,7 @@ internal static class BattleReplayContractVerifier
 {
 	public static bool Verify()
 	{
-		return VerifyStrictValidation() && VerifyStrictBridgeState() &&
+		return VerifyStrictValidation() && VerifyStrictBridgeState() && VerifyStrictDiagnostics() &&
 			VerifyStateDrivenProgression() && VerifyMixedPrefixProgression() &&
 			VerifySameTurnPacing() && VerifyServerReadyIsRequired() &&
 			VerifyDoesNotAdvanceWhileFlashTurnStaysCurrent() &&
@@ -35,7 +36,7 @@ internal static class BattleReplayContractVerifier
 		page.SetAvailability(PageBridgeAvailability.Ready);
 		page.InvokeHandler = (request, token) => Task.FromResult(PageBridgeResult.Success(new JObject
 		{
-			["version"] = 4,
+			["version"] = 5,
 			["active"] = true,
 			["battleId"] = "777",
 			["turn"] = 0,
@@ -47,6 +48,95 @@ internal static class BattleReplayContractVerifier
 			.GetAwaiter().GetResult();
 		page.Dispose();
 		return !result.Succeeded;
+	}
+
+	private static bool VerifyStrictDiagnostics()
+	{
+		ManualPageBridge page = new ManualPageBridge();
+		page.SetAvailability(PageBridgeAvailability.Ready);
+		bool invalidMemory = false;
+		page.InvokeHandler = (request, token) => Task.FromResult(PageBridgeResult.Success(
+			request.Operation == "battle.diagnostics.events"
+				? new JObject
+				{
+					["version"] = 1,
+					["droppedEventCount"] = 0,
+					["events"] = new JArray
+					{
+						new JObject
+						{
+							["sequence"] = 1,
+							["atMs"] = 12000,
+							["type"] = "resource-ended",
+							["resource"] = "pet/fight/example",
+							["durationMs"] = 87,
+							["value"] = 3,
+							["futureField"] = true
+						}
+					}
+				}
+				: DiagnosticsSnapshot(invalidMemory)));
+		BattleDiagnosticsResult valid = new BattleDiagnosticsClient(page).GetAsync(CancellationToken.None)
+			.GetAwaiter().GetResult();
+		BattleTraceResult trace = new BattleDiagnosticsClient(page).DrainTraceEventsAsync(CancellationToken.None)
+			.GetAwaiter().GetResult();
+		invalidMemory = true;
+		BattleDiagnosticsResult invalidResult = new BattleDiagnosticsClient(page).GetAsync(CancellationToken.None)
+			.GetAwaiter().GetResult();
+		page.Dispose();
+		return valid.Succeeded && valid.Snapshot.TotalMemory == 128L * 1024 * 1024 &&
+			valid.Snapshot.LiveFightPanels == 1 &&
+			valid.Snapshot.LiveStartMovies == 1 && valid.Snapshot.LiveApplicationDomains == 1 &&
+			valid.Snapshot.PreloadInFlightCount == 1 && valid.Snapshot.StageFrameRate == 50 &&
+			valid.Snapshot.FrameSampleCount == 750 && valid.Snapshot.MaxFrameGapMs == 123 &&
+			valid.Snapshot.FreeMemory == -1 && trace.Succeeded && trace.Events.Count == 1 &&
+			trace.Events[0].Resource == "pet/fight/example" && trace.Events[0].DurationMs == 87 &&
+			!invalidResult.Succeeded;
+	}
+
+	private static JObject DiagnosticsSnapshot(bool invalidMemory)
+	{
+		return new JObject
+		{
+			["version"] = 3,
+			["flashUptimeMs"] = 12050,
+			["totalMemory"] = invalidMemory ? (JToken)"128" : 128 * 1024 * 1024,
+			["privateMemory"] = 256 * 1024 * 1024,
+			["freeMemory"] = -1,
+			["liveFightPanels"] = 1,
+			["disposedFightPanels"] = 0,
+			["panelCreatedCount"] = 1,
+			["panelDisposeStartedCount"] = 0,
+			["panelDisposedCount"] = 0,
+			["liveStartMovies"] = 1,
+			["disposedStartMovies"] = 0,
+			["startMovieCreatedCount"] = 1,
+			["startMovieDisposedCount"] = 0,
+			["liveApplicationDomains"] = 1,
+			["releasedApplicationDomains"] = 0,
+			["applicationDomainCreatedCount"] = 1,
+			["applicationDomainReleasedCount"] = 0,
+			["livePreloadSessions"] = 1,
+			["activePreloadSessions"] = 1,
+			["disposedPreloadSessions"] = 0,
+			["preloadInFlightCount"] = 1,
+			["preloadPendingCount"] = 2,
+			["preloadStartedCount"] = 1,
+			["preloadCompletedCount"] = 0,
+			["preloadDisposedWhileLoadingCount"] = 0,
+			["currentResourceAgeMs"] = 50,
+			["traceDroppedCount"] = 0,
+			["stageChildren"] = 4,
+			["panelChildren"] = 12,
+			["stageFrameRate"] = 50,
+			["frameWindowMs"] = 30000,
+			["frameSampleCount"] = 750,
+			["longFrame50Count"] = 2,
+			["longFrame100Count"] = 1,
+			["longFrame200Count"] = 0,
+			["maxFrameGapMs"] = 123,
+			["futureField"] = true
+		};
 	}
 
 	private static bool VerifyStrictValidation()
@@ -139,7 +229,7 @@ internal static class BattleReplayContractVerifier
 		page.InvokeHandler = (request, token) => Task.FromResult(
 			PageBridgeResult.Success(new JObject
 			{
-				["version"] = 4,
+				["version"] = 5,
 				["active"] = true,
 				["battleId"] = BattleRouteId,
 				["turn"] = turn,
@@ -474,7 +564,7 @@ internal static class BattleReplayContractVerifier
 		page.InvokeHandler = (request, token) => Task.FromResult(
 			PageBridgeResult.Success(new JObject
 			{
-				["version"] = 4,
+				["version"] = 5,
 				["active"] = true,
 				["battleId"] = BattleRouteId,
 				["turn"] = turn,
@@ -585,7 +675,7 @@ internal static class BattleReplayContractVerifier
 
 	private static JObject State(bool active, int battleId, int turn, bool inputReady, int readyEpoch, bool ended) => new JObject
 	{
-		["version"] = 4,
+		["version"] = 5,
 		["active"] = active,
 		["battleId"] = battleId,
 		["turn"] = turn,
@@ -610,7 +700,7 @@ internal static class BattleReplayContractVerifier
 		page.SetAvailability(PageBridgeAvailability.Ready);
 		page.InvokeHandler = (request, token) => Task.FromResult(PageBridgeResult.Success(new JObject
 		{
-			["version"] = 4,
+			["version"] = 5,
 			["active"] = false,
 			["battleId"] = 0,
 			["turn"] = 0,

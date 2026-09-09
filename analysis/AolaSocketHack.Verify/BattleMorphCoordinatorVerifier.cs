@@ -31,7 +31,7 @@ internal static class BattleMorphCoordinatorVerifier
 				{
 					return Task.FromResult(PageBridgeResult.Success(new JObject
 					{
-						["version"] = 4,
+						["version"] = 5,
 						["active"] = active,
 						["battleId"] = 1,
 						["turn"] = 0,

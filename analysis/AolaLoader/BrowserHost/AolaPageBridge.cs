@@ -136,6 +136,9 @@ internal sealed class AolaPageBridge : IPageBridge
 			try { applyBattleOptions(); } catch (ignored) {}
 		}, 100);
 	}
+	function validDiagnosticNumber(value) {
+		return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= -1;
+	}
 	try {
 		if (operation === 'activeSend.submit') {
 			var requestId = String(args.requestId || '');
@@ -206,7 +209,7 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Invalid battle options.');
 			}
 			state.battle.options = {
-				version: 4,
+				version: 5,
 				revision: Number(args.revision),
 				hideDamageNumbers: args.hideDamageNumbers,
 				hideHealingNumbers: args.hideHealingNumbers,
@@ -232,7 +235,7 @@ internal sealed class AolaPageBridge : IPageBridge
 			var requiredStateKeys = stateKeys.slice(0).sort();
 			if (!battleState || returnedKeys.length !== requiredStateKeys.length ||
 				returnedKeys.some(function (key, index) { return key !== requiredStateKeys[index]; }) ||
-				Number(battleState.version) !== 4 || typeof battleState.active !== 'boolean' ||
+				Number(battleState.version) !== 5 || typeof battleState.active !== 'boolean' ||
 				typeof battleState.inputReady !== 'boolean' || typeof battleState.ended !== 'boolean' ||
 				typeof battleState.battleId !== 'number' || Math.floor(battleState.battleId) !== battleState.battleId ||
 				battleState.battleId < -2147483648 || battleState.battleId > 2147483647 ||
@@ -241,6 +244,50 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Flash returned an invalid battle state.');
 			}
 			return envelope(true, battleState, '', '');
+		}
+		if (operation === 'battle.diagnostics') {
+			var diagnosticsFlash = findFlash('aolaBattleGetDiagnostics');
+			if (!diagnosticsFlash) return envelope(false, null, 'BridgeNotInstalled', '战斗诊断桥尚未就绪。');
+			var rawDiagnostics = String(diagnosticsFlash.aolaBattleGetDiagnostics() || '');
+			var diagnostics = JSON.parse(rawDiagnostics);
+			var diagnosticsKeys = ['version', 'flashUptimeMs', 'totalMemory', 'privateMemory', 'freeMemory',
+				'liveFightPanels', 'disposedFightPanels', 'panelCreatedCount',
+				'panelDisposeStartedCount', 'panelDisposedCount',
+				'liveStartMovies', 'disposedStartMovies', 'startMovieCreatedCount', 'startMovieDisposedCount',
+				'liveApplicationDomains', 'releasedApplicationDomains',
+				'applicationDomainCreatedCount', 'applicationDomainReleasedCount',
+				'livePreloadSessions', 'activePreloadSessions', 'disposedPreloadSessions',
+				'preloadInFlightCount', 'preloadPendingCount', 'preloadStartedCount',
+				'preloadCompletedCount', 'preloadDisposedWhileLoadingCount', 'currentResourceAgeMs',
+				'traceDroppedCount', 'stageChildren', 'panelChildren',
+				'frameWindowMs', 'frameSampleCount', 'longFrame50Count', 'longFrame100Count',
+				'longFrame200Count', 'maxFrameGapMs'];
+			if (!diagnostics || Number(diagnostics.version) !== 3 ||
+				diagnosticsKeys.slice(1).some(function (key) {
+					return !Object.prototype.hasOwnProperty.call(diagnostics, key) ||
+						!validDiagnosticNumber(diagnostics[key]);
+				}) || typeof diagnostics.stageFrameRate !== 'number' ||
+				!isFinite(diagnostics.stageFrameRate) || diagnostics.stageFrameRate < -1) {
+				return envelope(false, null, 'InvocationFailed', 'Flash returned invalid battle diagnostics.');
+			}
+			return envelope(true, diagnostics, '', '');
+		}
+		if (operation === 'battle.diagnostics.events') {
+			var traceFlash = findFlash('aolaBattleDrainTraceEvents');
+			if (!traceFlash) return envelope(false, null, 'BridgeNotInstalled', '战斗资源事件桥尚未就绪。');
+			var rawTrace = String(traceFlash.aolaBattleDrainTraceEvents() || '');
+			var trace = JSON.parse(rawTrace);
+			if (!trace || Number(trace.version) !== 1 || !validDiagnosticNumber(trace.droppedEventCount) ||
+				!Array.isArray(trace.events) || trace.events.length > 512 || trace.events.some(function (item) {
+					return !item || !validDiagnosticNumber(item.sequence) || item.sequence < 0 ||
+						!validDiagnosticNumber(item.atMs) || item.atMs < 0 ||
+						typeof item.type !== 'string' || !item.type || item.type.length > 64 ||
+						typeof item.resource !== 'string' || item.resource.length > 512 ||
+						!validDiagnosticNumber(item.durationMs) || !validDiagnosticNumber(item.value);
+				})) {
+				return envelope(false, null, 'InvocationFailed', 'Flash returned invalid battle resource events.');
+			}
+			return envelope(true, trace, '', '');
 		}
 		if (operation === 'feature.push') {
 			var feature = String(args.feature || '');

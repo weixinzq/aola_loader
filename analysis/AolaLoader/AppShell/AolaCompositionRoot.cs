@@ -8,6 +8,7 @@ using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.Battle.Bridge;
 using AolaLoader.Features.Battle.Coordination;
+using AolaLoader.Features.Battle.Diagnostics;
 using AolaLoader.Features.Battle.Settings;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.Settings;
@@ -36,6 +37,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 	private readonly ThemeCoordinator _themeCoordinator;
 	private readonly PetMorphCoordinator _petMorphCoordinator;
 	private readonly BattlePresentationCoordinator _battlePresentationCoordinator;
+	private readonly BattlePerformanceRecorder _battlePerformanceRecorder;
 	private readonly ChromiumWebBrowser _browser;
 	private readonly AolaBrowserSession _browserSession;
 	private readonly IPageBridge _pageBridge;
@@ -85,6 +87,10 @@ internal sealed class AolaCompositionRoot : IDisposable
 				new AolaPetMorphLiveBridge()));
 		_browserSession = new AolaBrowserSession(_browser);
 		_pageBridge = new AolaPageBridge(_browserSession);
+		_battlePerformanceRecorder = new BattlePerformanceRecorder(
+			_battleTracker,
+			new BattleDiagnosticsClient(_pageBridge),
+			Path.Combine(baseDirectory, "logs", "performance"));
 		_battlePresentationCoordinator = new BattlePresentationCoordinator(
 			settingsStore,
 			new BattleSettingsCodec(),
@@ -116,6 +122,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 			return;
 		}
 		_disposed = true;
+		_battlePerformanceRecorder.Dispose();
 		_childWindowCoordinator.Dispose();
 		_pageBridge.Dispose();
 		_browserSession.Dispose();

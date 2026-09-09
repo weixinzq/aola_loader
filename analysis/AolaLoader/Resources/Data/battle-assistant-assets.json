@@ -41,7 +41,22 @@
       6012,
       6021,
       6060,
-      124891
+      56018,
+      85932,
+      95331,
+      95765,
+      124891,
+      155524,
+      175858,
+      185912,
+      195370,
+      195556,
+      195788,
+      205830,
+      255512,
+      395773,
+      445526,
+      665488
     ],
     "equipment": [
       4283,
@@ -881,6 +896,74 @@
     },
     {
       "category": "pet",
+      "id": 56018,
+      "path": "pet/56018.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon6018/peticon6018~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon6018",
+      "sourceSha256": "5068741e3a4973c1bc1a51a751d5aa6a09023b3d385f53853da9646d32209bb7",
+      "sourceSize": 1290322,
+      "imageSha256": "99dbaca89c07bb8ad020e4b0381032683cd33e196cb6a366f54f0c96ecdf6e97",
+      "crop": [
+        450,
+        274,
+        510,
+        334
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 85932,
+      "path": "pet/85932.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5932/peticon5932~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5932",
+      "sourceSha256": "b798cba0493e623e4b282f6f3931305256b7f84fab579b7c8ef4c9ea8ec18567",
+      "sourceSize": 1570207,
+      "imageSha256": "d533cb4ef270f2f0090f54096bec40fd51e7d641ba70dcef44e084cad091f2e3",
+      "crop": [
+        485,
+        264,
+        545,
+        324
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 95331,
+      "path": "pet/95331.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5331/peticon5331~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5331",
+      "sourceSha256": "45ff8cbb71f9f5d0bde4231dee04bec50d8d004ec564519915bd5fcd1f341f0c",
+      "sourceSize": 874716,
+      "imageSha256": "60bd330eceb5e0b020a4f8197dbefcbdb9b695c26fde365cbdf6b3eae2b6691b",
+      "crop": [
+        391,
+        300,
+        451,
+        360
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 95765,
+      "path": "pet/95765.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5765/peticon5765~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5765",
+      "sourceSha256": "83fa11c2d8e9ca8aa63b20f02f717a0a5e88eb12d014cc5383e6ce424f72ad90",
+      "sourceSize": 1283087,
+      "imageSha256": "06a9fe9d1edf10c84d560da22a181d4c3393812c43ff69e9f78991b3d6c985fb",
+      "crop": [
+        476,
+        401,
+        536,
+        461
+      ]
+    },
+    {
+      "category": "pet",
       "id": 124891,
       "path": "pet/124891.png",
       "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon4891/peticon4891~1210.swf",
@@ -894,6 +977,193 @@
         142,
         284,
         202
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 155524,
+      "path": "pet/155524.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5524/peticon5524~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5524",
+      "sourceSha256": "5750a9c92c344cb1222707ee926a2cfb2a443dfc271d40c6f6acb69c6771256e",
+      "sourceSize": 661297,
+      "imageSha256": "02e524292247856981a41d4464bf03570f89275b27361429929cbf9d6b48381c",
+      "crop": [
+        264,
+        172,
+        324,
+        232
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 175858,
+      "path": "pet/175858.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5858/peticon5858~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5858",
+      "sourceSha256": "204115efcf33e786320c4341e780e2f268b80a296d01d49a81141a7dc78e8b2a",
+      "sourceSize": 1582425,
+      "imageSha256": "1796a9deaa1b4b722b7ed9b97f0f2fb6ab5cf04d1908d1f31e347875cd8e1da6",
+      "crop": [
+        456,
+        248,
+        516,
+        308
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 185912,
+      "path": "pet/185912.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5912/peticon5912~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5912",
+      "sourceSha256": "ebc1bd277474c34f3fa2d68a77b455fe6409f5543250f430d5624a6998244df7",
+      "sourceSize": 1117234,
+      "imageSha256": "6c4326329c6ef895970eac1378b47817a84114990a84653e5c33b08381ac26b8",
+      "crop": [
+        456,
+        431,
+        516,
+        491
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 195370,
+      "path": "pet/195370.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5370/peticon5370~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5370",
+      "sourceSha256": "02fae8d6096036918b80f62d818c995a70b2266db141c062a0fb98833764f665",
+      "sourceSize": 1069018,
+      "imageSha256": "b9eeacbb2f916f8f76585ef1666dbb4363211711290f55cd089910c36e124db3",
+      "crop": [
+        435,
+        220,
+        495,
+        280
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 195556,
+      "path": "pet/195556.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5556/peticon5556~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5556",
+      "sourceSha256": "0ccbe0668c9e1ce07573ed5e1cb74ca6b36b2955940f84703925c899babc7473",
+      "sourceSize": 1342616,
+      "imageSha256": "8687233ab0d097facb5b957efcb7a0241bd68ca02cb4da9f655492aef803e306",
+      "crop": [
+        426,
+        267,
+        486,
+        327
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 195788,
+      "path": "pet/195788.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5788/peticon5788~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5788",
+      "sourceSha256": "f03c9d9ea6d71e6628087d1a31d0798231b8595283543b70531d8e83659633c1",
+      "sourceSize": 1205036,
+      "imageSha256": "56d16294653c1302fb9d911331f7cc1d7f0366f84c8f6e8af99ac062933cc0a7",
+      "crop": [
+        423,
+        169,
+        483,
+        229
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 205830,
+      "path": "pet/205830.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5830/peticon5830~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5830",
+      "sourceSha256": "e0ff198812327863220df32651b515d01479071baaa24dc35c818170a8f60036",
+      "sourceSize": 1514063,
+      "imageSha256": "95feda8f81e97b1b7355e45dc7b64141a85fdba801e21600891a5a65069468c2",
+      "crop": [
+        510,
+        270,
+        570,
+        330
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 255512,
+      "path": "pet/255512.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5512/peticon5512~241226619470831.swf",
+      "version": "241226619470831",
+      "class": "mmo.peticon.icon.type0.PetIcon5512",
+      "sourceSha256": "3667beff0acb05a59f3654a903f6ef661fc2cebb0bc6208239709fef5b124fef",
+      "sourceSize": 1251524,
+      "imageSha256": "9b983b0b1cd34645ebfd5a2a2ade65abee6c900f64aca95b6fe20cdd2897c696",
+      "crop": [
+        426,
+        244,
+        486,
+        304
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 395773,
+      "path": "pet/395773.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5773/peticon5773~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5773",
+      "sourceSha256": "88da15444b2c8292a66db4ef35f1865bcce72e0697671124d817e7eff43a17d4",
+      "sourceSize": 2123164,
+      "imageSha256": "1cfebb7fc0b657e2fcc812ce130fc9d8faad9b0395ecbf6434b717db8d04d778",
+      "crop": [
+        524,
+        314,
+        584,
+        374
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 445526,
+      "path": "pet/445526.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5526/peticon5526~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5526",
+      "sourceSha256": "ff9afeb3cbbf23c4aa85b0d31e08cac35adbbd80a4e957ace557ae20b6e237af",
+      "sourceSize": 1205450,
+      "imageSha256": "6f8bbede383b9e14bb824ad5c08ae22b330be17b9e9a59c8c03b61c5322d53df",
+      "crop": [
+        444,
+        323,
+        504,
+        383
+      ]
+    },
+    {
+      "category": "pet",
+      "id": 665488,
+      "path": "pet/665488.png",
+      "url": "https://aola.100bt.com/play/peticon/icon/type0/peticon5488/peticon5488~1210.swf",
+      "version": "1210",
+      "class": "mmo.peticon.icon.type0.PetIcon5488",
+      "sourceSha256": "b1f46393d437740ce29388b323036500c797b7a2028834f4bf2c02e88579c40b",
+      "sourceSize": 1203139,
+      "imageSha256": "394fa776d894606537c8b05a2ef6fb3763ca654171c6110ddc6ce682d0e30554",
+      "crop": [
+        437,
+        276,
+        497,
+        336
       ]
     },
     {

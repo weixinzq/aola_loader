@@ -111,7 +111,7 @@ internal static class ActiveSendContractVerifier
 				"battle.apply",
 				new JObject
 				{
-					["version"] = 4, ["revision"] = 1,
+					["version"] = 5, ["revision"] = 1,
 					["hideDamageNumbers"] = true, ["hideHealingNumbers"] = false,
 					["skipBattlePresentation"] = true
 				},

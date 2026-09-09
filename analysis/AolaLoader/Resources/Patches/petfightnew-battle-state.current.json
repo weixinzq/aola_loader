@@ -4,8 +4,8 @@
   "officialUrl": "https://aola.100bt.com/play/pet/petfightnew~2026090340574444.swf",
   "officialZwsSha256": "79818d6958934a898e5fa2cc21865f8d5270d5c9634da50328475db9852ff3d7",
   "candidateFile": "petfightnew-battle-state-current.fws.swf",
-  "candidateLength": 6556046,
-  "candidateSha256": "ac321825ce4f8c98b301fafcb53eeefc12320eab913827e4e6b10845ef71ebc9",
-  "bridgeVersion": 4,
+  "candidateLength": 6566146,
+  "candidateSha256": "4ec2f91c1bfcb83f0282b84e102862b9e737a0151e32aea28859e4b59033ed69",
+  "bridgeVersion": 5,
   "symbolClassSha256": "38125be72fd95f30f5981b35ebc6781476807d68a93797294b6000908d8586e0"
 }

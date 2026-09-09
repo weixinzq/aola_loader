@@ -58,6 +58,7 @@
 /analysis/reverse-engineering/
 /analysis/tools/*
 !/analysis/tools/Update-PetFightBattleBridge.ps1
+!/analysis/tools/Analyze-BattleResourceTrace.ps1
 !/analysis/tools/Prepare-BattleAssistantAssets.ps1
 !/analysis/tools/prepare_battle_assistant_assets.py
 !/analysis/tools/petfight_bridge_abc.py

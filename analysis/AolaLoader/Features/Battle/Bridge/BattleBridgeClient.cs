@@ -28,7 +28,7 @@ internal sealed class BattleBridgeClient
 		}
 		JObject arguments = new JObject
 		{
-			["version"] = 4,
+			["version"] = 5,
 			["revision"] = revision,
 			["hideDamageNumbers"] = settings.HideDamageNumbers,
 			["hideHealingNumbers"] = settings.HideHealingNumbers,
@@ -79,7 +79,7 @@ internal sealed class BattleBridgeClient
 
 	private static bool IsStrictState(JObject state)
 	{
-		if (state.Count != 7 || state["version"]?.Type != JTokenType.Integer || state.Value<int>("version") != 4 ||
+		if (state.Count != 7 || state["version"]?.Type != JTokenType.Integer || state.Value<int>("version") != 5 ||
 			state["active"]?.Type != JTokenType.Boolean || state["inputReady"]?.Type != JTokenType.Boolean ||
 			state["ended"]?.Type != JTokenType.Boolean || state["battleId"]?.Type != JTokenType.Integer ||
 			state["turn"]?.Type != JTokenType.Integer || state["readyEpoch"]?.Type != JTokenType.Integer)

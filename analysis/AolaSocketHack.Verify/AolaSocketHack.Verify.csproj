@@ -45,6 +45,7 @@
 	<Compile Include="..\AolaLoader\Features\Battle\Coordination\BattleMorphCoordinationContracts.cs" Link="Features\Battle\Coordination\BattleMorphCoordinationContracts.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Coordination\BattlePresentationCoordinator.cs" Link="Features\Battle\Coordination\BattlePresentationCoordinator.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Bridge\BattleBridgeClient.cs" Link="Features\Battle\Bridge\BattleBridgeClient.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\Diagnostics\BattleDiagnosticsClient.cs" Link="Features\Battle\Diagnostics\BattleDiagnosticsClient.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Replay\BattleSequenceValidator.cs" Link="Features\Battle\Replay\BattleSequenceValidator.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\Replay\BattleSequenceRunner.cs" Link="Features\Battle\Replay\BattleSequenceRunner.cs" />
   </ItemGroup>
