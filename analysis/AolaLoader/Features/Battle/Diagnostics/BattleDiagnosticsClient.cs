@@ -27,7 +27,8 @@ internal sealed class BattleDiagnosticsClient
 			return BattleDiagnosticsResult.Failure(result.Message);
 		}
 		if (!(result.Value is JObject value) ||
-			value.Value<int?>("version") != 3 ||
+			value.Value<int?>("version") != 4 ||
+			!TryReadBoolean(value, "conservativeCleanupEnabled", out bool conservativeCleanupEnabled) ||
 			!TryReadCount(value, "flashUptimeMs", out int flashUptimeMs) ||
 			!TryReadMemory(value, "totalMemory", out long totalMemory) ||
 			!TryReadMemory(value, "privateMemory", out long privateMemory) ||
@@ -54,6 +55,17 @@ internal sealed class BattleDiagnosticsClient
 			!TryReadCount(value, "preloadCompletedCount", out int preloadCompletedCount) ||
 			!TryReadCount(value, "preloadDisposedWhileLoadingCount", out int preloadDisposedWhileLoadingCount) ||
 			!TryReadCount(value, "currentResourceAgeMs", out int currentResourceAgeMs) ||
+			!TryReadCount(value, "liveSkillEffectLoaders", out int liveSkillEffectLoaders) ||
+			!TryReadCount(value, "skillEffectRequestInFlightCount", out int skillEffectRequestInFlightCount) ||
+			!TryReadCount(value, "skillEffectRequestStartedCount", out int skillEffectRequestStartedCount) ||
+			!TryReadCount(value, "skillEffectRequestCompletedCount", out int skillEffectRequestCompletedCount) ||
+			!TryReadCount(value, "skillEffectDisposedWhileLoadingCount", out int skillEffectDisposedWhileLoadingCount) ||
+			!TryReadCount(value, "skillEffectCallbackAfterDisposeCount", out int skillEffectCallbackAfterDisposeCount) ||
+			!TryReadCount(value, "activeAttackCount", out int activeAttackCount) ||
+			!TryReadCount(value, "oldestAttackAgeMs", out int oldestAttackAgeMs) ||
+			!TryReadCount(value, "attackMissingStrategyCount", out int attackMissingStrategyCount) ||
+			!TryReadCount(value, "attackWatchdogTimeoutCount", out int attackWatchdogTimeoutCount) ||
+			!TryReadCount(value, "attackRecoveryErrorCount", out int attackRecoveryErrorCount) ||
 			!TryReadCount(value, "traceDroppedCount", out int traceDroppedCount) ||
 			!TryReadCount(value, "stageChildren", out int stageChildren) ||
 			!TryReadCount(value, "panelChildren", out int panelChildren) ||
@@ -68,6 +80,7 @@ internal sealed class BattleDiagnosticsClient
 			return BattleDiagnosticsResult.Failure("页面桥返回了无效的战斗诊断数据。");
 		}
 		return BattleDiagnosticsResult.Success(new BattleDiagnosticsSnapshot(
+			conservativeCleanupEnabled,
 			flashUptimeMs,
 			totalMemory,
 			privateMemory,
@@ -94,6 +107,17 @@ internal sealed class BattleDiagnosticsClient
 			preloadCompletedCount,
 			preloadDisposedWhileLoadingCount,
 			currentResourceAgeMs,
+			liveSkillEffectLoaders,
+			skillEffectRequestInFlightCount,
+			skillEffectRequestStartedCount,
+			skillEffectRequestCompletedCount,
+			skillEffectDisposedWhileLoadingCount,
+			skillEffectCallbackAfterDisposeCount,
+			activeAttackCount,
+			oldestAttackAgeMs,
+			attackMissingStrategyCount,
+			attackWatchdogTimeoutCount,
+			attackRecoveryErrorCount,
 			traceDroppedCount,
 			stageChildren,
 			panelChildren,
@@ -158,6 +182,18 @@ internal sealed class BattleDiagnosticsClient
 		return true;
 	}
 
+	private static bool TryReadBoolean(JObject value, string name, out bool result)
+	{
+		result = false;
+		JToken token = value[name];
+		if (token?.Type != JTokenType.Boolean)
+		{
+			return false;
+		}
+		result = token.Value<bool>();
+		return true;
+	}
+
 	private static bool TryReadCount(JObject value, string name, out int result)
 	{
 		result = -1;
@@ -208,6 +244,7 @@ internal sealed class BattleDiagnosticsClient
 internal sealed class BattleDiagnosticsSnapshot
 {
 	public BattleDiagnosticsSnapshot(
+		bool conservativeCleanupEnabled,
 		int flashUptimeMs,
 		long totalMemory,
 		long privateMemory,
@@ -234,6 +271,17 @@ internal sealed class BattleDiagnosticsSnapshot
 		int preloadCompletedCount,
 		int preloadDisposedWhileLoadingCount,
 		int currentResourceAgeMs,
+		int liveSkillEffectLoaders,
+		int skillEffectRequestInFlightCount,
+		int skillEffectRequestStartedCount,
+		int skillEffectRequestCompletedCount,
+		int skillEffectDisposedWhileLoadingCount,
+		int skillEffectCallbackAfterDisposeCount,
+		int activeAttackCount,
+		int oldestAttackAgeMs,
+		int attackMissingStrategyCount,
+		int attackWatchdogTimeoutCount,
+		int attackRecoveryErrorCount,
 		int traceDroppedCount,
 		int stageChildren,
 		int panelChildren,
@@ -245,6 +293,7 @@ internal sealed class BattleDiagnosticsSnapshot
 		int longFrame200Count,
 		int maxFrameGapMs)
 	{
+		ConservativeCleanupEnabled = conservativeCleanupEnabled;
 		FlashUptimeMs = flashUptimeMs;
 		TotalMemory = totalMemory;
 		PrivateMemory = privateMemory;
@@ -271,6 +320,17 @@ internal sealed class BattleDiagnosticsSnapshot
 		PreloadCompletedCount = preloadCompletedCount;
 		PreloadDisposedWhileLoadingCount = preloadDisposedWhileLoadingCount;
 		CurrentResourceAgeMs = currentResourceAgeMs;
+		LiveSkillEffectLoaders = liveSkillEffectLoaders;
+		SkillEffectRequestInFlightCount = skillEffectRequestInFlightCount;
+		SkillEffectRequestStartedCount = skillEffectRequestStartedCount;
+		SkillEffectRequestCompletedCount = skillEffectRequestCompletedCount;
+		SkillEffectDisposedWhileLoadingCount = skillEffectDisposedWhileLoadingCount;
+		SkillEffectCallbackAfterDisposeCount = skillEffectCallbackAfterDisposeCount;
+		ActiveAttackCount = activeAttackCount;
+		OldestAttackAgeMs = oldestAttackAgeMs;
+		AttackMissingStrategyCount = attackMissingStrategyCount;
+		AttackWatchdogTimeoutCount = attackWatchdogTimeoutCount;
+		AttackRecoveryErrorCount = attackRecoveryErrorCount;
 		TraceDroppedCount = traceDroppedCount;
 		StageChildren = stageChildren;
 		PanelChildren = panelChildren;
@@ -283,6 +343,7 @@ internal sealed class BattleDiagnosticsSnapshot
 		MaxFrameGapMs = maxFrameGapMs;
 	}
 
+	public bool ConservativeCleanupEnabled { get; }
 	public int FlashUptimeMs { get; }
 	public long TotalMemory { get; }
 	public long PrivateMemory { get; }
@@ -309,6 +370,17 @@ internal sealed class BattleDiagnosticsSnapshot
 	public int PreloadCompletedCount { get; }
 	public int PreloadDisposedWhileLoadingCount { get; }
 	public int CurrentResourceAgeMs { get; }
+	public int LiveSkillEffectLoaders { get; }
+	public int SkillEffectRequestInFlightCount { get; }
+	public int SkillEffectRequestStartedCount { get; }
+	public int SkillEffectRequestCompletedCount { get; }
+	public int SkillEffectDisposedWhileLoadingCount { get; }
+	public int SkillEffectCallbackAfterDisposeCount { get; }
+	public int ActiveAttackCount { get; }
+	public int OldestAttackAgeMs { get; }
+	public int AttackMissingStrategyCount { get; }
+	public int AttackWatchdogTimeoutCount { get; }
+	public int AttackRecoveryErrorCount { get; }
 	public int TraceDroppedCount { get; }
 	public int StageChildren { get; }
 	public int PanelChildren { get; }

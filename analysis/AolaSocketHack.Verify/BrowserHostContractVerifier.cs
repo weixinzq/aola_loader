@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using AolaLoader.BrowserHost;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.BrowserHost.Testing;
 using Newtonsoft.Json.Linq;
@@ -12,7 +13,24 @@ internal static class BrowserHostContractVerifier
 {
 	public static bool Verify()
 	{
-		return VerifyBrowserSession() && VerifyPageBridge();
+		return VerifyBrowserSession() && VerifyPageBridge() && VerifyBattlePageContract();
+	}
+
+	private static bool VerifyBattlePageContract()
+	{
+		string script = AolaPageBridge.BuildInvocationScript("battle.apply", new JObject
+		{
+			["version"] = 5,
+			["revision"] = 1,
+			["hideDamageNumbers"] = false,
+			["hideHealingNumbers"] = false,
+			["skipBattlePresentation"] = true
+		});
+		return script.IndexOf("args.version !== 5", StringComparison.Ordinal) >= 0 &&
+			script.IndexOf("args.version !== 4", StringComparison.Ordinal) < 0 &&
+			script.IndexOf("Number(diagnostics.version) !== 4", StringComparison.Ordinal) >= 0 &&
+			script.IndexOf("typeof diagnostics.conservativeCleanupEnabled !== 'boolean'", StringComparison.Ordinal) >= 0 &&
+			script.IndexOf("'skillEffectRequestInFlightCount'", StringComparison.Ordinal) >= 0;
 	}
 
 	private static bool VerifyBrowserSession()

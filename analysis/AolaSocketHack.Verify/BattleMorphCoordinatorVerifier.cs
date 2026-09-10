@@ -40,6 +40,12 @@ internal static class BattleMorphCoordinatorVerifier
 						["ended"] = ended
 					}));
 				}
+				if (request.Operation != "battle.apply" || request.Arguments.Value<int?>("version") != 5)
+				{
+					return Task.FromResult(PageBridgeResult.Failure(
+						PageBridgeFailureKind.InvocationFailed,
+						"unexpected battle bridge contract"));
+				}
 				int revision = request.Arguments.Value<int>("revision");
 				return Task.FromResult(PageBridgeResult.Success(new JObject
 				{

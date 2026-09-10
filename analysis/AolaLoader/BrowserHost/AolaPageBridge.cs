@@ -202,7 +202,7 @@ internal sealed class AolaPageBridge : IPageBridge
 			var expectedKeys = optionKeys.slice(0).sort();
 			if (actualKeys.length !== expectedKeys.length ||
 				actualKeys.some(function (key, index) { return key !== expectedKeys[index]; }) ||
-				typeof args.version !== 'number' || args.version !== 4 ||
+				typeof args.version !== 'number' || args.version !== 5 ||
 				typeof args.revision !== 'number' || Math.floor(args.revision) !== args.revision || args.revision < 0 ||
 				typeof args.hideDamageNumbers !== 'boolean' || typeof args.hideHealingNumbers !== 'boolean' ||
 				typeof args.skipBattlePresentation !== 'boolean') {
@@ -259,10 +259,16 @@ internal sealed class AolaPageBridge : IPageBridge
 				'livePreloadSessions', 'activePreloadSessions', 'disposedPreloadSessions',
 				'preloadInFlightCount', 'preloadPendingCount', 'preloadStartedCount',
 				'preloadCompletedCount', 'preloadDisposedWhileLoadingCount', 'currentResourceAgeMs',
+				'liveSkillEffectLoaders', 'skillEffectRequestInFlightCount',
+				'skillEffectRequestStartedCount', 'skillEffectRequestCompletedCount',
+				'skillEffectDisposedWhileLoadingCount', 'skillEffectCallbackAfterDisposeCount',
+				'activeAttackCount', 'oldestAttackAgeMs', 'attackMissingStrategyCount',
+				'attackWatchdogTimeoutCount', 'attackRecoveryErrorCount',
 				'traceDroppedCount', 'stageChildren', 'panelChildren',
 				'frameWindowMs', 'frameSampleCount', 'longFrame50Count', 'longFrame100Count',
 				'longFrame200Count', 'maxFrameGapMs'];
-			if (!diagnostics || Number(diagnostics.version) !== 3 ||
+			if (!diagnostics || Number(diagnostics.version) !== 4 ||
+				typeof diagnostics.conservativeCleanupEnabled !== 'boolean' ||
 				diagnosticsKeys.slice(1).some(function (key) {
 					return !Object.prototype.hasOwnProperty.call(diagnostics, key) ||
 						!validDiagnosticNumber(diagnostics[key]);

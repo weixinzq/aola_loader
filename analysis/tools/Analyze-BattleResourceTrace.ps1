@@ -153,13 +153,25 @@ if (-not [string]::IsNullOrWhiteSpace($SwfCaptureLog)) {
 }
 
 $longFrames = @($events | Where-Object { $_.Type -eq 'frame-gap' -and $_.Value -ge 100 -and $_.TimeUtc })
-$resourceStarts = @($events | Where-Object { $_.Type -eq 'resource-started' -and $_.Resource })
-$resourceEnds = @($events | Where-Object { $_.Type -eq 'resource-ended' -and $_.Resource })
+$resourceStarts = @($events | Where-Object {
+    $_.Type -in @('resource-started', 'skill-effect-started') -and $_.Resource
+} | ForEach-Object {
+    $_ | Add-Member -NotePropertyName Category -NotePropertyValue $(
+        if ($_.Type -eq 'skill-effect-started') { 'skill-effect' } else { 'preload' }) -PassThru
+})
+$resourceEnds = @($events | Where-Object {
+    $_.Type -in @('resource-ended', 'skill-effect-ended') -and $_.Resource
+} | ForEach-Object {
+    $_ | Add-Member -NotePropertyName Category -NotePropertyValue $(
+        if ($_.Type -eq 'skill-effect-ended') { 'skill-effect' } else { 'preload' }) -PassThru
+})
 $duplicateLookup = @{}
-$duplicateRequests = @($resourceStarts | Group-Object BattleNumber, Resource | Where-Object { $_.Count -gt 1 } |
+$duplicateRequests = @($resourceStarts | Where-Object { $_.Category -eq 'preload' } |
+    Group-Object BattleNumber, Resource | Where-Object { $_.Count -gt 1 } |
     ForEach-Object {
         $first = $_.Group[0]
-        $duplicateLookup[$first.Resource] = [int]($duplicateLookup[$first.Resource]) + $_.Count - 1
+        $key = $first.Category + '|' + $first.Resource
+        $duplicateLookup[$key] = [int]($duplicateLookup[$key]) + $_.Count - 1
         [pscustomobject]@{
             BattleNumber = $first.BattleNumber
             Resource = $first.Resource
@@ -167,14 +179,16 @@ $duplicateRequests = @($resourceStarts | Group-Object BattleNumber, Resource | W
             DuplicateCount = $_.Count - 1
         }
     })
-$unfinishedByBattle = @($resourceStarts | Group-Object BattleNumber, Resource | ForEach-Object {
+$unfinishedByBattle = @($resourceStarts | Group-Object BattleNumber, Category, Resource | ForEach-Object {
     $first = $_.Group[0]
     $completionCount = @($resourceEnds | Where-Object {
-        $_.BattleNumber -eq $first.BattleNumber -and $_.Resource -ceq $first.Resource
+        $_.BattleNumber -eq $first.BattleNumber -and $_.Category -ceq $first.Category -and
+        $_.Resource -ceq $first.Resource
     }).Count
     if ($_.Count -gt $completionCount) {
         [pscustomobject]@{
             BattleNumber = $first.BattleNumber
+            Category = $first.Category
             Resource = $first.Resource
             RequestCount = $_.Count
             CompletionCount = $completionCount
@@ -183,10 +197,11 @@ $unfinishedByBattle = @($resourceStarts | Group-Object BattleNumber, Resource | 
     }
 })
 
-$resourceSummary = @($resourceStarts | Group-Object Resource | ForEach-Object {
-    $resource = $_.Name
+$resourceSummary = @($resourceStarts | Group-Object Category, Resource | ForEach-Object {
+    $category = $_.Group[0].Category
+    $resource = $_.Group[0].Resource
     $starts = @($_.Group)
-    $ends = @($resourceEnds | Where-Object { $_.Resource -ceq $resource })
+    $ends = @($resourceEnds | Where-Object { $_.Category -ceq $category -and $_.Resource -ceq $resource })
     $durations = @($ends | Where-Object { $_.DurationMs -ge 0 } | ForEach-Object { $_.DurationMs })
     $nearbyLongFrames = 0
     $totalMemoryDeltas = [Collections.Generic.List[double]]::new()
@@ -232,11 +247,12 @@ $resourceSummary = @($resourceStarts | Group-Object Resource | ForEach-Object {
     }
     $captures = if ($captureByResource.ContainsKey($resource)) { @($captureByResource[$resource]) } else { @() }
     [pscustomobject]@{
+        Category = $category
         Resource = $resource
         RequestCount = $starts.Count
         CompletionCount = $ends.Count
         UnfinishedCount = [Math]::Max(0, $starts.Count - $ends.Count)
-        DuplicateRequestsWithinBattle = [int]$duplicateLookup[$resource]
+        DuplicateRequestsWithinBattle = [int]$duplicateLookup[$category + '|' + $resource]
         TotalDurationMs = [int64](($durations | Measure-Object -Sum).Sum)
         MaxDurationMs = if ($durations.Count) { [int](($durations | Measure-Object -Maximum).Maximum) } else { -1 }
         LongFrames100WithinOneSecond = $nearbyLongFrames
@@ -267,6 +283,18 @@ $latestLifecycle = if ($latest.Count -eq 1) {
         LivePreloadSessions = $row.LivePreloadSessions
         ActivePreloadSessions = $row.ActivePreloadSessions
         PreloadInFlightCount = $row.PreloadInFlightCount
+        ConservativeCleanupEnabled = $row.ConservativeCleanupEnabled
+        LiveSkillEffectLoaders = $row.LiveSkillEffectLoaders
+        SkillEffectRequestInFlightCount = $row.SkillEffectRequestInFlightCount
+        SkillEffectRequestStartedCount = $row.SkillEffectRequestStartedCount
+        SkillEffectRequestCompletedCount = $row.SkillEffectRequestCompletedCount
+        SkillEffectDisposedWhileLoadingCount = $row.SkillEffectDisposedWhileLoadingCount
+        SkillEffectCallbackAfterDisposeCount = $row.SkillEffectCallbackAfterDisposeCount
+        ActiveAttackCount = $row.ActiveAttackCount
+        OldestAttackAgeMs = $row.OldestAttackAgeMs
+        AttackMissingStrategyCount = $row.AttackMissingStrategyCount
+        AttackWatchdogTimeoutCount = $row.AttackWatchdogTimeoutCount
+        AttackRecoveryErrorCount = $row.AttackRecoveryErrorCount
         TraceDroppedCount = $row.TraceDroppedCount
     }
 } else { $null }
@@ -278,6 +306,15 @@ $result = [pscustomobject]@{
     ResourceSummary = $resourceSummary
     DuplicateRequests = $duplicateRequests
     UnfinishedResources = $unfinishedByBattle
+    AttackEvents = [pscustomobject]@{
+        Started = @($events | Where-Object { $_.Type -eq 'attack-started' }).Count
+        Completed = @($events | Where-Object { $_.Type -eq 'attack-completed' }).Count
+        MissingStrategy = @($events | Where-Object { $_.Type -eq 'attack-missing-strategy' }).Count
+        MissingStrategyRecovered = @($events | Where-Object { $_.Type -eq 'attack-missing-strategy-recovered' }).Count
+        WatchdogTimeout = @($events | Where-Object { $_.Type -eq 'attack-watchdog-timeout' }).Count
+        RecoveryError = @($events | Where-Object { $_.Type -eq 'attack-recovery-error' }).Count
+        DisposedWhileActive = @($events | Where-Object { $_.Type -eq 'attack-disposed-active' }).Count
+    }
     LatestLifecycle = $latestLifecycle
     MaximumDroppedEventCount = [int](($events.DroppedEventCount | Measure-Object -Maximum).Maximum)
 }

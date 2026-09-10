@@ -16,13 +16,17 @@ package mmo.petfightnew
    {
       private static const BRIDGE_VERSION:int = 5;
 
-      private static const DIAGNOSTICS_VERSION:int = 3;
+      private static const DIAGNOSTICS_VERSION:int = 4;
 
       private static const TRACE_VERSION:int = 1;
 
       private static const MAX_TRACE_EVENTS:int = 512;
 
       private static const MAX_TRACE_RESOURCE_LENGTH:int = 512;
+
+      private static const ATTACK_WATCHDOG_TIMEOUT_MS:int = 15000;
+
+      private static const CONSERVATIVE_CLEANUP_ENABLED:Boolean = __CONSERVATIVE_CLEANUP_ENABLED__;
 
       public static var hideDamageNumbers:Boolean = false;
 
@@ -56,11 +60,29 @@ package mmo.petfightnew
 
       private static var _diagnosticPreloaders:Dictionary = new Dictionary(true);
 
+      private static var _diagnosticSkillEffectLoaders:Dictionary = new Dictionary(true);
+
+      private static var _diagnosticAttacks:Dictionary = new Dictionary(true);
+
       private static var _diagnosticPreloadStartedCount:int = 0;
 
       private static var _diagnosticPreloadCompletedCount:int = 0;
 
       private static var _diagnosticPreloadDisposedWhileLoadingCount:int = 0;
+
+      private static var _diagnosticSkillEffectRequestStartedCount:int = 0;
+
+      private static var _diagnosticSkillEffectRequestCompletedCount:int = 0;
+
+      private static var _diagnosticSkillEffectDisposedWhileLoadingCount:int = 0;
+
+      private static var _diagnosticSkillEffectCallbackAfterDisposeCount:int = 0;
+
+      private static var _diagnosticAttackMissingStrategyCount:int = 0;
+
+      private static var _diagnosticAttackWatchdogTimeoutCount:int = 0;
+
+      private static var _diagnosticAttackRecoveryErrorCount:int = 0;
 
       private static var _diagnosticNextObjectId:int = 1;
 
@@ -427,6 +449,146 @@ package mmo.petfightnew
          addDiagnosticTrace("preload-disposed","",-1,int(state.id));
       }
 
+      public static function noteDiagnosticSkillEffectStarted(param1:Object, param2:int) : void
+      {
+         var state:Object = null;
+         if(param1 == null)
+         {
+            return;
+         }
+         state = _diagnosticSkillEffectLoaders[param1];
+         if(state == null)
+         {
+            state = {
+               "id":nextDiagnosticObjectId(),
+               "status":0,
+               "effectId":param2,
+               "startedAt":getTimer()
+            };
+            _diagnosticSkillEffectLoaders[param1] = state;
+         }
+         else
+         {
+            state.status = 0;
+            state.effectId = param2;
+            state.startedAt = getTimer();
+         }
+         if(_diagnosticSkillEffectRequestStartedCount < int.MAX_VALUE)
+         {
+            ++_diagnosticSkillEffectRequestStartedCount;
+         }
+         addDiagnosticTrace("skill-effect-started","skill-effect:" + param2.toString(),-1,int(state.id));
+      }
+
+      public static function noteDiagnosticSkillEffectCallback(param1:Object, param2:int, param3:Boolean, param4:Boolean) : void
+      {
+         var state:Object = param1 == null ? null : _diagnosticSkillEffectLoaders[param1];
+         var now:int = getTimer();
+         var duration:int = -1;
+         var effectId:int = param2;
+         if(state != null)
+         {
+            effectId = int(state.effectId);
+            if(int(state.startedAt) >= 0 && now >= int(state.startedAt))
+            {
+               duration = now - int(state.startedAt);
+            }
+         }
+         if(param4)
+         {
+            if(_diagnosticSkillEffectCallbackAfterDisposeCount < int.MAX_VALUE)
+            {
+               ++_diagnosticSkillEffectCallbackAfterDisposeCount;
+            }
+            addDiagnosticTrace("skill-effect-callback-after-dispose","skill-effect:" + effectId.toString(),duration,param3 ? 1 : 0);
+            return;
+         }
+         if(state != null)
+         {
+            state.status = 1;
+            state.startedAt = -1;
+         }
+         if(_diagnosticSkillEffectRequestCompletedCount < int.MAX_VALUE)
+         {
+            ++_diagnosticSkillEffectRequestCompletedCount;
+         }
+         addDiagnosticTrace("skill-effect-ended","skill-effect:" + effectId.toString(),duration,param3 ? 1 : 0);
+      }
+
+      public static function noteDiagnosticSkillEffectDisposed(param1:Object, param2:int) : void
+      {
+         var state:Object = param1 == null ? null : _diagnosticSkillEffectLoaders[param1];
+         var wasLoading:Boolean = state != null && int(state.status) == 0;
+         var effectId:int = state == null ? param2 : int(state.effectId);
+         if(state != null)
+         {
+            state.status = 2;
+            state.startedAt = -1;
+         }
+         if(wasLoading && _diagnosticSkillEffectDisposedWhileLoadingCount < int.MAX_VALUE)
+         {
+            ++_diagnosticSkillEffectDisposedWhileLoadingCount;
+         }
+         addDiagnosticTrace(wasLoading ? "skill-effect-disposed-loading" : "skill-effect-disposed","skill-effect:" + effectId.toString(),-1,state == null ? -1 : int(state.id));
+      }
+
+      public static function noteDiagnosticAttackStarted(param1:Object, param2:int, param3:Boolean) : void
+      {
+         if(param1 == null)
+         {
+            return;
+         }
+         _diagnosticAttacks[param1] = {
+            "skillId":param2,
+            "startedAt":getTimer(),
+            "missingStrategy":param3,
+            "timedOut":false
+         };
+         addDiagnosticTrace("attack-started","skill:" + param2.toString(),-1,param3 ? 1 : 0);
+         if(param3)
+         {
+            if(_diagnosticAttackMissingStrategyCount < int.MAX_VALUE)
+            {
+               ++_diagnosticAttackMissingStrategyCount;
+            }
+            addDiagnosticTrace("attack-missing-strategy","skill:" + param2.toString(),0,0);
+         }
+      }
+
+      public static function noteDiagnosticAttackEnded(param1:Object) : void
+      {
+         var state:Object = param1 == null ? null : _diagnosticAttacks[param1];
+         var now:int = getTimer();
+         var duration:int = -1;
+         if(state == null)
+         {
+            return;
+         }
+         if(int(state.startedAt) >= 0 && now >= int(state.startedAt))
+         {
+            duration = now - int(state.startedAt);
+         }
+         delete _diagnosticAttacks[param1];
+         addDiagnosticTrace("attack-completed","skill:" + int(state.skillId).toString(),duration,0);
+      }
+
+      public static function noteDiagnosticAttackDisposed(param1:Object) : void
+      {
+         var state:Object = param1 == null ? null : _diagnosticAttacks[param1];
+         var now:int = getTimer();
+         var duration:int = -1;
+         if(state == null)
+         {
+            return;
+         }
+         if(int(state.startedAt) >= 0 && now >= int(state.startedAt))
+         {
+            duration = now - int(state.startedAt);
+         }
+         delete _diagnosticAttacks[param1];
+         addDiagnosticTrace("attack-disposed-active","skill:" + int(state.skillId).toString(),duration,0);
+      }
+
       private static function getDiagnosticPreloadState(param1:Object) : Object
       {
          if(param1 == null || !(param1 in _diagnosticPreloaders))
@@ -520,8 +682,6 @@ package mmo.petfightnew
             {
                ++_diagnosticTraceDroppedCount;
             }
-            _diagnosticTraceEvents[_diagnosticTraceHead] = item;
-            _diagnosticTraceHead = (_diagnosticTraceHead + 1) % MAX_TRACE_EVENTS;
             return;
          }
          index = (_diagnosticTraceHead + _diagnosticTraceCount) % MAX_TRACE_EVENTS;
@@ -583,6 +743,73 @@ package mmo.petfightnew
             }
          }
          _diagnosticLastFrameTime = now;
+         processDiagnosticAttacks(now);
+      }
+
+      private static function processDiagnosticAttacks(param1:int) : void
+      {
+         var state:Object = null;
+         var duration:int = -1;
+         var expired:Array = null;
+         for(var pet:Object in _diagnosticAttacks)
+         {
+            state = _diagnosticAttacks[pet];
+            if(state == null || int(state.startedAt) < 0 || param1 < int(state.startedAt))
+            {
+               continue;
+            }
+            duration = param1 - int(state.startedAt);
+            if(Boolean(state.missingStrategy) || duration >= ATTACK_WATCHDOG_TIMEOUT_MS)
+            {
+               if(!Boolean(state.missingStrategy) && !Boolean(state.timedOut))
+               {
+                  state.timedOut = true;
+                  if(_diagnosticAttackWatchdogTimeoutCount < int.MAX_VALUE)
+                  {
+                     ++_diagnosticAttackWatchdogTimeoutCount;
+                  }
+                  addDiagnosticTrace("attack-watchdog-timeout","skill:" + int(state.skillId).toString(),duration,CONSERVATIVE_CLEANUP_ENABLED ? 1 : 0);
+               }
+               if(CONSERVATIVE_CLEANUP_ENABLED)
+               {
+                  if(expired == null)
+                  {
+                     expired = [];
+                  }
+                  expired.push(pet);
+               }
+            }
+         }
+         if(expired == null)
+         {
+            return;
+         }
+         for each(pet in expired)
+         {
+            state = _diagnosticAttacks[pet];
+            if(state == null)
+            {
+               continue;
+            }
+            duration = int(state.startedAt) >= 0 && param1 >= int(state.startedAt) ? param1 - int(state.startedAt) : -1;
+            delete _diagnosticAttacks[pet];
+            if(Boolean(state.missingStrategy))
+            {
+               addDiagnosticTrace("attack-missing-strategy-recovered","skill:" + int(state.skillId).toString(),duration,0);
+            }
+            try
+            {
+               pet["setNormal"]();
+            }
+            catch(error:Error)
+            {
+               if(_diagnosticAttackRecoveryErrorCount < int.MAX_VALUE)
+               {
+                  ++_diagnosticAttackRecoveryErrorCount;
+               }
+               addDiagnosticTrace("attack-recovery-error","skill:" + int(state.skillId).toString(),duration,0);
+            }
+         }
       }
 
       private static function onAolaBattleGetDiagnostics() : String
@@ -605,6 +832,10 @@ package mmo.petfightnew
          var preloadInFlightCount:int = 0;
          var preloadPendingCount:int = 0;
          var currentResourceAgeMs:int = -1;
+         var liveSkillEffectLoaders:int = 0;
+         var skillEffectRequestInFlightCount:int = 0;
+         var activeAttackCount:int = 0;
+         var oldestAttackAgeMs:int = -1;
          var stageChildren:int = -1;
          var panelChildren:int = -1;
          var stageFrameRate:Number = -1;
@@ -729,6 +960,41 @@ package mmo.petfightnew
             preloadPendingCount = -1;
             currentResourceAgeMs = -1;
          }
+         try
+         {
+            for(var skillEffectLoaderItem:Object in _diagnosticSkillEffectLoaders)
+            {
+               ++liveSkillEffectLoaders;
+               state = _diagnosticSkillEffectLoaders[skillEffectLoaderItem];
+               if(state != null && int(state.status) == 0)
+               {
+                  ++skillEffectRequestInFlightCount;
+               }
+            }
+         }
+         catch(error:Error)
+         {
+            liveSkillEffectLoaders = -1;
+            skillEffectRequestInFlightCount = -1;
+         }
+         try
+         {
+            for(var attackItem:Object in _diagnosticAttacks)
+            {
+               ++activeAttackCount;
+               state = _diagnosticAttacks[attackItem];
+               if(state != null && int(state.startedAt) >= 0 && now >= int(state.startedAt) &&
+                  now - int(state.startedAt) > oldestAttackAgeMs)
+               {
+                  oldestAttackAgeMs = now - int(state.startedAt);
+               }
+            }
+         }
+         catch(error:Error)
+         {
+            activeAttackCount = -1;
+            oldestAttackAgeMs = -1;
+         }
          if(stageFrameRate < 0)
          {
             try
@@ -755,7 +1021,8 @@ package mmo.petfightnew
          _diagnosticLongFrame200Count = 0;
          _diagnosticMaxFrameGapMs = 0;
          return JSON.stringify({
-            "version":DIAGNOSTICS_VERSION,
+             "version":DIAGNOSTICS_VERSION,
+             "conservativeCleanupEnabled":CONSERVATIVE_CLEANUP_ENABLED,
             "flashUptimeMs":now,
             "totalMemory":totalMemory,
             "privateMemory":privateMemory,
@@ -781,7 +1048,18 @@ package mmo.petfightnew
             "preloadStartedCount":_diagnosticPreloadStartedCount,
             "preloadCompletedCount":_diagnosticPreloadCompletedCount,
             "preloadDisposedWhileLoadingCount":_diagnosticPreloadDisposedWhileLoadingCount,
-            "currentResourceAgeMs":currentResourceAgeMs,
+             "currentResourceAgeMs":currentResourceAgeMs,
+             "liveSkillEffectLoaders":liveSkillEffectLoaders,
+             "skillEffectRequestInFlightCount":skillEffectRequestInFlightCount,
+             "skillEffectRequestStartedCount":_diagnosticSkillEffectRequestStartedCount,
+             "skillEffectRequestCompletedCount":_diagnosticSkillEffectRequestCompletedCount,
+             "skillEffectDisposedWhileLoadingCount":_diagnosticSkillEffectDisposedWhileLoadingCount,
+             "skillEffectCallbackAfterDisposeCount":_diagnosticSkillEffectCallbackAfterDisposeCount,
+             "activeAttackCount":activeAttackCount,
+             "oldestAttackAgeMs":oldestAttackAgeMs,
+             "attackMissingStrategyCount":_diagnosticAttackMissingStrategyCount,
+             "attackWatchdogTimeoutCount":_diagnosticAttackWatchdogTimeoutCount,
+             "attackRecoveryErrorCount":_diagnosticAttackRecoveryErrorCount,
             "traceDroppedCount":_diagnosticTraceDroppedCount,
             "stageChildren":stageChildren,
             "panelChildren":panelChildren,

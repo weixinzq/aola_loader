@@ -245,7 +245,8 @@ internal sealed class BattlePerformanceRecorder : IDisposable
 				BattleDiagnosticsSnapshot snapshot = result.Snapshot;
 				_preloadActive = result.Succeeded && snapshot != null &&
 					(snapshot.ActivePreloadSessions > 0 || snapshot.PreloadInFlightCount > 0 ||
-					 snapshot.PreloadPendingCount > 0);
+					 snapshot.PreloadPendingCount > 0 || snapshot.SkillEffectRequestInFlightCount > 0 ||
+					 snapshot.ActiveAttackCount > 0);
 			}
 		}
 		lock (_writerSync)
@@ -267,6 +268,7 @@ internal sealed class BattlePerformanceRecorder : IDisposable
 				Csv(request.PacketCommand),
 				result.Succeeded ? "true" : "false",
 				Csv(result.Message),
+				snapshot?.ConservativeCleanupEnabled == true ? "true" : snapshot == null ? string.Empty : "false",
 				snapshot?.FlashUptimeMs.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
 				FormatMemory(snapshot?.TotalMemory),
 				FormatMemory(snapshot?.PrivateMemory),
@@ -293,6 +295,17 @@ internal sealed class BattlePerformanceRecorder : IDisposable
 				snapshot?.PreloadCompletedCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
 				snapshot?.PreloadDisposedWhileLoadingCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
 				snapshot?.CurrentResourceAgeMs.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.LiveSkillEffectLoaders.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.SkillEffectRequestInFlightCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.SkillEffectRequestStartedCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.SkillEffectRequestCompletedCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.SkillEffectDisposedWhileLoadingCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.SkillEffectCallbackAfterDisposeCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.ActiveAttackCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.OldestAttackAgeMs.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.AttackMissingStrategyCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.AttackWatchdogTimeoutCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+				snapshot?.AttackRecoveryErrorCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
 				snapshot?.TraceDroppedCount.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
 				snapshot?.StageChildren.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
 				snapshot?.PanelChildren.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
@@ -371,7 +384,7 @@ internal sealed class BattlePerformanceRecorder : IDisposable
 		_traceWriter = new StreamWriter(
 			new FileStream(_traceOutputPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read),
 			new UTF8Encoding(false));
-		_writer.WriteLine("Time,Event,BattleNumber,BattleElapsedSeconds,IdleElapsedSeconds,PacketBattleUniqueId,PacketCommand,BridgeAvailable,BridgeMessage,FlashUptimeMs,FlashTotalMemoryMB,FlashPrivateMemoryMB,FlashFreeMemoryMB,LiveFightPanels,DisposedFightPanels,PanelCreatedCount,PanelDisposeStartedCount,PanelDisposedCount,LiveStartMovies,DisposedStartMovies,StartMovieCreatedCount,StartMovieDisposedCount,LiveApplicationDomains,ReleasedApplicationDomains,ApplicationDomainCreatedCount,ApplicationDomainReleasedCount,LivePreloadSessions,ActivePreloadSessions,DisposedPreloadSessions,PreloadInFlightCount,PreloadPendingCount,PreloadStartedCount,PreloadCompletedCount,PreloadDisposedWhileLoadingCount,CurrentResourceAgeMs,TraceDroppedCount,StageChildren,PanelChildren,StageFrameRate,FrameWindowMs,FrameSampleCount,LongFrame50Count,LongFrame100Count,LongFrame200Count,MaxFrameGapMs");
+		_writer.WriteLine("Time,Event,BattleNumber,BattleElapsedSeconds,IdleElapsedSeconds,PacketBattleUniqueId,PacketCommand,BridgeAvailable,BridgeMessage,ConservativeCleanupEnabled,FlashUptimeMs,FlashTotalMemoryMB,FlashPrivateMemoryMB,FlashFreeMemoryMB,LiveFightPanels,DisposedFightPanels,PanelCreatedCount,PanelDisposeStartedCount,PanelDisposedCount,LiveStartMovies,DisposedStartMovies,StartMovieCreatedCount,StartMovieDisposedCount,LiveApplicationDomains,ReleasedApplicationDomains,ApplicationDomainCreatedCount,ApplicationDomainReleasedCount,LivePreloadSessions,ActivePreloadSessions,DisposedPreloadSessions,PreloadInFlightCount,PreloadPendingCount,PreloadStartedCount,PreloadCompletedCount,PreloadDisposedWhileLoadingCount,CurrentResourceAgeMs,LiveSkillEffectLoaders,SkillEffectRequestInFlightCount,SkillEffectRequestStartedCount,SkillEffectRequestCompletedCount,SkillEffectDisposedWhileLoadingCount,SkillEffectCallbackAfterDisposeCount,ActiveAttackCount,OldestAttackAgeMs,AttackMissingStrategyCount,AttackWatchdogTimeoutCount,AttackRecoveryErrorCount,TraceDroppedCount,StageChildren,PanelChildren,StageFrameRate,FrameWindowMs,FrameSampleCount,LongFrame50Count,LongFrame100Count,LongFrame200Count,MaxFrameGapMs");
 		_writer.Flush();
 	}
 

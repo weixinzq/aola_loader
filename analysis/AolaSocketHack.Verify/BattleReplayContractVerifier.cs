@@ -98,7 +98,8 @@ internal static class BattleReplayContractVerifier
 	{
 		return new JObject
 		{
-			["version"] = 3,
+			["version"] = 4,
+			["conservativeCleanupEnabled"] = true,
 			["flashUptimeMs"] = 12050,
 			["totalMemory"] = invalidMemory ? (JToken)"128" : 128 * 1024 * 1024,
 			["privateMemory"] = 256 * 1024 * 1024,
@@ -125,6 +126,17 @@ internal static class BattleReplayContractVerifier
 			["preloadCompletedCount"] = 0,
 			["preloadDisposedWhileLoadingCount"] = 0,
 			["currentResourceAgeMs"] = 50,
+			["liveSkillEffectLoaders"] = 1,
+			["skillEffectRequestInFlightCount"] = 1,
+			["skillEffectRequestStartedCount"] = 2,
+			["skillEffectRequestCompletedCount"] = 1,
+			["skillEffectDisposedWhileLoadingCount"] = 0,
+			["skillEffectCallbackAfterDisposeCount"] = 0,
+			["activeAttackCount"] = 1,
+			["oldestAttackAgeMs"] = 50,
+			["attackMissingStrategyCount"] = 0,
+			["attackWatchdogTimeoutCount"] = 0,
+			["attackRecoveryErrorCount"] = 0,
 			["traceDroppedCount"] = 0,
 			["stageChildren"] = 4,
 			["panelChildren"] = 12,
