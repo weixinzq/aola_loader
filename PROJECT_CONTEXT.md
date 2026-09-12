@@ -4,16 +4,16 @@
 
 Aola Loader 是受控站点上的旧版奥拉星 Flash 桌面宿主，提供登录、发送包查看/导出、通过当前 Flash 游戏会话主动发包、收发日志、主题与背包形态资源替换、战斗状态查看和战斗表现设置。重构必须保持现有行为和协议语义。当前不升级 .NET、WinForms、CefSharp、PPAPI Flash 或 EasyHook，不重写协议/AMF3/TCP 重组算法。
 
-2026-09-05 核对：生产战斗清单为资源版本 `2026090340574444`、Bridge Version 4；候选已静态验证并接入清单，演出与战斗模型仍待完整实机验收。9 月 4 日实机记录对应此前纯状态候选。旧失败候选不进入生产路径，清单无效时透传官方资源。当前核对范围和证据边界见 [文档核对记录](doc/DOCUMENTATION_AUDIT.md)。
+2026-09-11 静态核对：生产战斗清单为资源版本 `2026091003596777`、Bridge Version 5；`PetFightBattleBridgeArtifact.BridgeVersion` 与清单一致。当前接入的是 `ConservativeCleanup` 候选，已完成静态验证但尚未进行真实 Flash 登录、战斗或三组 A/B。9 月 4 日实机记录对应旧资源的纯状态候选。旧失败候选不进入生产路径，清单无效时透传官方资源；9 月 5 日的[文档核对记录](doc/DOCUMENTATION_AUDIT.md)保留为历史快照。
 
 ## 技术栈与顶层模块
 
 - Windows x64、.NET Framework 4.8、WinForms、CefSharp 87、PPAPI Flash。
-- `AolaLoader`：AppShell、BrowserHost、Settings、PacketHost、ResourceInterception、Theme、PetMorph、Battle 与 UI。
+- `AolaLoader`：AppShell、BrowserHost、Settings、PacketHost、ResourceInterception、Theme、PetMorph、Battle、Lineup 与 UI。
 - `AolaSocketHack`：EasyHook、Winsock 捕获、TCP 重组与协议解析；生产入口拒绝遗留旁路发送请求。
 - `AolaSocketHack.Contracts`：跨进程 DTO 与 remoting 边界。
 - `AolaSocketHack.Verify`：PCAP 回放与主动发送回读验证。
-- `analysis/AolaOfflineClient`：Python 3.12+ 独立账号 SDK/CLI，不依赖宿主或 IPC，也不作为 ActiveSend 回退；旧 `analysis/loader` 已不在当前工作区。
+- `analysis/AolaOfflineClient` 已不在当前工作区，不属于当前执行面；其模块页仅保留历史设计。旧 `analysis/loader` 同样不在当前工作区。
 
 允许的依赖方向是 `UI/AppShell -> 功能契约 -> 功能实现 -> 算法或框架适配器`。CefSharp 类型停留在 BrowserHost/ResourceInterception 的 Cef 适配层，WinForms 类型停留在 AppShell/UI，EasyHook 类型停留在 SocketHack Hooking。不要创建通用 `Helpers`、`Utils` 或巨型 `Interfaces` 目录。
 
@@ -40,10 +40,6 @@ CEF 内存/磁盘缓存、Flash Loader 缓存和 ApplicationDomain 缓存是不�
 dotnet build .\analysis\AolaLoader\AolaLoader.csproj -c Release
 dotnet build .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj -c Release
 dotnet run --project .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj -c Release --no-build -- --self-test
-Push-Location .\analysis\AolaOfflineClient
-$env:PYTHONPATH='src'
-python -B -m unittest discover -s tests -v
-Pop-Location
 ```
 
 PCAP 回放需要维护者另行提供获授权的本地抓包路径，命令见 README。旧固定抓包的历史基线为 `exportable=164`、`failures=0` 和全部布尔检查通过；其他抓包的条数不能套用该值。项目构建应串行执行以避免共享依赖输出竞争。CefSharp 87 的 NU1903 警告是遗留风险，成功构建不会消除它。构建、自测、协议回读和真实 Flash/服务器验收分别记录。

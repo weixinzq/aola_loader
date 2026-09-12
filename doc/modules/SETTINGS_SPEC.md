@@ -40,6 +40,8 @@ WinForms、CefSharp、PacketHost、协议类型和跨模块业务协调器。
 
 Theme 只拥有 `theme`，PetMorph 只拥有 `petMorph`，Battle 只拥有 `battle`；各模块独立验证和提升 `Version`。
 
+战斗模型全部映射统一保存在程序目录的 `settings.json` → `Sections.battle.MorphRules` 数组，单项包含 `Note`、`SourceViewId`、`TargetViewId`。列表添加/删除后点击“保存并应用”写入完整数组；重启恢复全部规则。删除最后一条会关闭模型替换并可保存空数组，不创建额外映射文件或双写路径。
+
 ## 安全约束
 
 UTF-8 无 BOM；设置中不得存储 SID、登录帧、账号密码或浏览器密文。

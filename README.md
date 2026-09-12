@@ -1,10 +1,12 @@
 # Aola Loader
 
-Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓包、分析与发包工具。公开仓库包含基础游戏登录界面、`AolaSocketHack`、IPC 契约、协议验证器，以及独立的 Python 脱机登录子项目；窗口只展示可导出的客户端“发送”消息，完整收发日志默认关闭、点击“保留日志”后才开始写入文件，接收消息同时供对战助手分析。
+Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓包、分析与发包工具。公开仓库包含基础游戏登录界面、`AolaSocketHack`、IPC 契约和协议验证器；窗口只展示可导出的客户端“发送”消息，完整收发日志默认关闭、点击“保留日志”后才开始写入文件，接收消息同时供对战助手分析。
 
 > 这是基于 CefSharp 87 和 PPAPI Flash 的遗留运行环境，只应用于受控的奥拉星站点。不要将它当作通用浏览器。
 
 ## 当前功能
+
+- 通过“扩展 → 阵容方案”读取背包并保存为 JSON，或打开方案恢复原亚比、顺序、魂卡、魂器和已绑定晶钥。装备不变，空魂器槽跳过；逐项等待响应并回读核对。默认目录为 `%LOCALAPPDATA%/AolaLoader/Lineups`。新功能待用户实机验收，详见 [阵容方案模块](doc/modules/LINEUP_SPEC.md)。
 
 - 打开 `https://aola.100bt.com/play/play.html`，并向 `CefSharp.BrowserSubprocess.exe --type=network.mojom` 注入 `AolaSocketHack.dll`。
 - 抓包表格只显示可严格导出的“发送”消息，列为复选框、时间和解析后的 `#send`；可将选中记录追加到发包编辑器，不提供 HEX 详情窗格。
@@ -17,17 +19,16 @@ Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓�
 
 抓包窗口另有“打开映射面板”页，经 Flash 自身 `Panel_Helper.loadResAndShow` 加载面板。发包页支持新战斗回放与当前战斗附着，使用发送抓包、当前玩家 `2405`、执行结果和只读状态桥控制节奏。战斗表现窗口保存隐藏伤害/治疗数字、跳过每回合演出和独立战斗模型规则；模型规则必须通过双方六分片预检，战斗中修改延迟到结束清理后切换。
 
-截至 2026-09-05，本地生产清单为 `petfightnew` 资源版本 `2026090340574444`、Bridge Version 4，设置为 Battle Version 6。当前演出候选和战斗模型替换仍待真实 Flash 完整验收；9 月 4 日实机记录对应此前纯状态候选，不能替代当前候选验收。核对依据和已知文档/分发限制见 [文档核对记录](doc/DOCUMENTATION_AUDIT.md)。
+截至 2026-09-11，当前工作区生产清单为 `petfightnew` 资源版本 `2026091003596777`、Bridge Version 5，设置为 Battle Version 6；宿主在 `PetFightBattleBridgeArtifact.BridgeVersion` 中同样只接受 Version 5。已接入的 `ConservativeCleanup` 候选只完成静态结构、同版本 SymbolClass 和全量 p-code 差异核对，仍需全新进程下的官方透传、诊断版和保守释放版真实 Flash A/B。9 月 4 日实机记录对应旧资源的纯状态候选，不能替代当前候选验收。9 月 5 日的[文档核对记录](doc/DOCUMENTATION_AUDIT.md)保留为历史快照。
 
-主题功能是 HTTP/SWF 本地资源替换，不会发送主题切换命令，也不会修改服务器保存的账号主题。捕获的登录 SID/登录帧只允许短暂存在于注入进程内存，不进入 IPC 事件、界面、导出或日志，也不用于 ActiveSend 或 OfflineClient 登录。
+主题功能是 HTTP/SWF 本地资源替换，不会发送主题切换命令，也不会修改服务器保存的账号主题。捕获的登录 SID/登录帧只允许短暂存在于注入进程内存，不进入 IPC 事件、界面、导出或日志，也不用于 ActiveSend。
 
 ## 目录
 
-- `analysis/AolaLoader/`：WinForms/CefSharp 主程序、抓包/发包窗口、收发日志、对战助手和主题资源拦截。
+- `analysis/AolaLoader/`：WinForms/CefSharp 主程序、抓包/发包窗口、收发日志、对战助手、阵容方案和主题资源拦截。
 - `analysis/AolaSocketHack/`：Winsock Hook、TCP 重组、Aola/AMF3 协议解析与指标；生产主动发送不从这里创建第二连接。
 - `analysis/AolaSocketHack.Contracts/`：主进程与注入进程之间的 IPC 契约。
 - `analysis/AolaSocketHack.Verify/`：真实 PCAP 回放与主动发包编码回读验证。
-- [`analysis/AolaOfflineClient/`](analysis/AolaOfflineClient/)：Python 3.12 独立账号登录 SDK+CLI、订阅式收发与可信脚本运行器。
 - `analysis/runtime/`：本地 PPAPI Flash 放置位置；EasyHook 由 NuGet 恢复。
 - [`doc/architecture.md`](doc/architecture.md)：运行拓扑、数据流、缓存层与验证边界。
 - [`doc/modules/`](doc/modules/)：各模块的 ContractVersion、依赖、线程、失败与缓存语义。
@@ -37,7 +38,6 @@ Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓�
 ## 环境要求
 
 - Windows x64 与 .NET Framework 4.8 Developer Pack。
-- OfflineClient 需要 Python 3.12，运行依赖为 `aiohttp` 与 `websockets`。
 - 可访问 NuGet.org；构建会恢复 CefSharp.WinForms 87.1.132、EasyHook 2.7.7097、Newtonsoft.Json 13.0.4、SharpCompress 0.50.4 和 System.Resources.Extensions 10.0.10。
 - 仓库包含当前 Loader 使用的 `analysis/runtime/pepflashplayer.dll`，构建时会复制到程序输出目录。
 - PCAP 验证需要 Wireshark/TShark；仓库命令默认使用 `D:\Programs\Wireshark\tshark.exe`。
@@ -92,15 +92,7 @@ exportable=164 failures=0 export_format=True login_redacted=True inner_plaintext
 Aola PCAP replay: PASS
 ```
 
-OfflineClient 的本地测试单独运行，不需要账号或网络：
-
-```powershell
-Set-Location .\analysis\AolaOfflineClient
-$env:PYTHONPATH='src'
-python -B -m unittest discover -s tests -v
-```
-
-2026-09-05 本地复跑 33 项测试，32 项通过，`test_vector_sources_still_match_csharp_reference` 因 C# 参考源码哈希变化失败；需要审查源码差异后重新生成/核对黄金向量，不能直接覆盖哈希放行。该子项目尚未完成真实账号验收；单元测试、黄金向量或假传输通过都不能替代实际 `logOK` 与匹配服务器响应。具体边界见 [`analysis/AolaOfflineClient/README.md`](analysis/AolaOfflineClient/README.md)。
+独立 `analysis/AolaOfflineClient/` 子项目已不在当前工作区，不再提供其运行或测试入口；原模块说明仅作为[历史设计记录](doc/modules/OFFLINE_CLIENT_SPEC.md)保留。
 
 ## SWF 资源修改约束
 

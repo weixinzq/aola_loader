@@ -215,7 +215,8 @@ internal static class SettingsBoundaryVerifier
 			BattleSettingsCodec.SectionKey,
 			new BattleSettings(true, false, true, true, new[]
 			{
-				new BattleMorphRule("测试", 6000, 6047)
+				new BattleMorphRule("测试", 6000, 6047),
+				new BattleMorphRule("第二条", 6001, 6057)
 			}),
 			codec).Succeeded)
 		{
@@ -243,11 +244,27 @@ internal static class SettingsBoundaryVerifier
 			store.Load(BattleSettingsCodec.SectionKey, codec);
 		if (roundTrip.UsedDefault || !roundTrip.Value.HideDamageNumbers ||
 			roundTrip.Value.HideHealingNumbers || !roundTrip.Value.SkipBattlePresentation ||
-			!roundTrip.Value.BattleMorphEnabled || roundTrip.Value.MorphRules.Count != 1 ||
+			!roundTrip.Value.BattleMorphEnabled || roundTrip.Value.MorphRules.Count != 2 ||
 			roundTrip.Value.MorphRules[0].SourceViewId != 6000 ||
-			roundTrip.Value.MorphRules[0].TargetViewId != 6047)
+			roundTrip.Value.MorphRules[0].TargetViewId != 6047 ||
+			roundTrip.Value.MorphRules[1].Note != "第二条" ||
+			roundTrip.Value.MorphRules[1].SourceViewId != 6001 ||
+			roundTrip.Value.MorphRules[1].TargetViewId != 6057)
 		{
 			Console.Error.WriteLine("typed-battle: roundtrip");
+			return false;
+		}
+		if (!store.Save(BattleSettingsCodec.SectionKey,
+			new BattleSettings(true, false, true, true, roundTrip.Value.MorphRules.Skip(1)), codec).Succeeded)
+		{
+			return false;
+		}
+		BattleSettings afterDelete = new JsonSettingsSectionStore(path)
+			.Load(BattleSettingsCodec.SectionKey, codec).Value;
+		if (afterDelete.MorphRules.Count != 1 || afterDelete.MorphRules[0].SourceViewId != 6001 ||
+			afterDelete.MorphRules[0].TargetViewId != 6057 || afterDelete.MorphRules[0].Note != "第二条")
+		{
+			Console.Error.WriteLine("typed-battle: delete-roundtrip");
 			return false;
 		}
 		// 不支持版本时回退默认并保留原文件。

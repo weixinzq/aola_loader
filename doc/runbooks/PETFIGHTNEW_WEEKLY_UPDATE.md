@@ -1,6 +1,6 @@
 # petfightnew 每周更新
 
-本手册用于在官方 `petfightnew` 版本变化时重新生成 Bridge Version 4 战斗状态与演出桥。不得把旧候选改名复用，也不得覆盖官方原件。流水线只自动生成候选；晋级和真实 Flash 验证必须由维护者明确执行。
+本手册用于在官方 `petfightnew` 版本变化时重新生成 Bridge Version 5 战斗状态、演出与诊断/生命周期桥。不得把旧候选改名复用，也不得覆盖官方原件。流水线只自动生成候选；晋级和真实 Flash 验证必须由维护者明确执行。
 
 ## 前置条件
 
@@ -23,14 +23,18 @@
 ## 2. 生成候选
 
 ```powershell
-.\analysis\tools\Update-PetFightBattleBridge.ps1 -Mode Prepare
+.\analysis\tools\Update-PetFightBattleBridge.ps1 -Mode Prepare -ResourceCleanupMode ConservativeCleanup
 ```
+
+`ResourceCleanupMode` 必须在人工审阅中明确记录。`DiagnosticOnly` 只增加观测；`ConservativeCleanup` 还增加当前白名单内的局部引用释放和 15 秒实际时间攻击恢复。脚本默认值为 `DiagnosticOnly`，不能把省略参数生成的候选当作保守释放版。
+
+三组 A/B 需要分别生成 `DiagnosticOnly` 与 `ConservativeCleanup` 候选，并用 `-EvidenceRoot` 指定两个独立目录；每轮只晋级该轮对应的 `candidate-manifest.json`，不得在同一证据目录覆盖生成。
 
 默认在 `analysis/reverse-engineering/battle-bridge-日期-资源版本/` 创建独立证据目录并保存：
 
 - `source/`：官方压缩 SWF、`start.xml`、`versiondata` 和嵌入映射；
 - `variants/`：从官方文件解压的 FWS 与版本化候选；
-- `decompiled/`、`exports/`：FFDec ActionScript、p-code、SymbolClass、状态桥输入和 16 个演出方法补丁；
+- `decompiled/`、`exports/`：FFDec ActionScript、p-code、SymbolClass、状态桥输入、18 个演出方法补丁及诊断/生命周期补丁；
 - `metadata/candidate-manifest.json`：候选版本、URL、长度和哈希；
 - `metadata/compatibility-report.md`：方法体编号、SymbolClass 和允许差异；
 - `evidence/`：额外静态验证与后续运行证据。
@@ -38,23 +42,24 @@
 `Prepare` 每次从新版官方 SWF 开始，动态查找方法体编号。出现以下任一情况必须停止，不得晋级：
 
 - `DocPetFight` 不再是已知的简单文档类，基类或 Embed 契约变化；
-- `PetFightService.init` 或 `FightPanel.enableClick` 缺失、重复、包含多个 `returnvoid`；
-- 任一演出目标方法、插入锚点或私有命名空间缺失/重复；
+- `PetFightService.init`、`FightPanel.enableClick` 或列入白名单的诊断/生命周期方法缺失、重复、包含不兼容出口；
+- 任一演出、诊断或生命周期目标方法、插入锚点或私有命名空间缺失/重复；
 - `FightData.battleId = params.br` 的身份来源变化；
 - 同版本 SymbolClass 不一致，或白名单类的指定方法以外出现 p-code 差异；
-- 三个 ExternalInterface 回调、两个桥调用、三个设置标记、FWS 长度或 SHA-256 校验失败；
+- 五个 ExternalInterface 回调、状态/诊断/生命周期标记、三个设置标记、FWS 长度或 SHA-256 校验失败；
 - 候选仍出现 `skipAttackAnimation`、`skipPetAttackActions` 或 `skipBattleVisualDelays` 历史标记。
 
 ## 3. 人工审阅
 
 先阅读 `metadata/compatibility-report.md`，再核对以下允许修改：
 
-1. `DocPetFight` 注册 `aolaBattleBridgeReady`、`aolaBattleApplyOptions`、`aolaBattleGetState`，保持 Bridge Version 4 状态语义并严格接收 `skipBattlePresentation`。
+1. `DocPetFight` 注册 `aolaBattleBridgeReady`、`aolaBattleApplyOptions`、`aolaBattleGetState`、`aolaBattleGetDiagnostics` 和 `aolaBattleDrainTraceEvents`，保持 Bridge Version 5 状态语义并严格接收 `skipBattlePresentation`。
 2. `PetFightService.init` 的唯一结束位置前调用一次 `DocPetFight.ensureAolaBattleBridge()`。
 3. `FightPanel.enableClick` 完成官方输入初始化后，在唯一结束位置前调用一次 `DocPetFight.noteInputReady()`。
 4. `UseSkill.handleUseSkill`、`handleAnnalFeeEight`、`handleMovie` 只增加无影片结算分支，并保留 `refreshInfos`、`setBS`、`setBackGroundUp`、`setPetUp`、`handleSkillEnd` 和官方终端回调。
 5. `SwitchPm.showSwitchMc`、`ChangePetView.onGotPet/onPetChange`、`BattlePmDying.showPetDieEffect`、`BattleNextTurn.checkPlayMovie` 只增加立即终态/完成路径。
-6. `SkillResultMovieHandler` 只修改八个 HP 数字叶方法；`showMultipleHit` 必须按 `_hpInc` 正负分别检查治疗/伤害开关，`startMovie` 不得被短路。
+6. `SkillResultMovieHandler` 只修改八个 HP 数字叶方法；`showMultipleHit` 必须按 `_hpInc` 正负分别检查治疗/伤害开关，`startMovie` 不得被短路。另两个演出方法仅为 `UseSkill.getMuiltHitDecHpDelayFrame` 的最小延迟和 `FightController.startHandle` 的已接收事件连续排空。
+7. 诊断白名单只跟踪面板、域、开场、预加载、技能特效、攻击和帧间隔。`ConservativeCleanup` 只清空完成/释放点的局部回调与引用，并在实际时间超过 15 秒时复用官方 `MCPetContainer.setNormal()`；不得扩展为全局缓存或域卸载。
 
 不得接受白名单以外的方法修改，也不得修改 `IGameOptionService.fightSkillEffect`、`FightData.isLowQuality`、开战入场或胜负结算路径。必要时对候选再运行独立验证：
 
@@ -99,9 +104,9 @@ PCAP 为可选的独立验证：当前工作区不含旧 `analysis/loader` 和�
 dotnet run --project .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj -c Release --no-build -- D:\Programs\Wireshark\tshark.exe D:\local-evidence\capture.pcapng 2
 ```
 
-独立 OfflineClient 测试入口见其 README；它不验证 Flash SWF 周更。历史固定 PCAP 基线为 `exportable=164`、`failures=0`、`export_format=True`、`login_redacted=True`、`inner_plaintext=True`、`active_send=True` 和 `PASS`。这些自动结果不证明真实服务器执行，也不证明 Flash 仍可正常加载。
+独立 `analysis/AolaOfflineClient/` 已不在当前工作区，也不属于本周更验证。历史固定 PCAP 基线为 `exportable=164`、`failures=0`、`export_format=True`、`login_redacted=True`、`inner_plaintext=True`、`active_send=True` 和 `PASS`。这些自动结果不证明真实服务器执行，也不证明 Flash 仍可正常加载。
 
-## 6. 两轮真实 Flash 验证
+## 6. 三组真实 Flash A/B
 
 每轮都完全退出 AolaLoader 和 Flash/CEF 子进程后重新启动，以排除 CEF 内存缓存、磁盘缓存和 Flash ApplicationDomain 缓存混淆。
 
@@ -110,15 +115,16 @@ dotnet run --project .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.cspr
 - 确认请求 URL 是当前官方版本，返回内容是官方哈希；
 - 正常登录、进入战斗、手工操作、换宠、献祭增强、结束并再次进入战斗。
 
-第二轮恢复已晋级清单并使用全新进程：
+第二轮晋级 `DiagnosticOnly` 清单并使用全新进程，第三轮再晋级 `ConservativeCleanup` 清单并使用全新进程。两轮都执行同一套检查：
 
 - 确认请求精确命中清单版本，返回哈希等于清单 `candidateSha256`；
 - 确认桥 Ready，进入战斗后 turn 0/1/2 按真实状态逐回合各发送一次；
 - 确认后续手工操作、换宠、献祭增强、战斗结束和再次进入战斗正常；
 - 确认没有新增游戏 TCP 连接、重复登录或后续消息序列损坏。
+- 在相同前台、25 FPS、战斗路线、预加载和演出设置下比较诊断指标；未达到可比条件时不得把差异归因于保守释放。
 
 `SubmittedToFlash` 只表示调用已交给 Flash，不能作为服务器成功证据。`SkipBattlePresentation` 只有在收到 `BattleOptionsApplied|revision` 后才算提交到 Flash；仍需用真实战斗证明每回合演出被跳过且状态链未损坏。
 
 ## 7. 记录或回滚
 
-进入验证步骤前先点击主窗口“保留日志”；完整日志默认关闭，启用前的消息不会补记。把请求 URL、官方/候选哈希、进程重启、桥 Ready、回合发送、连接数量和战斗操作结果写入该版本的 `evidence/`。任一步失败时，完全退出宿主及 Flash/CEF 子进程，恢复 `Promote` 输出的 `rollbackEvidence` 中与当前宿主契约兼容的上一组稳定文件，重新构建/复制到实际运行目录后再启动。如果没有兼容候选，则从实际运行目录移除生产清单以恢复官方透传。当前宿主严格要求 Bridge Version 4；仅放回旧 Version 3 清单与 SWF 会触发透传，不能恢复 Version 3 状态功能，恢复旧功能需要配套的旧宿主版本。保留失败候选和日志，不在原证据目录上继续覆盖。
+进入验证步骤前先点击主窗口“保留日志”；完整日志默认关闭，启用前的消息不会补记。把请求 URL、官方/候选哈希、`ResourceCleanupMode`、进程重启、桥 Ready、回合发送、连接数量和战斗操作结果写入该版本的 `evidence/`。任一步失败时，完全退出宿主及 Flash/CEF 子进程，恢复 `Promote` 输出的 `rollbackEvidence` 中与当前宿主契约兼容的上一组稳定文件，重新构建/复制到实际运行目录后再启动。如果没有兼容候选，则从实际运行目录移除生产清单以恢复官方透传。当前宿主严格要求 Bridge Version 5；仅放回旧 Version 4/3 清单与 SWF 会触发透传，不能恢复旧桥的状态功能，恢复旧功能需要配套的旧宿主版本。保留失败候选和日志，不在原证据目录上继续覆盖。

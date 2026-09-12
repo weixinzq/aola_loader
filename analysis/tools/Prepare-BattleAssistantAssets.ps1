@@ -14,3 +14,5 @@ $additional = @()
 if ($MissingList) { $additional = @('--missing-list', $MissingList) }
 & python -X utf8 (Join-Path $PSScriptRoot 'prepare_battle_assistant_assets.py') --root $projectRoot --staging $StagingRoot --ids $IdList --data $DataDirectory --ffdec $FFDec --inspector $Inspector @additional
 if ($LASTEXITCODE -ne 0) { throw "图片准备有未完成项，请查看产物报告；已有有效图片已保留。" }
+
+

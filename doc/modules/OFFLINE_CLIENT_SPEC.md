@@ -1,8 +1,10 @@
-# OfflineClient 模块规格
+# OfflineClient 模块规格（历史）
+
+> 状态：`analysis/AolaOfflineClient/` 已不在 2026-09-11 当前工作区，本页仅保留移除前的设计与验证边界，不属于当前可构建、可运行或已验证的执行面。
 
 ## 目的与边界
 
-`analysis/AolaOfflineClient/` 是 Python 3.12+ 的独立登录 SDK+CLI。它自行用账号密码认证并建立 WSS/TCP 会话，不依赖 AolaLoader、AolaSocketHack IPC 或已删除的 `analysis/loader`，也不作为 ActiveSend 失败后的回退。
+移除前的 `analysis/AolaOfflineClient/` 是 Python 3.12+ 的独立登录 SDK+CLI。它自行用账号密码认证并建立 WSS/TCP 会话，不依赖 AolaLoader、AolaSocketHack IPC 或已删除的 `analysis/loader`，也不作为 ActiveSend 失败后的回退。
 
 ActiveSend 属于 AolaLoader 进程内路径，必须让已登录的 Flash 原连接继续拥有序号、加密与发送顺序；OfflineClient 则明确创建另一个账号会话并自行维护协议状态。OfflineClient 不读取、复用或重放捕获的 SID/登录帧。同一账号不得同时运行官方客户端和 OfflineClient。
 

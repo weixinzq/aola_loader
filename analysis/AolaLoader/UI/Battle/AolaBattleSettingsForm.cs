@@ -119,11 +119,11 @@ internal sealed class AolaBattleSettingsForm : AolaFormBase
 		editor.Controls.Add(_morphSourceId, 1, 1);
 		editor.Controls.Add(_morphTargetId, 2, 1);
 		FlowLayoutPanel ruleActions = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
-		CupertinoButton addOrUpdate = new CupertinoButton("添加/更新", true);
+		CupertinoButton add = new CupertinoButton("添加", true);
 		CupertinoButton remove = new CupertinoButton("删除", false);
-		addOrUpdate.Click += delegate { AddOrUpdateRule(); };
+		add.Click += delegate { AddRule(); };
 		remove.Click += delegate { RemoveSelectedRule(); };
-		ruleActions.Controls.Add(addOrUpdate);
+		ruleActions.Controls.Add(add);
 		ruleActions.Controls.Add(remove);
 		editor.Controls.Add(ruleActions, 3, 1);
 		layout.Controls.Add(editor, 0, 4);
@@ -142,7 +142,6 @@ internal sealed class AolaBattleSettingsForm : AolaFormBase
 		_morphGrid.Columns.Add("Note", "备注");
 		_morphGrid.Columns.Add("Source", "模型源 ID");
 		_morphGrid.Columns.Add("Target", "模型目标 ID");
-		_morphGrid.SelectionChanged += delegate { LoadSelectedRule(); };
 		layout.Controls.Add(_morphGrid, 0, 5);
 
 		FlowLayoutPanel actions = new FlowLayoutPanel
@@ -179,7 +178,7 @@ internal sealed class AolaBattleSettingsForm : AolaFormBase
 		}
 	}
 
-	private void AddOrUpdateRule()
+	private void AddRule()
 	{
 		if (!int.TryParse(_morphSourceId.Text.Trim(), out int sourceId) ||
 			!int.TryParse(_morphTargetId.Text.Trim(), out int targetId))
@@ -194,44 +193,42 @@ internal sealed class AolaBattleSettingsForm : AolaFormBase
 			_status.Text = error;
 			return;
 		}
-		BattleMorphRule selected = _morphGrid.CurrentRow?.Tag as BattleMorphRule;
-		if (_morphRules.Any(rule => rule != selected && rule.SourceViewId == sourceId))
+		if (_morphRules.Any(rule => rule.SourceViewId == sourceId))
 		{
-			_status.Text = "同一个战斗模型源 ID 只能配置一次。";
+			_status.Text = "同一个战斗模型源 ID 只能配置一次；如需更换目标，请先删除原规则。";
 			return;
 		}
-		if (selected == null) _morphRules.Add(candidate);
-		else _morphRules[_morphRules.IndexOf(selected)] = candidate;
-		RefreshMorphGrid(candidate);
+		_morphRules.Add(candidate);
+		RefreshMorphGrid();
+		_morphNote.Clear();
+		_morphSourceId.Clear();
+		_morphTargetId.Clear();
+		_morphNote.Focus();
+		_status.Text = "已添加规则；点击“保存并应用”将全部规则保存到程序目录的 settings.json。";
 	}
 
 	private void RemoveSelectedRule()
 	{
 		if (!(_morphGrid.CurrentRow?.Tag is BattleMorphRule selected)) return;
 		_morphRules.Remove(selected);
+		if (_morphRules.Count == 0) _battleMorphEnabled.Checked = false;
 		RefreshMorphGrid();
 		_morphNote.Clear();
 		_morphSourceId.Clear();
 		_morphTargetId.Clear();
+		_status.Text = "已删除规则；点击“保存并应用”保存剩余规则。";
 	}
 
-	private void LoadSelectedRule()
-	{
-		if (!(_morphGrid.CurrentRow?.Tag is BattleMorphRule selected)) return;
-		_morphNote.Text = selected.Note;
-		_morphSourceId.Text = selected.SourceViewId.ToString();
-		_morphTargetId.Text = selected.TargetViewId.ToString();
-	}
-
-	private void RefreshMorphGrid(BattleMorphRule selected = null)
+	private void RefreshMorphGrid()
 	{
 		_morphGrid.Rows.Clear();
 		foreach (BattleMorphRule rule in _morphRules)
 		{
 			int index = _morphGrid.Rows.Add(rule.Note, rule.SourceViewId, rule.TargetViewId);
 			_morphGrid.Rows[index].Tag = rule;
-			if (rule == selected) _morphGrid.Rows[index].Selected = true;
 		}
+		_morphGrid.CurrentCell = null;
+		_morphGrid.ClearSelection();
 	}
 
 	private async System.Threading.Tasks.Task SaveAsync()
@@ -263,7 +260,7 @@ internal sealed class AolaBattleSettingsForm : AolaFormBase
 			}
 			else if (result.Submitted)
 			{
-				_status.Text = "设置已保存；进入战斗后自动应用。";
+				_status.Text = "设置已保存；演出桥尚未就绪。进入战斗后仍不生效时，请检查战斗桥资源版本。";
 			}
 			else
 			{

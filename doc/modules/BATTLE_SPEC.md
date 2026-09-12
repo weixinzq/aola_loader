@@ -40,6 +40,10 @@ PacketHost 事件可在后台线程；State 在锁内更新、锁外发布快照
 
 独占 `battle` Section，Version 6。当前字段为 `HideDamageNumbers`、`HideHealingNumbers`、`SkipBattlePresentation`、`BattleMorphEnabled` 和强类型 `MorphRules[{Note,SourceViewId,TargetViewId}]`；不得修改 Theme/PetMorph DTO。读取 Version 4 时，原 `SkipAttackAnimation=true` 单向迁移为 `SkipBattlePresentation=true`。旧版模型规则只保留可识别字段，无法识别的规则被忽略并报告，模型总开关保持关闭。
 
+战斗模型列表只提供“添加”和“删除”：添加始终追加，选中行仅用于删除，不会覆盖原规则或回填输入框；重复源 ID 拒绝添加，需要先删除旧规则。添加后清空输入，删除最后一条时关闭模型替换开关。点击“保存并应用”将完整列表原子保存到程序目录的 `settings.json` → `Sections.battle.MorphRules`，重开窗口和重启程序均从该列表恢复；不另建双写文件。模型启用时仍须预检成功才能保存并应用，失败保留旧 JSON。
+
+2026-09-11 修复验证：隐藏窗体回归覆盖选中第一条后继续添加、重复源拒绝、输入清空、选中删除及删除最后一条；Settings 自测覆盖两条规则完整 JSON 保存/重载与删除后重新加载。演出桥待就绪时提示检查资源版本，不把设置已保存当作演出生效。
+
 ## 安全约束
 
 只消费已脱敏 DTO；不展示登录信息或加密原始扩展。接收包不得进入发送表格。
@@ -79,5 +83,7 @@ State/UI/Presentation 物理边界清晰，Tracker 只依赖 PacketHost，F3 与
 本地独立候选补齐 `PetMovieStrategyBase.dispose` 的加载监听/回调清理，以及 `BitmapPetMovieStrategy.dispose` 遗漏的基类释放与重复释放保护。相对当前 Version 5 基线仅改变这两个方法，880 份 p-code 对比与 649 项 SymbolClass 检查通过；未更新生产清单或 Release，未接入周更流程，改善长期掉帧的效果尚未实测。详细依据、候选和回退副本见[本地分析记录](../../analysis/reverse-engineering/long-session-performance-20260910/README.md)，该证据目录不保证随公开仓库分发。
 
 ## 已知限制
+
+2026-09-11 官方版本检测确认 `petfightnew` 已由 `2026090340574444` 更新为 `2026091003596777`。旧版本规则会透传新版官方资源，因此独立的战斗模型替换可继续生效，而隐藏数字和跳过演出没有战斗桥可执行。现已从新版官方原件重新生成并接入 Bridge Version 5 / `ConservativeCleanup` 候选，候选 SHA-256 为 `31d534760bec404698434100b1079de16272f96cfe416168d37fb04e7ff08fcf`；通过 FWS 长度、同版本 SymbolClass、全量 p-code 差异与独立 FFDec 回读检查。原件、报告及旧桥回滚副本保存在 `analysis/reverse-engineering/battle-bridge-20260911-2026091003596777/`。本次未执行真实 Flash 登录或战斗；必须全新进程验证官方透传与新版替换，静态通过不代表演出及伤害显示实机验收。官方再次周更时仍需按新原件生成候选，不能仅修改清单版本号。
 
 ContractVersion 1 已冻结；生产 tracker 实现 `IBattleStateSource` 并只依赖 `IAolaPacketEventSource`，不直接订阅静态 IPC。`battle` Section 使用 `BattleSettings`/`BattleSettingsCodec` Version 6。当前本地 Release 已放入 `ConservativeCleanup` Bridge Version 5 测试补丁，但仅通过构建、FWS/SymbolClass/全量 p-code 静态验证，仍需从全新进程完成官方透传、仅诊断版、保守释放版三组实机 A/B，不得视为生产稳定版。保守释放只处理已确认的局部持有链：`PreLoadAssetsUtil` 完成/释放时清空成员回调和局部队列；可跨多次攻击复用的 `SkillEffectLoader` 正常完成时只摘除回调，整场释放时才清空回调、资源域和编号；`UseSkill.dispose` 清空加载器、返回回调和参数引用，`MCPetContainer.dispose` 清空攻击结束/可见性回调。攻击策略缺失或实际运行时间超过 15 秒时复用官方 `setNormal()`，不改变服务器协议。不取消 `ResScheduler` 请求、不清理全局缓存、不强制 GC、不卸载 `ApplicationDomain`、不自动重载 Flash。官方加载器没有已确认的单战斗域释放接口，因此在弱引用证据证明域滞留前不增加域卸载。诊断桥未安装或版本不符时 CSV 仍记录战斗边界和 `BridgeAvailable=false`，不会阻止战斗。帧间隔反映 Flash 主事件循环是否停顿，不能单独区分 GC、资源解码、ActionScript 或 GPU 渲染原因。跳过战斗演出只能加速已经到达 Flash 的事件；服务器尚未返回的结果仍必须等待。战斗模型替换只改变本地画面，不改变服务器 `raceId/viewId`、技能、属性或结果；变身、召唤物、奥义和额外特效不在范围内。该模型替换及真实单人 PVP/PVE、常用 DPI 仍需实机验收。

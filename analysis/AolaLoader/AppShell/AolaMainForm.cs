@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
+using AolaLoader.Features.Lineup;
+using AolaLoader.UI.Lineup;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.Battle.Coordination;
 using AolaLoader.Features.Battle.Bridge;
@@ -44,6 +46,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly AolaHookController _hookController;
 	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly IAolaCommandSender _commandSender;
+	private readonly LineupCoordinator _lineupCoordinator;
 	private readonly IPageBridge _pageBridge;
 	private readonly AolaReceiveLogger _receiveLogger;
 	private readonly AolaBattleStateTracker _battleTracker;
@@ -68,7 +71,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		IThemeCoordinator themeCoordinator,
 		IPetMorphCoordinator petMorphCoordinator,
 		BattlePresentationCoordinator battlePresentationCoordinator,
-		IChildWindowCoordinator childWindowCoordinator)
+		IChildWindowCoordinator childWindowCoordinator,
+		LineupCoordinator lineupCoordinator)
 	{
 		_browser = browser ?? throw new ArgumentNullException(nameof(browser));
 		_browserSession = browserSession ?? throw new ArgumentNullException(nameof(browserSession));
@@ -82,6 +86,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_petMorphCoordinator = petMorphCoordinator ?? throw new ArgumentNullException(nameof(petMorphCoordinator));
 		_battlePresentationCoordinator = battlePresentationCoordinator ?? throw new ArgumentNullException(nameof(battlePresentationCoordinator));
 		_childWindowCoordinator = childWindowCoordinator ?? throw new ArgumentNullException(nameof(childWindowCoordinator));
+		_lineupCoordinator = lineupCoordinator ?? throw new ArgumentNullException(nameof(lineupCoordinator));
 
 		Text = "Aola Loader";
 		StartPosition = FormStartPosition.CenterScreen;
@@ -190,6 +195,9 @@ internal sealed class AolaMainForm : AolaFormBase
 		extensions.DropDownItems.Add(featurePanel);
 		extensions.DropDownItems.Add(battleAssistant);
 		extensions.DropDownItems.Add(battlePresentation);
+		ToolStripMenuItem lineup = new ToolStripMenuItem("阵容方案");
+		lineup.Click += delegate { _childWindowCoordinator.Show("lineupPresets", () => new LineupPresetsForm(_lineupCoordinator)); };
+		extensions.DropDownItems.Add(lineup);
 		extensions.DropDownItems.Add(new ToolStripSeparator());
 		extensions.DropDownItems.Add(BuildThemeMenu());
 		return extensions;

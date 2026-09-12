@@ -5,6 +5,7 @@ using AolaLoader.AppShell.Adapters.PetMorph;
 using AolaLoader.BrowserHost;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
+using AolaLoader.Features.Lineup;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.Battle.Bridge;
 using AolaLoader.Features.Battle.Coordination;
@@ -42,6 +43,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 	private readonly AolaBrowserSession _browserSession;
 	private readonly IPageBridge _pageBridge;
 	private readonly IAolaCommandSender _commandSender;
+	private readonly LineupCoordinator _lineupCoordinator;
 	private readonly ChildWindowCoordinator _childWindowCoordinator;
 	private bool _disposed;
 
@@ -97,6 +99,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 			new BattleBridgeClient(_pageBridge),
 			_resourceRequestHandler);
 		_commandSender = new AolaFlashCommandSender(_pageBridge);
+		_lineupCoordinator = new LineupCoordinator(_packetEventSource, _commandSender, _battleTracker);
 		_childWindowCoordinator = new ChildWindowCoordinator();
 		MainForm = new AolaMainForm(
 			_browser,
@@ -110,7 +113,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 			_themeCoordinator,
 			_petMorphCoordinator,
 			_battlePresentationCoordinator,
-			_childWindowCoordinator);
+			_childWindowCoordinator,
+			_lineupCoordinator);
 	}
 
 	public AolaMainForm MainForm { get; }
