@@ -1,3 +1,5 @@
+// 架构角色：EasyHook 注入入口，装配 socket filter、native hooks、有界队列、解析线程和 IPC 发布。
+// 数据流：Winsock callbacks -> CapturedChunk queue -> AolaCaptureEngine -> AolaHookHostService。
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -14,20 +16,24 @@ public sealed class MainClass : IEntryPoint
 
 	public MainClass(RemoteHooking.IContext context, string channelName)
 	{
+		// 注入 DLL 运行在 network.mojom 中；通过宿主创建的 channel 连接回 AolaLoader.exe。
 		_host = RemoteHooking.IpcConnectClient<AolaHookHostService>(channelName);
 	}
 
 	public void Run(RemoteHooking.IContext context, string channelName)
 	{
 		int processId = Process.GetCurrentProcess().Id;
+		// Hook 回调是生产者，Parser 线程是唯一消费者。容量上限保护 CEF 网络进程内存。
 		using (BlockingCollection<CapturedChunk> queue = new BlockingCollection<CapturedChunk>(new ConcurrentQueue<CapturedChunk>(), 4096))
 		{
 			AolaCaptureEngine engine = new AolaCaptureEngine(PublishSafely);
 			CaptureRuntimeMetrics metrics = new CaptureRuntimeMetrics();
 			bool diagnosticCaptureAll = string.Equals(Environment.GetEnvironmentVariable("AOLA_CAPTURE_ALL_SOCKETS"), "1", StringComparison.Ordinal);
 			AolaSocketCaptureFilter filter = new AolaSocketCaptureFilter(captureAllSockets: diagnosticCaptureAll);
+			// 协议解析可能分帧、解密和反序列化，必须离开原生 Winsock Hook 回调执行。
 			Thread worker = new Thread((ThreadStart)delegate
 			{
+				// 队列暂时为空时等待；CompleteAdding 且剩余项耗尽后才退出。
 				foreach (CapturedChunk chunk in queue.GetConsumingEnumerable())
 				{
 					try
@@ -67,6 +73,8 @@ public sealed class MainClass : IEntryPoint
 			worker.Name = "AolaSocketHack.Parser";
 			worker.Start();
 
+			// 这些 lambda 是“捕获结果回调”，由 WinsockHooks 在复制字节后调用；
+			// socket/bytes 的实际值来自被拦截的 ws2_32 调用，而不是这里预先生成。
 			using (WinsockHooks hooks = new WinsockHooks(
 				filter,
 				(socket, bytes) => TryQueue(queue, metrics, CaptureDirection.Send, socket, bytes),
@@ -123,6 +131,7 @@ public sealed class MainClass : IEntryPoint
 					Report("Error", "Aola Hook 运行失败：" + ex.Message);
 				}
 			}
+			// 停止接受新的 Hook 事件，再等待 parser 排空已有数据，避免卸载时截断队列。
 			queue.CompleteAdding();
 			bool workerStopped = worker.Join(2000);
 			if (workerStopped)
@@ -205,6 +214,7 @@ public sealed class MainClass : IEntryPoint
 	{
 		try
 		{
+			// TryAdd 不阻塞网络线程；容量已满时宁可计数丢弃，也不能卡住 CEF 网络栈。
 			if (queue.TryAdd(new CapturedChunk(direction, socket, bytes, port)))
 			{
 				if (bytes != null)

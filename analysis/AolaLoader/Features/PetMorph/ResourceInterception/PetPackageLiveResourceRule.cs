@@ -1,3 +1,5 @@
+// 架构角色：控制 newpetpackage live bridge 本地替换，并维护是否启用的原子运行状态。
+// 数据流：package SWF 请求 + enable flag -> 本地 bridge 或官方 PassThrough。
 using System;
 using System.IO;
 using System.Security.Cryptography;
@@ -9,7 +11,6 @@ namespace AolaLoader.Features.PetMorph.ResourceInterception;
 
 internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 {
-	internal const string SupportedVersion = "2026082731219998";
 	private const int MaximumSwfBytes = 16 * 1024 * 1024;
 	private static readonly Regex PackagePathPattern = new Regex(
 		@"^/play/pet/newpetpackage~(?<version>\d+)\.swf$",
@@ -19,7 +20,10 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		"aolaMorphResolveSkinId",
 		"aolaMorphRefresh",
 		"aolaMorphShouldHideBackground",
-		"aolaMorphResolveIconId"
+		"aolaMorphResolveIconId",
+		"getAolaMorphControlSkinId",
+		"getAolaMorphVisualSkinId",
+		"getAolaMorphVisualSkinIdByRace"
 	};
 	private static readonly string[] ForbiddenCommandBridgeMarkers =
 	{
@@ -55,7 +59,7 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 	public int Priority => 699;
 
 	public string PathOwnership =>
-		"aola.100bt.com:/play/pet/newpetpackage~" + SupportedVersion + ".swf";
+		"aola.100bt.com:/play/pet/newpetpackage~*.swf";
 
 	public bool IsAvailable => _template != null;
 
@@ -72,18 +76,18 @@ internal sealed class PetPackageLiveResourceRule : IResourceInterceptionRule
 		}
 
 		Match match = PackagePathPattern.Match(request.Path);
-		if (!match.Success ||
-			!string.Equals(match.Groups["version"].Value, SupportedVersion, StringComparison.Ordinal))
+		if (!match.Success)
 		{
 			return ResourceInterceptionPlan.PassThrough(request.OriginalUrl);
 		}
+		string requestedVersion = match.Groups["version"].Value;
 
 		return ResourceInterceptionPlan.LocalResponse(
 			request.OriginalUrl,
 			_template,
 			"application/x-shockwave-flash",
-			"petmorph:package:" + SupportedVersion + ":" + _sha256,
-			"petmorph.package.live." + SupportedVersion);
+			"petmorph:package:any:" + _sha256,
+			"petmorph.package.live.requested." + requestedVersion);
 	}
 
 	private static bool TrySetTemplate(byte[] content, out byte[] template, out string sha256Hex)

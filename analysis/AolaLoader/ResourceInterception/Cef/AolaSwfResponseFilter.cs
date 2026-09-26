@@ -1,3 +1,5 @@
+// 架构角色：CEF IResponseFilter 适配器，在流式回调中有界收集响应并执行纯 transformer。
+// 数据流：远端响应 chunks -> BoundedResourceResponseProcessor -> 变换后响应 chunks。
 using System;
 using System.IO;
 using System.Text;

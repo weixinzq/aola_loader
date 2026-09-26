@@ -1,3 +1,5 @@
+// 架构角色：在单个 JSON 文档中读取/保存独立 section，保留未知字段并使用原子写入。
+// 数据流：settings.json -> migration/codec -> 模块值；保存时合并 section -> AtomicSettingsWriter。
 using System;
 using System.IO;
 using System.Security;
@@ -36,6 +38,7 @@ internal sealed class JsonSettingsSectionStore : ISettingsSectionStore
 
 	public SettingsSectionLoadResult<T> Load<T>(string key, ISettingsSectionCodec<T> codec)
 	{
+		// store 只拥有文档和 section 边界；字段默认、迁移和规范化委托给 feature codec。
 		if (codec == null)
 		{
 			throw new ArgumentNullException(nameof(codec));
@@ -90,6 +93,7 @@ internal sealed class JsonSettingsSectionStore : ISettingsSectionStore
 
 	public SettingsSectionSaveResult Save<T>(string key, T value, ISettingsSectionCodec<T> codec)
 	{
+		// 保存时读取并保留现有根文档，只合并调用方拥有的 section，避免跨功能覆盖。
 		if (codec == null)
 		{
 			throw new ArgumentNullException(nameof(codec));

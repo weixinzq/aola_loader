@@ -25,8 +25,10 @@ internal static class PetMorphCoordinatorVerifier
 		try
 		{
 			return VerifyDefaults(root) &&
+				VerifyLiveSkinMappingCandidates() &&
 				VerifyRestoreFromSavedSettings(root) &&
 				VerifyApplyAsyncSuccess(root) &&
+				VerifyUnavailableTargetKeepsHiddenBackground(root) &&
 				VerifyApplyAsyncSaveFailure(root) &&
 				VerifyApplyAsyncBridgeUnavailable(root) &&
 				VerifyApplyAsyncPushBlocked(root) &&
@@ -46,6 +48,31 @@ internal static class PetMorphCoordinatorVerifier
 			{
 			}
 		}
+	}
+
+	private static bool VerifyLiveSkinMappingCandidates()
+	{
+		IReadOnlyDictionary<int, int> backpackFallback =
+			PetMorphLiveSkinMapping.BuildCandidates(new[]
+			{
+				new AolaPetMorphRule("shine-5399", 6000, 5399, 0, 0),
+				new AolaPetMorphRule("shine-5436", 5119, 5436, 0, 0)
+			});
+		IReadOnlyDictionary<int, int> explicitPoster =
+			PetMorphLiveSkinMapping.BuildCandidates(new[]
+			{
+				new AolaPetMorphRule("explicit", 6000, 5399, 0, 6045)
+			});
+		IReadOnlyDictionary<int, int> separatePosterSource =
+			PetMorphLiveSkinMapping.BuildCandidates(new[]
+			{
+				new AolaPetMorphRule("separate", 6000, 5399, 5486, 6045)
+			});
+		return backpackFallback.Count == 2 && backpackFallback[6000] == 5399 &&
+			backpackFallback[5119] == 5436 &&
+			explicitPoster.Count == 1 && explicitPoster[6000] == 6045 &&
+			separatePosterSource.Count == 1 &&
+			separatePosterSource[5486] == 6045;
 	}
 
 	private static bool VerifyDefaults(string root)
@@ -119,7 +146,7 @@ internal static class PetMorphCoordinatorVerifier
 		});
 		ManualPetMorphRuleTarget ruleTarget = new ManualPetMorphRuleTarget(
 			liveBridgeAvailable: true,
-			posterMappings: new Dictionary<int, int> { { 5486, 5530 } });
+			skinMappings: new Dictionary<int, int> { { 5486, 5530 } });
 		ManualPetMorphPushBridge pushBridge = new ManualPetMorphPushBridge(
 			new AolaPetMorphPushResult(true, true, true, 1, null));
 		PetMorphCoordinator coordinator = new PetMorphCoordinator(
@@ -145,7 +172,7 @@ internal static class PetMorphCoordinatorVerifier
 
 		ManualPetMorphPushBridge.PushCall call = pushBridge.Calls[0];
 		if (!call.Enabled ||
-			call.HiddenBackgrounds.Count != 1 || call.HiddenBackgrounds[5486] != true ||
+			call.HiddenBackgrounds.Count != 0 ||
 			call.IconMappings.Count != 1 || call.IconMappings[5486] != 5530 ||
 			call.SkinMappings.Count != 1 || call.SkinMappings[5486] != 5530)
 		{
@@ -200,6 +227,29 @@ internal static class PetMorphCoordinatorVerifier
 			pushBridge.PushCallCount == 0 &&
 			coordinator.Current.Enabled == false &&
 			before.SequenceEqual(File.ReadAllBytes(path));
+	}
+
+	private static bool VerifyUnavailableTargetKeepsHiddenBackground(string root)
+	{
+		string path = Path.Combine(root, "unavailable-target.json");
+		ManualPetMorphRuleTarget ruleTarget = new ManualPetMorphRuleTarget(
+			skinMappings: new Dictionary<int, int>());
+		ManualPetMorphPushBridge pushBridge = new ManualPetMorphPushBridge();
+		PetMorphCoordinator coordinator = new PetMorphCoordinator(
+			new JsonSettingsSectionStore(path),
+			new PetMorphSettingsCodec(),
+			ruleTarget,
+			pushBridge);
+		PetMorphApplyResult result = coordinator.ApplyAsync(
+			new[]
+			{
+				new AolaPetMorphRule("ordinary", 6000, 5399, 0, 0, false, true, false)
+			},
+			true,
+			CancellationToken.None).GetAwaiter().GetResult();
+		return result.Succeeded && pushBridge.PushCallCount == 1 &&
+			pushBridge.Calls[0].HiddenBackgrounds.Count == 1 &&
+			pushBridge.Calls[0].HiddenBackgrounds[6000];
 	}
 
 	private static bool VerifyApplyAsyncBridgeUnavailable(string root)
@@ -289,7 +339,7 @@ internal static class PetMorphCoordinatorVerifier
 		});
 		byte[] before = File.ReadAllBytes(path);
 		ManualPetMorphRuleTarget ruleTarget = new ManualPetMorphRuleTarget(
-			posterMappings: new Dictionary<int, int> { { 5486, 5530 } });
+			skinMappings: new Dictionary<int, int> { { 5486, 5530 } });
 		ManualPetMorphPushBridge pushBridge = new ManualPetMorphPushBridge(
 			new AolaPetMorphPushResult(true, true, true, 2, null));
 		PetMorphCoordinator coordinator = new PetMorphCoordinator(
@@ -352,7 +402,7 @@ internal static class PetMorphCoordinatorVerifier
 			return null;
 		}
 
-		public Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+		public Task<IReadOnlyDictionary<int, int>> GetAvailableLiveSkinMappingsAsync(
 			IReadOnlyList<AolaPetMorphRule> rules,
 			bool enabled)
 		{
@@ -374,7 +424,7 @@ internal static class PetMorphCoordinatorVerifier
 			return null;
 		}
 
-		public Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+		public Task<IReadOnlyDictionary<int, int>> GetAvailableLiveSkinMappingsAsync(
 			IReadOnlyList<AolaPetMorphRule> rules,
 			bool enabled)
 		{

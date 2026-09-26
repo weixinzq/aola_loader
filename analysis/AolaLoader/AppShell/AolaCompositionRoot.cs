@@ -1,3 +1,5 @@
+// 架构角色：桌面宿主的唯一组合根，创建共享基础设施、功能协调器、UI，并按依赖逆序释放。
+// 数据流：运行目录/设置/资源 -> Browser、Hook、PacketHost、Features -> AolaMainForm。
 using System;
 using System.IO;
 using System.Windows.Forms;
@@ -49,37 +51,47 @@ internal sealed class AolaCompositionRoot : IDisposable
 
 	public AolaCompositionRoot()
 	{
+		// 所有运行资源都相对于 exe 目录定位，避免从不同工作目录启动时找错文件。
 		string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+		// 设置仓库由多个功能共享，但每个功能只通过自己的 Codec 读写所属 Section。
 		JsonSettingsSectionStore settingsStore = new JsonSettingsSectionStore(
 			Path.Combine(baseDirectory, "settings.json"));
 		PetMorphSettingsCodec petMorphCodec = new PetMorphSettingsCodec();
+		// 资源请求处理器创建时就需要知道是否启用形态 live bridge，因此先读初始设置。
 		PetMorphSettings initialPetMorph = settingsStore.Load(
 			PetMorphSettingsCodec.SectionKey,
 			petMorphCodec).Value;
 
+		// 初始化进程级 CEF、缓存、日志和 PPAPI Flash；必须先于 ChromiumWebBrowser。
 		AolaCefInitializer.Initialize();
 
+		// 建立网络观察链：IPC Adapter 接收 Hook 消息，日志和战斗状态共同订阅它。
 		_hookController = new AolaHookController();
 		_packetEventSource = new AolaHookHostAdapter();
 		_receiveLogger = new AolaReceiveLogger(_packetEventSource);
 		_battleTracker = new AolaBattleStateTracker(_packetEventSource);
+		// 唯一的 CEF 资源请求处理器集中注册主题、主动发送桥、战斗桥和形态规则。
 		_resourceRequestHandler = new AolaResourceRequestHandler(
-			Path.Combine(baseDirectory, "Resources", "Themes"),
-			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"),
-			Path.Combine(baseDirectory, "Resources", "Patches", "start-bridge-2107300001.fws.swf"),
-			Path.Combine(baseDirectory, "Resources", "Patches", "petfightnew-battle-state.current.json"),
-			Path.Combine(baseDirectory, "Resources", "Data", "battle-pet-movie-versions.current.json"),
-			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-2026082731219998.fws.swf"),
-			initialPetMorph.LiveBridgeEnabled);
+			Path.Combine(baseDirectory, "Resources", "Themes"), // 本地主题 SWF 目录
+			Path.Combine(baseDirectory, "Resources", "Data", "pet-poster-catalog.json"), // 海报资源目录表
+			Path.Combine(baseDirectory, "Resources", "Patches", "start-bridge-2107300001.fws.swf"), // 主动发送桥
+			Path.Combine(baseDirectory, "Resources", "Patches", "petfightnew-battle-state.current.json"), // 战斗桥清单
+			Path.Combine(baseDirectory, "Resources", "Battle", "background.jpg"), // 自定义战斗背景 JPEG
+			Path.Combine(baseDirectory, "Resources", "Data", "battle-pet-movie-versions.current.json"), // 战斗模型版本表
+			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-20260919895706432-visual-v3.fws.swf"), // 形态 live bridge
+			initialPetMorph.LiveBridgeEnabled); // 是否启用形态 live bridge
+		// ThemeCoordinator 通过接口控制主题规则，不需要直接了解 CefSharp。
 		_themeCoordinator = new ThemeCoordinator(
 			settingsStore,
 			new ThemeSettingsCodec(),
 			_resourceRequestHandler);
+		// CEF 已在上面全局初始化；这里创建真正显示网页的 WinForms 浏览器控件。
 		_browser = new ChromiumWebBrowser(AolaMainForm.DefaultUrl)
 		{
-			Dock = DockStyle.Fill,
-			RequestHandler = _resourceRequestHandler
+			Dock = DockStyle.Fill, // 加入主窗口后自动填满父容器
+			RequestHandler = _resourceRequestHandler // 让 SWF/资源请求经过项目规则管线
 		};
+		// PetMorph 同时使用设置、资源规则和页面 main frame；lambda 每次取当前 frame。
 		_petMorphCoordinator = new PetMorphCoordinator(
 			settingsStore,
 			petMorphCodec,
@@ -87,34 +99,43 @@ internal sealed class AolaCompositionRoot : IDisposable
 			new AolaBrowserPetMorphPushBridge(
 				() => _browser.GetMainFrame(),
 				new AolaPetMorphLiveBridge()));
+		// BrowserSession 封装具体 CefSharp 控件；PageBridge 在其上提供受控页面调用。
 		_browserSession = new AolaBrowserSession(_browser);
 		_pageBridge = new AolaPageBridge(_browserSession);
+		// 把 packet 战斗快照与 Flash 页面诊断数据记录到性能日志。
 		_battlePerformanceRecorder = new BattlePerformanceRecorder(
 			_battleTracker,
 			new BattleDiagnosticsClient(_pageBridge),
 			Path.Combine(baseDirectory, "logs", "performance"));
+		// 保存并应用战斗表现设置，同时协调战斗模型资源规则。
 		_battlePresentationCoordinator = new BattlePresentationCoordinator(
 			settingsStore,
 			new BattleSettingsCodec(),
 			new BattleBridgeClient(_pageBridge),
 			_resourceRequestHandler);
+		// 生产主动发送只通过 PageBridge 复用当前 Flash 原连接。
 		_commandSender = new AolaFlashCommandSender(_pageBridge);
+		// 阵容功能需要发送、匹配收发 packet，并在活动战斗中拒绝操作。
 		_lineupCoordinator = new LineupCoordinator(_packetEventSource, _commandSender, _battleTracker);
+		// 统一复用和释放抓包、战斗、形态、阵容等子窗口。
 		_childWindowCoordinator = new ChildWindowCoordinator();
+
+		// 最后创建主窗体：此时它需要的所有长期依赖都已准备完成。
+		// 参数声明为接口时，实际传入的仍是上面创建的具体实现对象。
 		MainForm = new AolaMainForm(
-			_browser,
-			_browserSession,
-			_hookController,
-			_packetEventSource,
-			_commandSender,
-			_pageBridge,
-			_receiveLogger,
-			_battleTracker,
-			_themeCoordinator,
-			_petMorphCoordinator,
-			_battlePresentationCoordinator,
-			_childWindowCoordinator,
-			_lineupCoordinator);
+			_browser, // 可视化 CEF 浏览器控件
+			_browserSession, // 浏览器生命周期和脚本执行接口
+			_hookController, // network.mojom Hook 注入控制器
+			_packetEventSource, // Hook IPC 收发消息的宿主事件源
+			_commandSender, // 经 Flash 原连接主动发送命令
+			_pageBridge, // 页面 JavaScript / ExternalInterface 桥
+			_receiveLogger, // 按需保留收发 JSONL 日志
+			_battleTracker, // packet 派生的 BattleSnapshot 状态源
+			_themeCoordinator, // 主题应用和持久化
+			_petMorphCoordinator, // 背包/海报形态规则
+			_battlePresentationCoordinator, // 战斗表现和模型规则
+			_childWindowCoordinator, // 子窗口复用及生命周期
+			_lineupCoordinator); // 阵容读取和恢复
 	}
 
 	public AolaMainForm MainForm { get; }
@@ -126,6 +147,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 			return;
 		}
 		_disposed = true;
+		// 按依赖关系从上层消费者向下层基础设施释放，最后停止 Hook 控制器。
 		_battlePerformanceRecorder.Dispose();
 		_childWindowCoordinator.Dispose();
 		_pageBridge.Dispose();

@@ -1,3 +1,5 @@
+// 架构角色：将官方 pet movie SWF 变换为指定形态资源，负责格式适配和输出验证。
+// 数据流：远端 SWF + 形态规则 -> 变换后的 FWS 或失败关闭结果。
 using System;
 using System.Text;
 using AolaLoader.ResourceInterception.Contracts;

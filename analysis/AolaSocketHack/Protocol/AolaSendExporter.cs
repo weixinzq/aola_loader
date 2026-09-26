@@ -1,3 +1,5 @@
+// 架构角色：把允许导出的已解密发送事件转换为可复用 JSON 行，并排除敏感或不完整数据。
+// 数据流：AolaPacketEvent -> export line 或拒绝。
 using System;
 using AolaSocketHack.Contracts;
 using Newtonsoft.Json;

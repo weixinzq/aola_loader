@@ -1,3 +1,5 @@
+// 架构角色：把形态协调器的推送请求适配到当前 CEF 主 Frame，不拥有设置或资源规则。
+// 数据流：PetMorphCoordinator -> 本适配器 -> AolaPetMorphLiveBridge -> Flash 页面桥结果。
 using System;
 using System.Collections.Generic;
 using System.Threading;

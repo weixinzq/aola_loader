@@ -1,3 +1,5 @@
+// 架构角色：按用户请求订阅并保留收发 packet 为脱敏 JSONL，默认不落盘。
+// 数据流：IAolaPacketEventSource -> 序列化/短暂缓冲 -> logs/aola-recv-*.jsonl。
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -39,6 +41,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 			throw new ArgumentException("日志基础目录不能为空", nameof(baseDirectory));
 		}
 		_baseDirectory = baseDirectory;
+		// 事件始终订阅，但 TryRetain 前 _writer 为空且 _retaining=false，收到的包不会落盘。
 		_packetEventSource.PacketReceived += OnPacketReceived;
 	}
 
@@ -101,6 +104,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 				errorMessage = "收发日志正在保留，请稍候。";
 				return false;
 			}
+			// 标记转换窗口，使打开文件期间到达的 packet 进入 _pendingLines，而不是丢失。
 			_retaining = true;
 			batch = DrainPendingLines();
 			drainedLines.AddRange(batch);
@@ -204,6 +208,7 @@ internal sealed class AolaReceiveLogger : IDisposable
 		}
 		lock (_syncRoot)
 		{
+			// 默认关闭时直接忽略；pending queue 只桥接“正在开启保留”的短暂窗口，不回放历史包。
 			if (_disposed || _writer == null && !_retaining)
 			{
 				return;

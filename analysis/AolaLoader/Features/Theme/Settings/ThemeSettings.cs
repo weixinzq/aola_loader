@@ -1,3 +1,5 @@
+// 架构角色：定义 theme section 的设置模型与 codec，负责默认值和合法 themeId 规范化。
+// 数据流：settings.json theme 节点 <-> ThemeSettings。
 using System;
 using AolaLoader.Settings;
 using Newtonsoft.Json.Linq;

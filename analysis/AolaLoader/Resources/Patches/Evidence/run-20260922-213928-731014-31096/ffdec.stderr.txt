@@ -1,0 +1,225 @@
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.controller.helper/SetPetHealthHelper.showJingBiRecureConfirmPanel
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.controller.helper/PetPackageHelper.loadObject
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3854)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion/GQPetPreset.initTips
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion/PetCardList.loadPetCard3Menu
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion/GodCardList.loadGodCardMenu
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion/PetCardList.loadPetCard3View
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:30 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion/FightGiftIcon.sendMsg
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:31 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion.petdetailinfo/CrystalKeyPanel.initUI
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:31 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion.petdetailinfo/HKPanel.initUI
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:31 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion.petdetailinfo/AstralSpirit.initUI
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:31 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion.petdetailinfo/Inscription.initUI
+java.lang.ClassCastException: com.jpexs.decompiler.graph.model.CommaExpressionItem cannot be cast to com.jpexs.decompiler.flash.abc.avm2.model.NewFunctionAVM2Item
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toSourceOutput(AVM2Code.java:2017)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2GraphSource.translatePart(AVM2GraphSource.java:203)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3561)
+	at com.jpexs.decompiler.graph.Graph.printGraph(Graph.java:3218)
+	at com.jpexs.decompiler.graph.Graph.translate(Graph.java:993)
+	at com.jpexs.decompiler.flash.abc.avm2.graph.AVM2Graph.translateViaGraph(AVM2Graph.java:797)
+	at com.jpexs.decompiler.flash.abc.avm2.AVM2Code.toGraphTargetItems(AVM2Code.java:2561)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:478)
+	at com.jpexs.decompiler.flash.abc.types.MethodBody$1.call(MethodBody.java:470)
+	at com.jpexs.helpers.CancellableWorker$3.doInBackground(CancellableWorker.java:285)
+	at com.jpexs.helpers.CancellableWorker$1.call(CancellableWorker.java:138)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at com.jpexs.helpers.CancellableWorker.run(CancellableWorker.java:163)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Sep 22, 2026 9:39:31 PM com.jpexs.decompiler.flash.abc.types.MethodBody convert
+SEVERE: Decompilation error in: mmo.petpackage.panel.inclusion.petdetailinfo/TotePanel.initUI
+java.lang.ClassCastException
+

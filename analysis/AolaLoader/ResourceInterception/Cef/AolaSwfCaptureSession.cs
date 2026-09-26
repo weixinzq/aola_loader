@@ -1,3 +1,5 @@
+// 架构角色：一次性捕获目标 SWF 响应的诊断会话，拥有临时 handler/filter 和输出文件生命周期。
+// 数据流：匹配的 CEF 响应字节 -> 有界收集/校验 -> 显式保存结果。
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;

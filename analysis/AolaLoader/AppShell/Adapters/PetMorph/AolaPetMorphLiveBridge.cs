@@ -1,3 +1,5 @@
+// 架构角色：封装 newpetpackage 形态桥的脚本协议，校验页面返回值并归一化失败原因。
+// 数据流：主 Frame + 形态规则 JSON -> JavaScript/ExternalInterface -> AolaPetMorphPushResult。
 using System;
 using System.Collections.Generic;
 using System.Globalization;

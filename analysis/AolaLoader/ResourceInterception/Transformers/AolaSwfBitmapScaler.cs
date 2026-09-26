@@ -1,3 +1,5 @@
+// 架构角色：低层 SWF 位图标签缩放器，解析标签并只改写受支持的图像尺寸与数据。
+// 数据流：FWS bytes + scale policy -> 重建的 FWS；格式不支持时返回失败。
 using System;
 using System.Collections.Generic;
 using System.Globalization;

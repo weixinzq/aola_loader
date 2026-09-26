@@ -1,3 +1,5 @@
+// 架构角色：奥拉协议语义核心，负责帧识别、序列状态、外层 XOR、EXT 内层变换和 AMF3 映射。
+// 数据流：完整 client/server frame + per-connection state <-> AolaPacketEvent/可控发送帧。
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -145,6 +147,7 @@ internal static class AolaProtocol
 			}
 			uint sequence = ReadUInt32(frame, 4);
 			packet.OuterSequence = sequence;
+			// 客户端包头的 sequence 同时是外层循环 XOR key；正文从偏移 8 开始。
 			byte[] body = Xor(frame, 8, sequence);
 			int type = body[0];
 			int action = ReadUInt16(body, 1);
@@ -490,6 +493,7 @@ internal static class AolaProtocol
 		int extensionId = ReadUInt16(body, position);
 		position += 2;
 		string command = ReadUtf(body, ref position);
+		// EXT 外层 AMF3 只是一层 wrapper；真正业务参数位于 data ByteArray 中。
 		object wrapperValue = new Amf3Reader(body, position).ReadObject();
 		if (!(wrapperValue is Dictionary<string, object> wrapper) || !wrapper.TryGetValue("data", out object encryptedValue) || !(encryptedValue is byte[] encrypted))
 		{
@@ -500,6 +504,7 @@ internal static class AolaProtocol
 			throw new InvalidOperationException("未捕获登录帧，无法推导 InnerSeq");
 		}
 
+		// InnerSeq 依赖登录后按 extensionId 维护的连续状态，缺失登录帧时不能可靠解密。
 		int expectedBase = state.GetExpectedInnerBase(extensionId);
 		byte[] decrypted = DecryptInner(expectedBase << 2, encrypted);
 		packet.InnerPlainHex = ToHex(decrypted);
@@ -529,6 +534,7 @@ internal static class AolaProtocol
 	private static byte[] DecryptInner(int sequence, byte[] encrypted)
 	{
 		byte[] data = (byte[])encrypted.Clone();
+		// 加密端最后执行块内换位，解密必须先逆序还原换位，再执行对称 XOR。
 		for (int block = data.Length / 4 - 1; block >= 0; block--)
 		{
 			int index = block * 4 + (block & 1);

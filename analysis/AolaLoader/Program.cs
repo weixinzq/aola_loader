@@ -1,3 +1,5 @@
+// 架构角色：AolaLoader.exe 进程入口，负责单实例、WinForms/CEF 生命周期和组合根边界。
+// 数据流：进程启动 -> AolaCompositionRoot -> Application.Run；退出 -> 逆序释放与 Cef.Shutdown。
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -34,13 +36,18 @@ internal static class Program
 			Application.SetCompatibleTextRenderingDefault(false);
 			try
 			{
+				// CompositionRoot 是桌面程序的装配器：创建浏览器、Hook、
+				// 功能协调器和主窗体。using 保证主窗口退出后统一释放这些长期对象。
 				using (AolaCompositionRoot root = new AolaCompositionRoot())
 				{
+					// 显示主窗体并进入 WinForms 消息循环；用户关闭主窗体前不会正常返回。
 					Application.Run(root.MainForm);
 				}
 			}
 			finally
 			{
+				// 先由 CompositionRoot 释放浏览器和业务对象，最后关闭进程级 CEF。
+				// 即使主窗体启动或运行期间抛出异常，这里也会执行。
 				if (Cef.IsInitialized)
 				{
 					Cef.Shutdown();

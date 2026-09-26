@@ -1,3 +1,5 @@
+// 架构角色：IPetMorphRuleTarget 的测试替身，用于验证协调器的规则安装顺序和参数。
+// 数据流：规则列表/开关 -> 调用记录和可注入验证结果。
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -13,18 +15,18 @@ internal sealed class ManualPetMorphRuleTarget : IPetMorphRuleTarget
 	public ManualPetMorphRuleTarget(
 		bool liveBridgeAvailable = true,
 		string validationError = null,
-		IReadOnlyDictionary<int, int> posterMappings = null)
+		IReadOnlyDictionary<int, int> skinMappings = null)
 	{
 		IsLiveBridgeAvailable = liveBridgeAvailable;
 		ValidationError = validationError;
-		PosterMappings = posterMappings ?? new Dictionary<int, int>();
+		SkinMappings = skinMappings ?? new Dictionary<int, int>();
 	}
 
 	public bool IsLiveBridgeAvailable { get; set; }
 
 	public string ValidationError { get; set; }
 
-	public IReadOnlyDictionary<int, int> PosterMappings { get; set; }
+	public IReadOnlyDictionary<int, int> SkinMappings { get; set; }
 
 	public IReadOnlyList<AolaPetMorphRule> LastRules => _lastRules;
 
@@ -51,10 +53,10 @@ internal sealed class ManualPetMorphRuleTarget : IPetMorphRuleTarget
 		return ValidationError;
 	}
 
-	public Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+	public Task<IReadOnlyDictionary<int, int>> GetAvailableLiveSkinMappingsAsync(
 		IReadOnlyList<AolaPetMorphRule> rules,
 		bool enabled)
 	{
-		return Task.FromResult(PosterMappings);
+		return Task.FromResult(SkinMappings);
 	}
 }

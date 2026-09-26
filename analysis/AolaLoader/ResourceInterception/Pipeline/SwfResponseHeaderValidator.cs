@@ -1,3 +1,5 @@
+// 架构角色：集中校验 SWF 响应头和声明长度，防止把 HTML/错误页送进二进制 transformer。
+// 数据流：status/headers/prefix -> 接受或可诊断拒绝。
 using System;
 
 namespace AolaLoader.ResourceInterception.Pipeline;

@@ -1,3 +1,5 @@
+// 架构角色：跨进程 .NET Remoting 服务，连接注入端发布者与宿主静态事件/兼容发送队列。
+// 数据流：Hook Publish packet/status/result -> 宿主 adapter；遗留 send request 队列当前生产端拒绝。
 using System;
 using System.Collections.Generic;
 

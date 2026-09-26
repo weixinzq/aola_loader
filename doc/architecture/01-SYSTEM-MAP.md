@@ -4,11 +4,11 @@
 
 ```text
 ┌──────────────────────────────── AolaLoader.exe ────────────────────────────────┐
-│ Program.Main                                                                  │
-│   └─ AolaCompositionRoot                                                      │
-│       ├─ AppShell / WinForms UI                                               │
-│       ├─ CefSharp ChromiumWebBrowser ───────────────┐                         │
-│       ├─ BrowserSession / PageBridge                │ ExecuteScript           │
+│ Program.Main                                                                   │
+│   └─ AolaCompositionRoot                                                       │
+│       ├─ AppShell / WinForms UI                                                │
+│       ├─ CefSharp ChromiumWebBrowser ───────────────┐                          │
+│       ├─ BrowserSession / PageBridge                 │ ExecuteScript           │
 │       ├─ Settings / Coordinators                     │                         │
 │       ├─ ResourceRequestHandler / RulePipeline       │ CEF request callbacks   │
 │       ├─ AolaHookController ───────── inject ────────┼──────────────┐          │

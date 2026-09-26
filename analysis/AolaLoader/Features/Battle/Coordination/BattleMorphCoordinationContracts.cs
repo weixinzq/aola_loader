@@ -1,3 +1,5 @@
+// 架构角色：定义战斗模型规则预检、准备和原子激活契约，隔离协调器与 CEF 资源实现。
+// 数据流：规则列表/开关 -> preparation snapshot；安全时机 -> ActivatePreparedRules。
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;

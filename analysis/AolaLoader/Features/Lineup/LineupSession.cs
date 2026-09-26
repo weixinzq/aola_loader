@@ -1,3 +1,5 @@
+// 架构角色：拥有一次阵容读取/恢复操作的订阅、阶段、超时与取消生命周期。
+// 数据流：发送命令 -> 定向 packet 响应 -> 校验/回读 -> 操作结果；结束时必须退订。
 using System;
 using System.IO;
 using System.Diagnostics;

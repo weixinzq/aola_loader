@@ -1,3 +1,5 @@
+// 架构角色：按 socket 聚合 TCP 字节、提取完整帧并维护协议状态，是 Hook 与协议解析的异步边界。
+// 数据流：CapturedChunk bytes -> FrameBuffer/AolaProtocol -> publish AolaPacketEvent。
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,11 +25,13 @@ internal sealed class AolaCaptureEngine : IDisposable
 
 	public AolaCaptureEngine(Action<AolaPacketEvent> publish)
 	{
+		// publish 通常指向 MainClass.PublishSafely；解析器不直接依赖 Remoting 服务。
 		_publish = publish ?? throw new ArgumentNullException(nameof(publish));
 	}
 
 	public void NoteConnect(long socket, int port)
 	{
+		// 每条 socket 独占收发 buffer 和协议序列状态；同一连接的处理在 SyncRoot 内串行。
 		ConnectionState state = _connections.GetOrAdd(socket, key => new ConnectionState());
 		lock (state.SyncRoot)
 		{
@@ -78,6 +82,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 				}
 			}
 			bool invalidLength;
+			// 一个 Hook chunk 可能是半包或多包；只有 FrameBuffer 取出完整帧后才进入协议层。
 			while (state.Outgoing.TryTakeFrame(out byte[] frame, out invalidLength))
 			{
 				if (!state.Confirmed && AolaProtocol.LooksLikeLoginFrame(frame))
@@ -144,6 +149,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 				return;
 			}
 			bool invalidLength;
+			// 接收方向沿用登录时建立的连接身份，但服务端帧自身不使用客户端 InnerSeq 状态。
 			while (state.Incoming.TryTakeFrame(out byte[] frame, out invalidLength))
 			{
 				state.Confirmed = true;

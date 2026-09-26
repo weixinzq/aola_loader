@@ -1,3 +1,5 @@
+// 架构角色：封装单条规则评估结果、命中原因和异常信息，供 pipeline 冲突处理与诊断。
+// 数据流：rule + request -> evaluation record。
 using System;
 using AolaLoader.ResourceInterception.Contracts;
 

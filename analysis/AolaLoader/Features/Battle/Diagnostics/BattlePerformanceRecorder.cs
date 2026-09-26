@@ -1,3 +1,5 @@
+// 架构角色：合并 packet snapshot 与 Flash 诊断数据，按会话采样并写入性能日志。
+// 数据流：IBattleStateSource 事件 + BattleDiagnosticsClient -> 有界采样队列 -> 文件。
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;

@@ -1,3 +1,5 @@
+// 架构角色：声明与 Winsock ABI 精确匹配的委托、P/Invoke 和地址读取辅助函数。
+// 数据流：WinsockHooks <-> ws2_32.dll；签名、调用约定和 last-error 语义不可随意改变。
 using System;
 using System.Net;
 using System.Net.Sockets;

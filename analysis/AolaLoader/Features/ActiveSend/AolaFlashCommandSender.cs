@@ -1,3 +1,5 @@
+// 架构角色：生产主动发送实现，只经 IPageBridge 复用当前 Flash 原连接，不创建旁路 socket。
+// 数据流：AolaSendRequest -> 参数校验/扩展映射 -> 页面桥 -> 分阶段 AolaCommandSendUpdate。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

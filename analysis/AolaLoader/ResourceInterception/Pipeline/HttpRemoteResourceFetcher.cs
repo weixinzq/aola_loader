@@ -1,3 +1,5 @@
+// 架构角色：IRemoteResourceFetcher 的 HTTP 实现，负责状态、长度上限和响应元数据校验。
+// 数据流：fetch request -> HttpWebRequest -> 有界 bytes/result。
 using System;
 using System.IO;
 using System.Net;

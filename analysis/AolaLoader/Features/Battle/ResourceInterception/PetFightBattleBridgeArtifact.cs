@@ -1,3 +1,5 @@
+// 架构角色：加载并验证 petfight bridge manifest、候选 SWF 长度、哈希和标记契约。
+// 数据流：manifest + candidate bytes -> 已验证 artifact；任何不一致均拒绝替换。
 using System;
 using System.IO;
 using System.Linq;
@@ -12,7 +14,7 @@ namespace AolaLoader.Features.Battle.ResourceInterception;
 internal sealed class PetFightBattleBridgeArtifact
 {
 	internal const string ManifestFileName = "petfightnew-battle-state.current.json";
-	internal const string CandidateFileName = "petfightnew-battle-state-current.fws.swf";
+	internal const string CandidateFileName = "petfightnew-battle-visual-260924918360271.fws.swf";
 	private const int ManifestSchemaVersion = 1;
 	private const int BridgeVersion = 5;
 	private const int MaximumManifestBytes = 16 * 1024;

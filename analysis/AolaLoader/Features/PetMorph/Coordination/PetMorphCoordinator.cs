@@ -1,3 +1,5 @@
+// 架构角色：协调形态规则规范化、资源预检、section 持久化和 live bridge 推送。
+// 数据流：PetMorphSettings -> codec/store -> IPetMorphRuleTarget/IPetMorphPushBridge -> 应用结果。
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -85,14 +87,14 @@ internal sealed class PetMorphCoordinator : IPetMorphCoordinator
 		try
 		{
 			IReadOnlyDictionary<int, int> mappings =
-				await _ruleTarget.GetAvailableLivePosterMappingsAsync(snapshot, enabled).ConfigureAwait(false);
+				await _ruleTarget.GetAvailableLiveSkinMappingsAsync(snapshot, enabled).ConfigureAwait(false);
 			if (request != Volatile.Read(ref _pushRequest))
 			{
 				return PetMorphApplyResult.Pushed(AolaPetMorphPushResult.SupersededResult());
 			}
 			AolaPetMorphPushResult push = await _pushBridge.PushAsync(
 				mappings,
-				BuildHiddenBackgrounds(snapshot),
+				BuildHiddenBackgrounds(snapshot, mappings),
 				BuildIconMappings(snapshot),
 				enabled,
 				cancellationToken).ConfigureAwait(false);
@@ -118,14 +120,14 @@ internal sealed class PetMorphCoordinator : IPetMorphCoordinator
 		{
 			AolaPetMorphRule[] snapshot = CurrentRules.ToArray();
 			IReadOnlyDictionary<int, int> mappings =
-				await _ruleTarget.GetAvailableLivePosterMappingsAsync(snapshot, _current.Enabled).ConfigureAwait(false);
+				await _ruleTarget.GetAvailableLiveSkinMappingsAsync(snapshot, _current.Enabled).ConfigureAwait(false);
 			if (request != Volatile.Read(ref _pushRequest))
 			{
 				return AolaPetMorphPushResult.SupersededResult();
 			}
 			AolaPetMorphPushResult push = await _pushBridge.PushAsync(
 				mappings,
-				BuildHiddenBackgrounds(snapshot),
+				BuildHiddenBackgrounds(snapshot, mappings),
 				BuildIconMappings(snapshot),
 				_current.Enabled,
 				cancellationToken).ConfigureAwait(false);
@@ -184,10 +186,13 @@ internal sealed class PetMorphCoordinator : IPetMorphCoordinator
 			rule.ReplaceBackpackIcon);
 	}
 
-	private static IReadOnlyDictionary<int, bool> BuildHiddenBackgrounds(IEnumerable<AolaPetMorphRule> rules)
+	private static IReadOnlyDictionary<int, bool> BuildHiddenBackgrounds(
+		IEnumerable<AolaPetMorphRule> rules,
+		IReadOnlyDictionary<int, int> skinMappings)
 	{
 		return (rules ?? Enumerable.Empty<AolaPetMorphRule>())
-			.Where(rule => rule != null && rule.RemoveOriginalBackground && rule.OriginalId > 0)
+			.Where(rule => rule != null && rule.RemoveOriginalBackground && rule.OriginalId > 0 &&
+				(skinMappings == null || !skinMappings.ContainsKey(rule.OriginalId)))
 			.GroupBy(rule => rule.OriginalId)
 			.ToDictionary(group => group.Key, group => true);
 	}

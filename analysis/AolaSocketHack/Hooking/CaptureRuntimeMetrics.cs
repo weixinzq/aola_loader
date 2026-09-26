@@ -1,3 +1,5 @@
+// 架构角色：线程安全统计 Hook 捕获、丢弃、队列深度和解析进度，供宿主诊断停滞。
+// 数据流：Hook/worker 计数更新 -> CaptureRuntimeSnapshot -> IPC status。
 using System;
 using System.Threading;
 

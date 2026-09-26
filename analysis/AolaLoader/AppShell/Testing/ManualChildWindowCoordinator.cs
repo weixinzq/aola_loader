@@ -1,3 +1,5 @@
+// 架构角色：IChildWindowCoordinator 的手工测试替身，仅记录调用，不创建真实 WinForms 窗口。
+// 数据流：测试动作 -> 调用记录/计数，供契约验证断言。
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;

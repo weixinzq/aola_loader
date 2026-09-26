@@ -1,3 +1,5 @@
+// 架构角色：把外部战斗序列 JSON 校验并编译成不可变执行计划，不产生网络副作用。
+// 数据流：JSON/动作字段 -> BattleSequencePlan 或精确校验错误。
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,3 +1,5 @@
+// 架构角色：声明页面生命周期、刷新和脚本执行端口，隔离功能模块与 ChromiumWebBrowser。
+// 数据流：CEF 适配器发布页面事件；功能层通过接口提交 BrowserScriptRequest。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

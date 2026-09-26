@@ -1,3 +1,5 @@
+// 架构角色：将受支持 CLR/JSON 值编码为 AMF3，供构造受控扩展消息使用。
+// 数据流：参数对象 -> AMF3 byte[]；不负责外层帧和序列加密。
 using System;
 using System.Collections.Generic;
 using System.Globalization;

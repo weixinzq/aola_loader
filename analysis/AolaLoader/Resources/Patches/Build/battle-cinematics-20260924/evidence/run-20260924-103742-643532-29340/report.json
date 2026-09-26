@@ -1,0 +1,108 @@
+{
+  "input": "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\Build\\battle-cinematics-20260924\\variants\\petfightnew-cinematics-2026091780747880-v3.fws.swf",
+  "evidence_directory": "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\Build\\battle-cinematics-20260924\\evidence\\run-20260924-103742-643532-29340",
+  "static_verification_passed": true,
+  "runtime_validation_required": true,
+  "runtime_validation_performed": false,
+  "warnings": [
+    "Static success does not prove that Flash can load or execute this SWF.",
+    "Verify the default/no-replacement runtime before the modified path."
+  ],
+  "checks": {
+    "header_and_lengths": true,
+    "comparison_completed": true,
+    "ffdec_reread": true,
+    "expected_declarations": true
+  },
+  "inspection": {
+    "path": "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\Build\\battle-cinematics-20260924\\variants\\petfightnew-cinematics-2026091780747880-v3.fws.swf",
+    "signature": "FWS",
+    "compression": "none",
+    "version": 18,
+    "file_size": 6586480,
+    "declared_length": 6586480,
+    "decoded_length": 6586480,
+    "length_valid": true,
+    "sha256": "11145d757cf9c6b5727bfc3bd3ead7ee4d3878326e00d5f7241e8aa592f31080",
+    "compressed_length_field": null,
+    "compressed_payload_length": null,
+    "compressed_length_valid": null,
+    "lzma_properties": null,
+    "lzma_dictionary_size": null,
+    "lzma_lc": null,
+    "lzma_lp": null,
+    "lzma_pb": null
+  },
+  "comparison": {
+    "original": {
+      "path": "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\petfightnew-battle-state-current.fws.swf",
+      "signature": "FWS",
+      "compression": "none",
+      "version": 18,
+      "file_size": 6586383,
+      "declared_length": 6586383,
+      "decoded_length": 6586383,
+      "length_valid": true,
+      "sha256": "d95994aba59afa78357fd5664f3b95efa6d4227fc4a179df11ccd45867cf9f36",
+      "compressed_length_field": null,
+      "compressed_payload_length": null,
+      "compressed_length_valid": null,
+      "lzma_properties": null,
+      "lzma_dictionary_size": null,
+      "lzma_lc": null,
+      "lzma_lp": null,
+      "lzma_pb": null
+    },
+    "modified": {
+      "path": "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\Build\\battle-cinematics-20260924\\variants\\petfightnew-cinematics-2026091780747880-v3.fws.swf",
+      "signature": "FWS",
+      "compression": "none",
+      "version": 18,
+      "file_size": 6586480,
+      "declared_length": 6586480,
+      "decoded_length": 6586480,
+      "length_valid": true,
+      "sha256": "11145d757cf9c6b5727bfc3bd3ead7ee4d3878326e00d5f7241e8aa592f31080",
+      "compressed_length_field": null,
+      "compressed_payload_length": null,
+      "compressed_length_valid": null,
+      "lzma_properties": null,
+      "lzma_dictionary_size": null,
+      "lzma_lc": null,
+      "lzma_lp": null,
+      "lzma_pb": null
+    },
+    "file_sha256_equal": false,
+    "decoded_body_length_equal": false
+  },
+  "ffdec": "D:\\Programs\\FFdec\\ffdec-cli.exe",
+  "ffdec_command": [
+    "D:\\Programs\\FFdec\\ffdec-cli.exe",
+    "-onerror",
+    "abort",
+    "-export",
+    "script,symbolClass",
+    "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\Build\\battle-cinematics-20260924\\evidence\\run-20260924-103742-643532-29340\\decompiled",
+    "D:\\game\\aola-helper\\analysis\\AolaLoader\\Resources\\Patches\\Build\\battle-cinematics-20260924\\variants\\petfightnew-cinematics-2026091780747880-v3.fws.swf"
+  ],
+  "ffdec_exit_code": 0,
+  "exported_file_count": 882,
+  "declaration_checks": {
+    "classes": {
+      "mmo.petfightnew.common.MCPetContainer": true,
+      "mmo.petfightnew.common.handler.BackGroundViewHandler": true,
+      "mmo.petfightnew.DocPetFight": true
+    },
+    "packages": {},
+    "methods": {
+      "onResPrepared": true,
+      "onStartCriEff": true,
+      "setBS": true
+    },
+    "symbol_classes": {
+      "mmo.petfightnew.DocPetFight": true
+    },
+    "texts": {},
+    "instances": {}
+  }
+}

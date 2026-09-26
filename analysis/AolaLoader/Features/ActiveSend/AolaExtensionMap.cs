@@ -1,3 +1,5 @@
+// 架构角色：集中维护允许主动发送的扩展命令到 extensionId 的白名单映射。
+// 数据流：命令名 -> extensionId；未知命令在进入页面桥前被拒绝。
 using System.Collections.Generic;
 
 namespace AolaLoader.Features.ActiveSend;

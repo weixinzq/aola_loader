@@ -1,3 +1,5 @@
+// 架构角色：将 BattleSnapshot 中的双方阵容与配置渲染为可复用 WinForms 视图组件。
+// 数据流：snapshot/loadout models -> cards/labels/images，不修改领域状态。
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;

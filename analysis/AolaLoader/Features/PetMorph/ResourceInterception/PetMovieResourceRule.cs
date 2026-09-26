@@ -1,3 +1,5 @@
+// 架构角色：拥有普通宠物 movie 请求，将命中的 petId 重写到目标形态远端资源。
+// 数据流：资源 URL + 当前规则快照 -> RewriteRemote 或 PassThrough。
 using System;
 using System.Collections.Generic;
 using System.Linq;

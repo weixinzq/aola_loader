@@ -1,3 +1,5 @@
+// 架构角色：框架无关的资源请求快照，承载规则判断所需 URL、方法、类型和 headers。
+// 数据流：CefSharp IRequest -> ResourceRequestContext -> 所有规则只读消费。
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

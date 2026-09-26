@@ -1,3 +1,5 @@
+// 架构角色：从 packet 参数中解析战斗配置分组，并保留 Missing/Empty/Known/Invalid 语义。
+// 数据流：JToken/参数对象 -> BattleConfigurationState，供 snapshot 增量合并。
 using System;
 using System.Collections.Generic;
 using System.Globalization;

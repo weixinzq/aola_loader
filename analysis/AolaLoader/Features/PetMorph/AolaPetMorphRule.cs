@@ -1,3 +1,5 @@
+// 架构角色：表示一条运行期形态替换规则，是设置、协调器和资源规则之间的共享值对象。
+// 数据流：PetMorphSettings -> AolaPetMorphRule -> movie/poster/package 规则与页面推送。
 namespace AolaLoader.Features.PetMorph;
 
 internal sealed class AolaPetMorphRule

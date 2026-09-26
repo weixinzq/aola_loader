@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "resourceVersion": "2026091003596777",
-  "officialUrl": "https://aola.100bt.com/play/pet/petfightnew~2026091003596777.swf",
-  "officialZwsSha256": "01bd294618d57df1c1a849888d41a8078a1bc949a382b7fd5c896cde1ea86be6",
-  "candidateFile": "petfightnew-battle-state-current.fws.swf",
-  "candidateLength": 6573317,
-  "candidateSha256": "31d534760bec404698434100b1079de16272f96cfe416168d37fb04e7ff08fcf",
+  "resourceVersion": "260924918360271",
+  "officialUrl": "https://aola.100bt.com/play/pet/petfightnew~260924918360271.swf",
+  "officialZwsSha256": "62812cae87e78489eed762f2192a4d13e00bea3576e9295c2cc6c32455d770b5",
+  "candidateFile": "petfightnew-battle-visual-260924918360271.fws.swf",
+  "candidateLength": 6586934,
+  "candidateSha256": "4f949a84775601b049e9e0a73b33815b88a8f295aaf95116a557c15fdfa92491",
   "bridgeVersion": 5,
-  "symbolClassSha256": "f90beae454a5bfb5aecc8ab740f144df0eaf3081e935fe72700ccf6e32bc9a3a"
+  "symbolClassSha256": "60b32b4ccbe33744786d34d3c200d3328ee1e67b6e51f95f7bba13e8cdf2025b"
 }

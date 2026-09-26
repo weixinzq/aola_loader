@@ -1,3 +1,5 @@
+// 架构角色：定义远端完整资源获取端口、请求和结果，供 rewrite 计划执行器使用。
+// 数据流：URL/长度/headers -> bytes/status/content metadata 或失败原因。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

@@ -1,3 +1,5 @@
+// 架构角色：订阅 packet 事件、合并战斗增量并发布线程安全的宿主 BattleSnapshot。
+// 数据流：IAolaPacketEventSource -> Parser -> 当前快照 clone -> SnapshotChanged。
 using System;
 using System.Collections.Generic;
 using System.Linq;

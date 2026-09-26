@@ -1,3 +1,5 @@
+// 架构角色：有界缓存单个响应，在输入完成后一次执行 transformer 并提供可流式读取的输出。
+// 数据流：response chunks -> size guard/buffer -> transform -> output chunks。
 using System;
 using System.IO;
 using AolaLoader.ResourceInterception.Contracts;

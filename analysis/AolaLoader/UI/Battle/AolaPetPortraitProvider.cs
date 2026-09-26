@@ -1,3 +1,5 @@
+// 架构角色：战斗 UI 的宠物头像资源提供器，负责路径解析、缓存与缺失回退。
+// 数据流：petId/resource catalog -> Image；不参与战斗状态解析。
 using System;
 using System.Collections.Generic;
 using System.Drawing;

@@ -1,3 +1,5 @@
+// 架构角色：定义 battle section 的设置模型与 codec，拥有默认值、迁移、规范化和序列化规则。
+// 数据流：settings.json battle 节点 <-> BattleSettings，不负责实际应用设置。
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -66,7 +68,7 @@ internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings
 		return new BattleSettings(
 			hideDamageNumbers: false,
 			hideHealingNumbers: false,
-			skipBattlePresentation: false,
+			skipBattlePresentation: true,
 			battleMorphEnabled: false,
 			Array.Empty<BattleMorphRule>());
 	}
@@ -117,7 +119,7 @@ internal sealed class BattleSettingsCodec : ISettingsSectionCodec<BattleSettings
 		}
 
 		bool skipBattlePresentation = version >= 5
-			? ReadBoolean(section, "SkipBattlePresentation", false)
+			? ReadBoolean(section, "SkipBattlePresentation", true)
 			: version == 4
 				? ReadBoolean(section, "SkipAttackAnimation", false)
 			: version == 3

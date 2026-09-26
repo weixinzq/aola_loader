@@ -1,3 +1,5 @@
+// 架构角色：历史旁路 socket 发送实现；当前 MainClass 不接入生产链，仅保留协议实验能力。
+// 数据流：捕获的登录上下文 + send request -> 独立连接；未经新决策不得重新启用。
 using System;
 using System.Net;
 using System.Net.Sockets;

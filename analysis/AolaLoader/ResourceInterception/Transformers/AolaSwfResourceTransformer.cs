@@ -1,3 +1,5 @@
+// 架构角色：组合 SWF 格式适配和位图变换，对资源管线暴露统一 IResourceResponseTransformer。
+// 数据流：ResourceTransformInput -> decode/transform/validate -> ResourceTransformResult。
 using System;
 using System.Text;
 using AolaLoader.ResourceInterception.Contracts;

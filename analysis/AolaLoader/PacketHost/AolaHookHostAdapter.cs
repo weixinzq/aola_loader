@@ -1,3 +1,5 @@
+// 架构角色：把 Contracts 的静态 Remoting 事件适配为可注入、可退订的宿主 packet 事件源。
+// 数据流：AolaHookHostService events -> IAolaPacketEventSource consumers；异常按订阅者隔离。
 using System;
 using AolaSocketHack.Contracts;
 
@@ -17,6 +19,7 @@ internal sealed class AolaHookHostAdapter : IAolaPacketEventSource
 
 	public AolaHookHostAdapter()
 	{
+		// Contracts 使用静态事件跨越 Remoting 边界；只有本适配器直接订阅，避免全局状态扩散。
 		AolaHookHostService.PacketReceived += OnPacketReceived;
 		AolaHookHostService.StatusReceived += OnStatusReceived;
 		AolaHookHostService.SendCompleted += OnSendCompleted;
@@ -109,10 +112,12 @@ internal sealed class AolaHookHostAdapter : IAolaPacketEventSource
 
 	private void OnPacketReceived(AolaPacketEvent packet)
 	{
+		// Remoting 回调线程不是 WinForms UI 线程；消费者需要自行切回 UI 或保持线程安全。
 		lock (_syncRoot)
 		{
 			if (!_disposed)
 			{
+				// 逐订阅者隔离异常，日志失败不能阻断战斗状态和抓包窗口。
 				PacketEventDispatch.InvokeSafely(_packetReceived, packet);
 			}
 		}

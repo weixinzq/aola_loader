@@ -1,3 +1,5 @@
+// 架构角色：IPetMorphPushBridge 的测试替身，记录推送规则并返回预设结果。
+// 数据流：被测协调器请求 -> PushCall 记录/预设响应。
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;

@@ -1,3 +1,5 @@
+// 架构角色：跨进程结构化收发消息 DTO，承载方向、连接身份、解码字段和脱敏原始数据。
+// 数据流：AolaProtocol -> Remoting -> PacketHost consumers。
 using System;
 
 namespace AolaSocketHack.Contracts;

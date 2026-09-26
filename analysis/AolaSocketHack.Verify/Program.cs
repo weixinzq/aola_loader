@@ -17,6 +17,14 @@ internal static class Program
 	[STAThread]
 	private static int Main(string[] args)
 	{
+		if (args.Length == 1 && args[0] == "--battle-bridge-contract")
+		{
+			bool battleBridgePassed = ResourceInterceptionContractVerifier.VerifyBattleBridgeRule();
+			bool backgroundPassed = ResourceInterceptionContractVerifier.VerifyBattleBackgroundImageRule();
+			Console.WriteLine("Battle bridge contract: " + (battleBridgePassed ? "PASS" : "FAIL"));
+			Console.WriteLine("Battle background contract: " + (backgroundPassed ? "PASS" : "FAIL"));
+			return battleBridgePassed && backgroundPassed ? 0 : 1;
+		}
 		if ((args.Length == 2 || args.Length == 4) && args[0] == "--battle-sample")
 		{
 			bool contract = BattleStateContractVerifier.Verify();

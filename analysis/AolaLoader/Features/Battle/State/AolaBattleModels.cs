@@ -1,3 +1,5 @@
+// 架构角色：定义宿主侧 packet-derived 战斗快照、双方、宠物、技能和增量更新模型。
+// 数据流：AolaBattlePacketParser -> AolaBattleStateTracker -> UI/Recorder/Replay consumers。
 using System;
 using System.Collections.Generic;
 

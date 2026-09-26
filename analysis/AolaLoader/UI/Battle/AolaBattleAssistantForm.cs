@@ -1,3 +1,5 @@
+// 架构角色：战斗助手展示层，订阅只读 BattleSnapshot 并驱动序列运行的用户操作。
+// 数据流：IBattleStateSource/Runner updates -> WinForms 控件；用户动作 -> feature services。
 using System;
 using System.Drawing;
 using System.Linq;

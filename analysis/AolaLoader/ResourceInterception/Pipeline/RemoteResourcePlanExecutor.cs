@@ -1,3 +1,5 @@
+// 架构角色：执行 RewriteRemote 计划：获取远端内容、校验并可选变换为最终本地响应。
+// 数据流：plan -> fetcher/transformer -> 可交给 CEF 的 response bytes 或放行失败。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

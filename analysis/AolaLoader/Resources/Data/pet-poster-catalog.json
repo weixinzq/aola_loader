@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "source": "PetSkinConfig.as",
-  "sourceSha256": "889b6e515e7bcdd0c65d89e93360abd62d96d149f99b75e561aaaf7f33c4f2a2",
-  "entryCount": 1036,
-  "backgroundCount": 417,
+  "sourceSha256": "bc8d8282e83c8cfaa34ffe37e5276cee5290c2c6c406a574755247b860208323",
+  "entryCount": 1049,
+  "backgroundCount": 421,
   "entries": [
     {
       "skinId": 3735,
@@ -2921,6 +2921,34 @@
       "skinId": 6046,
       "resourceId": 1042,
       "name": "栖于星澜深处（夜）（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6052,
+      "resourceId": 1045,
+      "name": "星与萤会记得（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6057,
+      "resourceId": 1046,
+      "name": "热夜无眠之时-波旬（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6059,
+      "resourceId": 1048,
+      "name": "墟境的萤蝶（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6061,
+      "resourceId": 1052,
+      "name": "未来之光（海报）",
       "hasBackground": true,
       "showPet": false
     }

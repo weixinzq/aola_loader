@@ -1,3 +1,5 @@
+// 架构角色：声明经过白名单约束的页面桥操作、可用性和失败语义，是功能层控制 Flash 的入口。
+// 数据流：Feature -> PageBridgeRequest/PageFeatureStatePush -> 页面桥结果。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

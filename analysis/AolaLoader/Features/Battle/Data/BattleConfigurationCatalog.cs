@@ -1,3 +1,5 @@
+// 架构角色：读取内置战斗属性配置目录，为 UI 和 loadout 解析提供只读元数据。
+// 数据流：资源 JSON/静态配置 -> 可查询的战斗配置项集合。
 using System;
 using System.IO;
 using System.Text;

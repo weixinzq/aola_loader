@@ -1,3 +1,5 @@
+// 架构角色：把用户输入的命令与 JSON 参数解析为受约束的 AolaSendRequest。
+// 数据流：文本输入 -> schema/类型校验 -> 发送 DTO 或可显示错误。
 using System;
 using System.Collections.Generic;
 using System.Linq;

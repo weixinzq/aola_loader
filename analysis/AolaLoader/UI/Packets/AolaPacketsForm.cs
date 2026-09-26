@@ -1,3 +1,5 @@
+// 架构角色：收发消息查看与主动发送界面，订阅 packet source 并调用命令发送端口。
+// 数据流：AolaPacketEvent -> 过滤/展示；用户输入 -> parser/sender -> 状态提示。
 using System;
 using System.Collections.Generic;
 using System.Drawing;

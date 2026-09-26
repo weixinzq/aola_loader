@@ -161,6 +161,13 @@ function Get-LiveDescriptor([string]$PreserveRoot = '') {
             throw "Expected one pet/petfightnew mapping, found $($matches.Count)."
         }
         $resourceVersion = [string]$matches[0].v
+        $updateMatches = @($startXml.r.u.f | Where-Object { [string]$_.n -ceq 'pet/petfightnew' })
+        if ($updateMatches.Count -gt 1) {
+            throw "Expected at most one pet/petfightnew update mapping, found $($updateMatches.Count)."
+        }
+        if ($updateMatches.Count -eq 1) {
+            $resourceVersion = [string]$updateMatches[0].v
+        }
         if ($resourceVersion -notmatch '^\d{1,32}$') {
             throw 'The petfightnew mapping contains an invalid version.'
         }
@@ -633,8 +640,10 @@ function Read-StrictManifest([string]$Path, [bool]$Production) {
     }
     $expectedUrl = "https://aola.100bt.com/play/pet/petfightnew~$($document.resourceVersion).swf"
     if ([string]$document.officialUrl -cne $expectedUrl) { throw 'Manifest officialUrl is not canonical.' }
-    if ($Production -and [string]$document.candidateFile -cne 'petfightnew-battle-state-current.fws.swf') {
-        throw 'Production manifest candidateFile is not the stable filename.'
+    if ($Production -and
+        [string]$document.candidateFile -cne 'petfightnew-battle-state-current.fws.swf' -and
+        [string]$document.candidateFile -cne "petfightnew-battle-visual-$($document.resourceVersion).fws.swf") {
+        throw 'Production manifest candidateFile is not an accepted filename.'
     }
     return $document
 }

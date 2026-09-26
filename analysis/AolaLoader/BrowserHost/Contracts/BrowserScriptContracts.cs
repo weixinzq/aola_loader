@@ -1,3 +1,5 @@
+// 架构角色：定义浏览器脚本执行请求、结果和失败分类，不依赖具体 CefSharp 类型。
+// 数据流：BrowserHost 调用者 <-> IBrowserSession 实现之间的稳定 DTO 契约。
 using System;
 using Newtonsoft.Json.Linq;
 

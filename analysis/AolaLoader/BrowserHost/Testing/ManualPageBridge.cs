@@ -1,3 +1,5 @@
+// 架构角色：IPageBridge 的测试替身，记录类型化操作并返回调用方预设的桥结果。
+// 数据流：Feature 请求 -> 调用记录/预设 PageBridgeResult，不执行真实 JavaScript。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

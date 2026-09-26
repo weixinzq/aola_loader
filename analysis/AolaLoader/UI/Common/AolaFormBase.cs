@@ -1,3 +1,5 @@
+// 架构角色：项目窗口的公共视觉与基础行为基类，不承载 feature 业务逻辑。
+// 数据流：派生 Form -> 一致的 WinForms 初始化和主题样式。
 using System;
 using System.Windows.Forms;
 

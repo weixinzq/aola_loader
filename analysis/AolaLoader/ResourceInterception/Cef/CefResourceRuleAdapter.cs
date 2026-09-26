@@ -1,3 +1,5 @@
+// 架构角色：把框架无关 ResourceInterceptionPlan 翻译成 CefSharp handler、response filter 和 headers。
+// 数据流：规则计划 -> CEF Continue/本地 resource handler/远端请求与响应变换。
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -30,6 +32,7 @@ internal sealed class CefResourceRuleAdapter
 		IRequest request,
 		ref bool disableDefaultHandling)
 	{
+		// 从这里开始丢弃 CefSharp IRequest 类型，feature 规则只看到不可变的框架无关快照。
 		if (request == null || request.IsDisposed ||
 			!TryCreateContext(request, out ResourceRequestContext context))
 		{
@@ -37,6 +40,7 @@ internal sealed class CefResourceRuleAdapter
 		}
 
 		ResourceRuleEvaluation evaluation = _pipeline.Evaluate(context);
+		// 本适配器是把抽象计划重新翻译为 CEF handler/默认放行行为的唯一边界。
 		if (evaluation.Plan.Outcome == ResourceInterceptionOutcome.RewriteRemote)
 		{
 			return new RemoteResourceRequestHandler(evaluation.Plan, _remoteExecutor);

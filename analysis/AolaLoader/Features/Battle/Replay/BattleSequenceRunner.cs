@@ -1,3 +1,5 @@
+// 架构角色：执行已验证的战斗序列状态机，协调 packet 确认、Flash 输入窗口与主动发送。
+// 数据流：BattleSequencePlan + 两类战斗状态 -> IAolaCommandSender -> 分阶段运行更新。
 using System;
 using System.Collections.Generic;
 using System.Linq;

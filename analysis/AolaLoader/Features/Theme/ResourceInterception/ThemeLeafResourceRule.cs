@@ -1,3 +1,5 @@
+// 架构角色：拥有主题叶子 SWF 请求，在选定主题时返回对应本地模板资源。
+// 数据流：资源 URL + 当前 themeId -> LocalResponse 或 PassThrough。
 using System;
 using System.Collections.Generic;
 using System.IO;

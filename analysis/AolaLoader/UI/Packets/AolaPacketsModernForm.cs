@@ -1,3 +1,5 @@
+// 架构角色：消息窗口使用的现代化 WinForms 视觉组件，仅负责按钮和卡片绘制。
+// 数据流：UI 属性/鼠标状态 -> 绘制输出，不依赖 packet 或发送服务。
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;

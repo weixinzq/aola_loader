@@ -1,3 +1,5 @@
+// 架构角色：有界读取协议载荷中的 AMF3 值、引用表和 traits，输出普通 CLR 对象图。
+// 数据流：已解密 byte[] -> object/Dictionary；格式错误向协议层报告。
 using System;
 using System.Collections.Generic;
 using System.Text;

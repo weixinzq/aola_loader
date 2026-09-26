@@ -1,3 +1,5 @@
+// 架构角色：IThemeSelectionTarget 的测试替身，记录被应用的 themeId。
+// 数据流：ThemeCoordinator 调用 -> 测试可观察的选择历史。
 using System.Collections.Generic;
 
 namespace AolaLoader.Features.Theme.Coordination.Testing;

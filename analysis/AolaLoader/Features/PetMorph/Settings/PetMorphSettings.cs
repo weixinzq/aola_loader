@@ -1,3 +1,5 @@
+// 架构角色：定义 petMorph section 模型与 codec，拥有默认、迁移、规范化和序列化策略。
+// 数据流：settings.json petMorph 节点 <-> 规则/开关，不直接触碰 CEF。
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

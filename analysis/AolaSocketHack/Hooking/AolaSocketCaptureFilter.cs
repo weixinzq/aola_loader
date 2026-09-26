@@ -1,3 +1,5 @@
+// 架构角色：在复制大量数据前识别 Game、Policy、Unknown 或 Ignore socket，维护轻量连接分类状态。
+// 数据流：connect 端口/早期收发 probe -> SocketCaptureKind -> WinsockHooks 捕获决策。
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

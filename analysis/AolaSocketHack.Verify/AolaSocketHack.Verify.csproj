@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AolaSocketHack.Contracts\AolaSocketHack.Contracts.csproj" />
@@ -38,6 +39,7 @@
     <Compile Include="..\AolaLoader\Features\PetMorph\Settings\PetMorphSettings.cs" Link="Features\PetMorph\Settings\PetMorphSettings.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphPushResult.cs" Link="Features\PetMorph\Coordination\PetMorphPushResult.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphCoordinationContracts.cs" Link="Features\PetMorph\Coordination\PetMorphCoordinationContracts.cs" />
+    <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphLiveSkinMapping.cs" Link="Features\PetMorph\Coordination\PetMorphLiveSkinMapping.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphCoordinator.cs" Link="Features\PetMorph\Coordination\PetMorphCoordinator.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphRuleTarget.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" Link="Features\PetMorph\Coordination\Testing\ManualPetMorphPushBridge.cs" />
@@ -69,6 +71,7 @@
     <Compile Include="..\AolaLoader\Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" Link="Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeArtifact.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeArtifact.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattleBackgroundImageResourceRule.cs" Link="Features\Battle\ResourceInterception\BattleBackgroundImageResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieVersionCatalog.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieVersionCatalog.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieResourceRule.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieResourceTransformer.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieResourceTransformer.cs" />
@@ -90,8 +93,20 @@
 	  <Link>TestData\petfightnew-battle-state-current.fws.swf</Link>
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
+	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-cinematics-2026091780747880-v4.fws.swf">
+	  <Link>TestData\petfightnew-battle-cinematics-2026091780747880-v4.fws.swf</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-visual-260924918360271.fws.swf">
+	  <Link>TestData\petfightnew-battle-visual-260924918360271.fws.swf</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
 	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-state.current.json">
 	  <Link>TestData\petfightnew-battle-state.current.json</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="..\AolaLoader\Resources\Battle\background.jpg">
+	  <Link>TestData\BattleBackground\background.jpg</Link>
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
   </ItemGroup>

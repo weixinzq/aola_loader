@@ -1,3 +1,5 @@
+// 架构角色：定义主题选项、协调器和资源目标之间的窄接口及变更结果。
+// 数据流：UI themeId -> IThemeCoordinator -> settings store + selection target。
 using System.Collections.Generic;
 using AolaLoader.Features.Theme.Settings;
 

@@ -1,3 +1,5 @@
+// 架构角色：读取战斗宠物资源版本目录，把稳定 petId 映射到当前 CDN 版本标识。
+// 数据流：版本 JSON -> 规范化查找表，供规则构造准确远端 URL。
 using System;
 using System.Collections.Generic;
 using System.IO;

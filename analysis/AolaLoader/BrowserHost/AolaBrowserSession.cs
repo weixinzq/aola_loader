@@ -1,3 +1,5 @@
+// 架构角色：将 ChromiumWebBrowser 适配为可等待页面状态、执行脚本和观察生命周期的 IBrowserSession。
+// 数据流：CEF frame/load 事件 -> 生命周期事件；BrowserScriptRequest -> JavaScript 响应/分类失败。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

@@ -64,3 +64,5 @@
 !/analysis/tools/petfight_bridge_abc.py
 !/analysis/tools/petfight/
 !/analysis/tools/petfight/DocPetFight.bridge.template.as
+!/analysis/tools/petfight/Apply-BattleVisualPatch.ps1
+!/analysis/tools/petfight/Apply-BattleVisualPatch.ps1

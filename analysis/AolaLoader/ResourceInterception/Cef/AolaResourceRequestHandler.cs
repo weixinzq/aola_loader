@@ -1,3 +1,5 @@
+// 架构角色：CEF 资源入口与规则装配点，集中注册 Theme、ActiveSend、Battle、PetMorph 规则。
+// 数据流：CEF request callbacks -> ResourceRulePipeline/Cef adapter -> 官方、远端改写或本地响应。
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +29,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 	private readonly ThemeLeafResourceRule _themeRule;
 	private readonly StartBridgeResourceRule _startBridgeRule;
 	private readonly PetFightBattleBridgeResourceRule _battleBridgeRule;
+	private readonly BattleBackgroundImageResourceRule _battleBackgroundRule;
 	private readonly BattlePetMovieResourceRule _battlePetMovieRule;
 	private readonly BattlePetMovieVersionCatalog _battlePetMovieCatalog;
 	private readonly PetPackageLiveResourceRule _petPackageRule;
@@ -44,6 +47,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		string posterCatalogPath,
 		string startBridgeTemplatePath,
 		string battleBridgeManifestPath,
+		string battleBackgroundImagePath,
 		string battlePetMovieCatalogPath,
 		string petPackageLiveTemplatePath,
 		bool petMorphLiveBridgeEnabled)
@@ -51,6 +55,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		_themeRule = new ThemeLeafResourceRule(themeDirectory);
 		_startBridgeRule = new StartBridgeResourceRule(startBridgeTemplatePath);
 		_battleBridgeRule = new PetFightBattleBridgeResourceRule(battleBridgeManifestPath);
+		_battleBackgroundRule = new BattleBackgroundImageResourceRule(battleBackgroundImagePath);
 		_battlePetMovieRule = new BattlePetMovieResourceRule();
 		_battlePetMovieCatalog = BattlePetMovieVersionCatalog.Load(battlePetMovieCatalogPath);
 		_petMorphLiveBridgeEnabled = petMorphLiveBridgeEnabled;
@@ -64,7 +69,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		_resourceRuleAdapter = new CefResourceRuleAdapter(new ResourceRulePipeline(
 			new IResourceInterceptionRule[]
 			{
-				_startBridgeRule, _battleBridgeRule, _themeRule, _petPackageRule,
+				_startBridgeRule, _battleBridgeRule, _battleBackgroundRule, _themeRule, _petPackageRule,
 				_petMovieRule, _battlePetMovieRule, _petPosterRule
 			}),
 			new RemoteResourcePlanExecutor(_remoteResourceProbe, _remoteResourceFetcher));
@@ -218,14 +223,14 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		return ValidatePetMorphRule(rule);
 	}
 
-	Task<IReadOnlyDictionary<int, int>> IPetMorphRuleTarget.GetAvailableLivePosterMappingsAsync(
+	Task<IReadOnlyDictionary<int, int>> IPetMorphRuleTarget.GetAvailableLiveSkinMappingsAsync(
 		IReadOnlyList<AolaPetMorphRule> rules,
 		bool enabled)
 	{
-		return GetAvailableLivePosterMappingsAsync(rules, enabled);
+		return GetAvailableLiveSkinMappingsAsync(rules, enabled);
 	}
 
-	private async Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+	private async Task<IReadOnlyDictionary<int, int>> GetAvailableLiveSkinMappingsAsync(
 		IEnumerable<AolaPetMorphRule> rules,
 		bool enabled)
 	{
@@ -234,15 +239,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 			return new Dictionary<int, int>();
 		}
 
-		KeyValuePair<int, int>[] candidates = (rules ?? Enumerable.Empty<AolaPetMorphRule>())
-			.Where(rule => rule != null && rule.PosterId > 0)
-			.Select(rule => new KeyValuePair<int, int>(
-				rule.PosterSourceId > 0 ? rule.PosterSourceId : rule.OriginalId,
-				rule.PosterId))
-			.Where(pair => pair.Key > 0 && pair.Value > 0)
-			.GroupBy(pair => pair.Key)
-			.Select(group => group.Last())
-			.ToArray();
+		KeyValuePair<int, int>[] candidates = PetMorphLiveSkinMapping.BuildCandidates(rules).ToArray();
 
 		Task<KeyValuePair<int, int>?>[] probes = candidates.Select(async pair =>
 		{
@@ -255,9 +252,9 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 			RemoteResourceProbeResult result = await _remoteResourceProbe.ProbeAsync(
 				new RemoteResourceProbeRequest(
 					url,
-					"live-poster:" + target.ResourceId,
-					"petmorph.live-poster." + target.ResourceId,
-					MaximumSwfBytes,
+					"live-skin:" + target.ResourceId,
+					"petmorph.live-skin." + target.ResourceId,
+					PetMorphLiveSkinMapping.MaximumBackgroundSwfBytes,
 					TimeSpan.FromMinutes(10),
 					TimeSpan.FromSeconds(30)),
 				CancellationToken.None).ConfigureAwait(false);

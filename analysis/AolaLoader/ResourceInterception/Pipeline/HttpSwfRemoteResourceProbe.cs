@@ -1,3 +1,5 @@
+// 架构角色：面向 SWF 的 HTTP 探测实现，通过小范围请求确认远端长度和头部身份。
+// 数据流：probe request -> HTTP metadata/prefix -> RemoteResourceProbeResult。
 using System;
 using System.IO;
 using System.Net;

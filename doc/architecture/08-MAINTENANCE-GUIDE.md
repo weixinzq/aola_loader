@@ -105,6 +105,7 @@ SWF、manifest、C# 常量和 JS schema 必须作为一个版本单元维护。
 - 做出长期取舍：新增 ADR，并加入 `09-ADR/README.md` 索引。
 - 资源版本/哈希更新：更新 manifest 和相关 runbook，不把哈希复制到多份总览。
 - 实机证据：写入 runbook/evidence，架构文档只记录其能证明的边界。
+- 新增或改变 C# 文件职责/传递方向：同步文件头的“架构角色/数据流”和 [10-SOURCE-FILE-GUIDE.md](10-SOURCE-FILE-GUIDE.md)。
 
 ## 验证梯度
 

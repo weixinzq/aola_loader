@@ -1,3 +1,5 @@
+// 架构角色：按海报目录和形态规则重写宠物 poster 请求，失败时保留官方资源。
+// 数据流：poster URL -> petId/catalog/规则匹配 -> RewriteRemote 或 PassThrough。
 using System;
 using System.Collections.Generic;
 using System.Linq;

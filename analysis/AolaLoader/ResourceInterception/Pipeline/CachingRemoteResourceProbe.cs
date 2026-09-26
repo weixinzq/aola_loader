@@ -1,3 +1,5 @@
+// 架构角色：为 IRemoteResourceProbe 增加按 key 和有效期缓存，减少规则预检的重复网络访问。
+// 数据流：probe request -> cache hit 或 inner probe -> CacheEntry/result。
 using System;
 using System.Collections.Concurrent;
 using System.Threading;

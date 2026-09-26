@@ -1,3 +1,5 @@
+// 架构角色：阵容方案的读取、保存和恢复界面，将长操作交给 LineupCoordinator/Session。
+// 数据流：用户选择 -> coordinator；阶段更新/结果 -> UI 状态。
 using System;
 using System.Drawing;
 using System.IO;

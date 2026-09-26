@@ -1,3 +1,5 @@
+// 架构角色：WinForms 外壳与运行时编排边界，承载浏览器、菜单、子窗口、注入轮询和页面恢复。
+// 数据流：用户/CEF 生命周期事件 -> 各 coordinator；状态与结果 -> UI，不实现底层协议规则。
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -92,11 +94,11 @@ internal sealed class AolaMainForm : AolaFormBase
 		StartPosition = FormStartPosition.CenterScreen;
 		FormBorderStyle = FormBorderStyle.FixedSingle;
 		MaximizeBox = false;
-		Size = new Size(1220, 800);
+		Size = new Size(1220, 777);
 
 		ToolStrip toolbar = BuildToolbar();
 		StatusStrip statusStrip = new StatusStrip();
-		statusStrip.Items.Add(_status);
+	//	statusStrip.Items.Add(_status);
 		ThemeChangeResult restoredTheme = _themeCoordinator.ApplyToRule(
 			_themeCoordinator.Current.SelectedThemeId);
 		UpdateThemeSelection(restoredTheme.RuleApplied ? restoredTheme.AppliedThemeId : 0);
@@ -105,7 +107,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_browser.FrameLoadEnd += BrowserFrameLoadEnd;
 
 		Controls.Add(_browser);
-		Controls.Add(statusStrip);
+	//	Controls.Add(statusStrip);
 		Controls.Add(toolbar);
 		toolbar.Dock = DockStyle.Top;
 		statusStrip.Dock = DockStyle.Bottom;

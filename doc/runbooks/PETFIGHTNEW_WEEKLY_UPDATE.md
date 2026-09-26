@@ -18,7 +18,9 @@
 .\analysis\tools\Update-PetFightBattleBridge.ps1 -Mode Check
 ```
 
-脚本按 `start.xml → versiondata → pet/petfightnew` 解析唯一精确映射。`Current` 表示生产清单与官方映射一致；`UpdateRequired` 只表示需要制作新候选，不允许手工改版本号绕过后续验证。网络失败、重复映射或无效版本会直接失败。
+脚本先从 `start.xml → versiondata → pet/petfightnew` 解析基础映射；若 `start.xml` 的 `<u>` 中另有 `pet/petfightnew` 增量映射，则以增量版本为当前官方版本。`Current` 表示生产清单与官方映射一致；`UpdateRequired` 表示需要制作新候选，不允许手工改版本号绕过后续验证。生产清单接受原固定候选名或与 `resourceVersion` 一致的版本化视觉候选名；其他名字仍拒绝。网络失败、重复映射或无效版本会直接失败。
+
+2026-09-24 官方 `start.xml` 的 `<u>` 已把 `pet/petfightnew` 覆盖为 `260924918360271`；生产清单与视觉候选已按该精确版本重新生成。下周仍须重新运行 Check，不要沿用这个数字。
 
 ## 2. 生成候选
 
@@ -49,6 +51,19 @@
 - 五个 ExternalInterface 回调、状态/诊断/生命周期标记、三个设置标记、FWS 长度或 SHA-256 校验失败；
 - 候选仍出现 `skipAttackAnimation`、`skipPetAttackActions` 或 `skipBattleVisualDelays` 历史标记。
 
+### 当前战斗视觉层的追加补丁
+
+上面的 `Prepare` 只产生基础 Bridge Version 5 候选；生产还使用独立的视觉补丁。每次周更，在本周 `Prepare` 的同一证据目录中执行（把路径替换为本周实际目录和版本）：
+
+```powershell
+.\analysis\tools\petfight\Apply-BattleVisualPatch.ps1 `
+  -CandidatePath <本周基础候选完整路径> `
+  -PcodeRoot <本周证据目录\decompiled\pcode-candidate\scripts> `
+  -OutputPath <本周证据目录\variants\petfightnew-battle-visual-本周版本.fws.swf>
+```
+
+追加补丁逐个定位并修改 `MCPetContainer.onResPrepared`、`onStartCriEff`、`DocPetFight` 类初始值、`BackGroundViewHandler.setBS`、`setSceneBackGround`、`changeSkillBackGround`。若方法签名、插入点或私有命名空间改变，脚本应停止；须重新阅读新版官方代码，不可仅改方法编号或复用旧候选。背景图仍放在运行目录的 `Resources/Battle/background.jpg`，无需随每周 SWF 版本重新导出为 SWF；用户可在“战斗表现”中选择 JPEG，程序将副本导入该路径，按比例居中裁切铺满 960×560 画面，从下一场战斗开始加载。项目自带默认图位于 `analysis/AolaLoader/Resources/Battle/background.jpg`，只有默认图内容要变时才更换它。
+
 ## 3. 人工审阅
 
 先阅读 `metadata/compatibility-report.md`，再核对以下允许修改：
@@ -61,7 +76,7 @@
 6. `SkillResultMovieHandler` 只修改八个 HP 数字叶方法；`showMultipleHit` 必须按 `_hpInc` 正负分别检查治疗/伤害开关，`startMovie` 不得被短路。另两个演出方法仅为 `UseSkill.getMuiltHitDecHpDelayFrame` 的最小延迟和 `FightController.startHandle` 的已接收事件连续排空。
 7. 诊断白名单只跟踪面板、域、开场、预加载、技能特效、攻击和帧间隔。`ConservativeCleanup` 只清空完成/释放点的局部回调与引用，并在实际时间超过 15 秒时复用官方 `MCPetContainer.setNormal()`；不得扩展为全局缓存或域卸载。
 
-不得接受白名单以外的方法修改，也不得修改 `IGameOptionService.fightSkillEffect`、`FightData.isLowQuality`、开战入场或胜负结算路径。必要时对候选再运行独立验证：
+基础桥不得接受白名单以外的方法修改，也不得修改 `IGameOptionService.fightSkillEffect`、`FightData.isLowQuality` 或胜负结算路径。当前视觉候选只允许上一节列出的六个追加方法；其中 `onResPrepared` 的入场跳过必须保留原 `GOT_PET` 完成回调。必要时对最终候选再运行独立验证：
 
 ```powershell
 python C:\Users\weixi\.codex\skills\reverse-engineer-swf\scripts\verify_swf.py `
@@ -72,6 +87,8 @@ python C:\Users\weixi\.codex\skills\reverse-engineer-swf\scripts\verify_swf.py `
 ```
 
 ## 4. 明确晋级
+
+下述 `Promote` 仅晋级基础桥；当前使用追加视觉补丁的发布流程不要把它当作最后一步。先完成视觉候选和人工复读，再按本节末尾清单同步最终文件。
 
 只把 `Prepare` 输出的确切 `candidateManifest` 路径传给 `Promote`：
 
@@ -87,6 +104,13 @@ python C:\Users\weixi\.codex\skills\reverse-engineer-swf\scripts\verify_swf.py `
 
 旧官方文件、旧候选和旧清单保留在版本证据目录中，不覆盖、不删除。
 
+当前生产是“基础桥 + 视觉补丁”，不能把仅基础桥的 `Promote` 输出当作最终产物。每周需要人工核对并同步下列位置，随后重新构建；`Promote` 不会替你把追加视觉候选写入这些位置：
+
+1. 将最终视觉候选按 `petfightnew-battle-visual-<本周版本>.fws.swf` 独立复制到 `analysis/AolaLoader/Resources/Patches/`，保留旧文件。
+2. 更新 `petfightnew-battle-state.current.json` 中的 `resourceVersion`、`officialUrl`、`candidateFile` 及现有契约要求的 `candidateLength` 和校验字段；不新增任何资产校验机制。
+3. 将 `PetFightBattleBridgeArtifact.CandidateFileName` 和 `AolaLoader.csproj`、`AolaSocketHack.Verify.csproj` 中最终候选的文件名同步到本周版本。确认实际发布目录包含同名候选、清单和 `Resources/Battle/background.jpg`。
+4. FFDec 复读最终 SWF，确认 `DocPetFight`、`MCPetContainer`、`BackGroundViewHandler` 与 SymbolClass 仍存在，并逐项审阅上述六个方法。旧版或未知 URL 应保持官方透传。
+
 ## 5. 自动验证
 
 依次运行，避免共享输出目录竞争：
@@ -95,6 +119,7 @@ python C:\Users\weixi\.codex\skills\reverse-engineer-swf\scripts\verify_swf.py `
 dotnet build .\analysis\AolaLoader\AolaLoader.csproj -c Release
 dotnet build .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj -c Release
 dotnet run --project .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj -c Release --no-build -- --self-test
+dotnet run --project .\analysis\AolaSocketHack.Verify\AolaSocketHack.Verify.csproj -c Release --no-build -- --battle-bridge-contract
 git diff --check
 ```
 

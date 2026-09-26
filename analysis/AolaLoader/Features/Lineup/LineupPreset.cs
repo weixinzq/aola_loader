@@ -1,3 +1,5 @@
+// 架构角色：定义阵容方案、宠物与装备模型，并负责独立方案文件的读写和解析。
+// 数据流：服务器回读参数 <-> LineupPreset；用户文件不属于 settings.json section。
 using System;
 using System.Collections.Generic;
 using System.IO;

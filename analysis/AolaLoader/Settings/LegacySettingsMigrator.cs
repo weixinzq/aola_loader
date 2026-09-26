@@ -1,3 +1,5 @@
+// 架构角色：只负责旧整文档 Schema 迁移到当前 section 结构，不拥有各 feature 的日常规范化。
+// 数据流：legacy JObject -> 当前根文档/迁移标记。
 using System;
 using System.Collections.Generic;
 using AolaLoader.Features.Battle.Settings;

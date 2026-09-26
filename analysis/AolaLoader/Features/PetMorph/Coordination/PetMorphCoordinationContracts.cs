@@ -1,3 +1,5 @@
+// 架构角色：定义形态协调、资源规则目标和页面推送之间的端口与组合结果。
+// 数据流：UI 设置 -> IPetMorphCoordinator -> rule target + push bridge。
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -101,7 +103,7 @@ internal interface IPetMorphRuleTarget
 
 	string ValidateRule(AolaPetMorphRule rule);
 
-	Task<IReadOnlyDictionary<int, int>> GetAvailableLivePosterMappingsAsync(
+	Task<IReadOnlyDictionary<int, int>> GetAvailableLiveSkinMappingsAsync(
 		IReadOnlyList<AolaPetMorphRule> rules,
 		bool enabled);
 }

@@ -1,3 +1,5 @@
+// 架构角色：把已解密 AolaPacketEvent 翻译为战斗领域增量，不维护跨包状态。
+// 数据流：命令 + ParametersJson -> AolaBattlePacketUpdate 或忽略/解析失败。
 using System;
 using System.Collections.Generic;
 using System.Globalization;

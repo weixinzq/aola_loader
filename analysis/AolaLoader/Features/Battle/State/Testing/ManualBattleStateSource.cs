@@ -1,3 +1,5 @@
+// 架构角色：IBattleStateSource 的手工测试替身，可设置快照并同步触发变更事件。
+// 数据流：测试输入 snapshot -> 被测 feature consumer。
 using System;
 
 namespace AolaLoader.Features.Battle.State.Testing;

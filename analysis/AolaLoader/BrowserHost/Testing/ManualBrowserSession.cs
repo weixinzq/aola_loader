@@ -1,3 +1,5 @@
+// 架构角色：IBrowserSession 的确定性测试替身，可注入脚本结果并主动发布页面生命周期事件。
+// 数据流：测试预设/触发 -> 被测 PageBridge；执行请求 -> 记录与预设响应。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

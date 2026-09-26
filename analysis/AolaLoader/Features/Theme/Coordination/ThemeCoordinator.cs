@@ -1,3 +1,5 @@
+// 架构角色：协调主题选择的校验、资源规则应用和 theme section 持久化。
+// 数据流：themeId -> IThemeSelectionTarget；可选保存 -> ISettingsSectionStore。
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,3 +1,5 @@
+// 架构角色：根据已激活的模型映射，为双方宠物 movie 请求选择准备好的替换内容。
+// 数据流：pet movie URL + 原资源身份 -> LocalResponse 或官方 PassThrough。
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,3 +1,5 @@
+// 架构角色：通过页面桥读取 Flash 战斗诊断快照与跟踪事件，并校验返回 schema。
+// 数据流：诊断请求 -> IPageBridge -> BattleDiagnosticsSnapshot/trace 或分类错误。
 using System;
 using System.Collections.Generic;
 using System.Threading;

@@ -1,3 +1,5 @@
+// 架构角色：有界 TCP 帧缓冲，处理半包、粘包、长度前缀和策略 XML 的消息边界。
+// 数据流：任意字节块 -> 完整 frame/null-terminated payload 或等待更多数据。
 using System;
 using System.Collections.Generic;
 

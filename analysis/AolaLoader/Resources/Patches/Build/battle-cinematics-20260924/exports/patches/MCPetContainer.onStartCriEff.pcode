@@ -1,0 +1,236 @@
+                                                                                                                                                            method
+                                                                                                                                                               name null
+                                                                                                                                                               returns QName(PackageNamespace(""),"void")
+                                                                                                                                                               
+                                                                                                                                                               body
+                                                                                                                                                                  maxstack 3
+                                                                                                                                                                  localcount 5
+                                                                                                                                                                  initscopedepth 10
+                                                                                                                                                                  maxscopedepth 11
+                                                                                                                                                                  
+                                                                                                                                                                  code
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     pushscope
+ getlex QName(PackageNamespace("mmo.petfightnew"),"DocPetFight")
+ getproperty QName(PackageNamespace(""),"skipBattlePresentation")
+ iffalse aola_original_extra
+ returnvoid
+aola_original_extra:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"flaId")
+                                                                                                                                                                     pushshort 10000
+                                                                                                                                                                     modulo
+                                                                                                                                                                     callproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"getOperationPM"), 1
+                                                                                                                                                                     callproperty QName(Namespace("mmo.interfaces.pet.pm.operation:IPMOperationData"),"getMaxCommonEvlution"), 0
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.operation:IPMEvolutionInfo"),"raceId")
+                                                                                                                                                                     convert_i
+                                                                                                                                                                     setlocal1
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_gameOptionSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.option:IGameOptionService"),"isNoFightSkillEffect")
+                                                                                                                                                                     iffalse ofs0033
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.play.petfight.common.config"),"GQKillBigConfig")
+                                                                                                                                                                     getlocal1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isNotPlayAllEffectMv"), 1
+                                                                                                                                                                     iftrue ofs0033
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs0033:
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.petfightnew.common"),"FightData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"instance")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"isPFS3KuangBao")
+                                                                                                                                                                     iffalse ofs0040
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs0040:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmSkillMap")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"skillId")
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getSkill"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getSkillType"), 0
+                                                                                                                                                                     convert_i
+                                                                                                                                                                     setlocal2
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.petfightnew.common"),"FightData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"instance")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_loacId")
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getSlotId"), 1
+                                                                                                                                                                     convert_i
+                                                                                                                                                                     setlocal3
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.petfightnew.common"),"FightData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"instance")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"playerInfo")
+                                                                                                                                                                     getlocal3
+                                                                                                                                                                     getproperty MultinameL([PrivateNamespace(null,"170"),PackageNamespace(""),PrivateNamespace(null,"400"),PackageNamespace("mmo.petfightnew.common"),PackageInternalNs("mmo.petfightnew.common"),Namespace("http://adobe.com/AS3/2006/builtin"),ProtectedNamespace("mmo.petfightnew.common:MCPetContainer"),StaticProtectedNs("mmo.petfightnew.common:MCPetContainer"),StaticProtectedNs("flash.display:MovieClip"),StaticProtectedNs("flash.display:Sprite"),StaticProtectedNs("flash.display:DisplayObjectContainer"),StaticProtectedNs("flash.display:InteractiveObject"),StaticProtectedNs("flash.display:DisplayObject"),StaticProtectedNs("flash.events:EventDispatcher")])
+                                                                                                                                                                     coerce QName(PackageNamespace("mmo.interfaces.pet.data"),"PlayerBattleInfo")
+                                                                                                                                                                     setlocal 4
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.interfaces.pet.pm.data.custom"),"PMSkillTypes")
+                                                                                                                                                                     getlocal2
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isDegeneratorSuperSpiritSkill"), 1
+                                                                                                                                                                     convert_b
+                                                                                                                                                                     dup
+                                                                                                                                                                     iftrue ofs008e
+                                                                                                                                                                     pop
+                                                                                                                                                                     getlocal2
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.interfaces.pet.pm.data.custom"),"PMSkillTypes")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"DEGENERATOR_YU_KILL_BIG")
+                                                                                                                                                                     equals
+                                                                                                                                                            ofs008e:
+                                                                                                                                                                     dup
+                                                                                                                                                                     iftrue ofs009c
+                                                                                                                                                                     pop
+                                                                                                                                                                     getlocal2
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.interfaces.pet.pm.data.custom"),"PMSkillTypes")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"DEGENERATOR_SHENQI_KILL_BIG")
+                                                                                                                                                                     equals
+                                                                                                                                                            ofs009c:
+                                                                                                                                                                     iffalse ofs00f4
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"raceId")
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isDegeneratorPM"), 0
+                                                                                                                                                                     iftrue ofs00bb
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs00bb:
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.petfightnew.common"),"FightData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"instance")
+                                                                                                                                                                     getlocal 4
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isSummonedPlayer"), 1
+                                                                                                                                                                     iffalse ofs00cb
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs00cb:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isDegeneratorPM"), 0
+                                                                                                                                                                     iftrue ofs00e3
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs00e3:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_currentActionMovie")
+                                                                                                                                                                     callpropvoid QName(PackageNamespace(""),"stop"), 0
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     callpropvoid QName(PrivateNamespace(null,"170"),"showDegeneratorMovie"), 0
+                                                                                                                                                                     jump ofs01ec
+                                                                                                                                                            ofs00f4:
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.interfaces.pet.pm.data.custom"),"PMSkillTypes")
+                                                                                                                                                                     getlocal2
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isXinghuiKillBig"), 1
+                                                                                                                                                                     convert_b
+                                                                                                                                                                     dup
+                                                                                                                                                                     iffalse ofs0121
+                                                                                                                                                                     pop
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"raceId")
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getXinghuiType"), 0
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.interfaces.xinghui"),"XinghuiPetType")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"JUEXING")
+                                                                                                                                                                     equals
+                                                                                                                                                                     not
+                                                                                                                                                            ofs0121:
+                                                                                                                                                                     iffalse ofs017c
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isXinghuiPM"), 0
+                                                                                                                                                                     not
+                                                                                                                                                                     dup
+                                                                                                                                                                     iffalse ofs0156
+                                                                                                                                                                     pop
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"raceId")
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isXinghuiPM"), 0
+                                                                                                                                                                     not
+                                                                                                                                                            ofs0156:
+                                                                                                                                                                     iffalse ofs015b
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs015b:
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.petfightnew.common"),"FightData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"instance")
+                                                                                                                                                                     getlocal 4
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isSummonedPlayer"), 1
+                                                                                                                                                                     iffalse ofs016b
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs016b:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_currentActionMovie")
+                                                                                                                                                                     callpropvoid QName(PackageNamespace(""),"stop"), 0
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     callpropvoid QName(PrivateNamespace(null,"170"),"showXinghuiMovie"), 0
+                                                                                                                                                                     jump ofs01ec
+                                                                                                                                                            ofs017c:
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.interfaces.pet.pm.data.custom"),"PMSkillTypes")
+                                                                                                                                                                     getlocal2
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isGQKillBig"), 1
+                                                                                                                                                                     iffalse ofs01d7
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isGQPM"), 0
+                                                                                                                                                                     not
+                                                                                                                                                                     dup
+                                                                                                                                                                     iffalse ofs01b9
+                                                                                                                                                                     pop
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_pmSvr")
+                                                                                                                                                                     getproperty QName(Namespace("mmo.interfaces.pet.pm.services:IPMService"),"customData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"pmDataMap")
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"raceId")
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"getPM"), 1
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isGQPM"), 0
+                                                                                                                                                                     not
+                                                                                                                                                            ofs01b9:
+                                                                                                                                                                     iffalse ofs01be
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs01be:
+                                                                                                                                                                     getlex QName(PackageNamespace("mmo.petfightnew.common"),"FightData")
+                                                                                                                                                                     getproperty QName(PackageNamespace(""),"instance")
+                                                                                                                                                                     getlocal 4
+                                                                                                                                                                     callproperty QName(PackageNamespace(""),"isSummonedPlayer"), 1
+                                                                                                                                                                     iffalse ofs01ce
+                                                                                                                                                                     returnvoid
+                                                                                                                                                            ofs01ce:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     callpropvoid QName(PrivateNamespace(null,"170"),"showGQKillBigMovie"), 0
+                                                                                                                                                                     jump ofs01ec
+                                                                                                                                                            ofs01d7:
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"isCriticalHit")
+                                                                                                                                                                     iffalse ofs01ec
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     getproperty QName(PrivateNamespace(null,"170"),"_currentActionMovie")
+                                                                                                                                                                     callpropvoid QName(PackageNamespace(""),"stop"), 0
+                                                                                                                                                                     getlocal0
+                                                                                                                                                                     callpropvoid QName(PrivateNamespace(null,"170"),"showCriEffMovie"), 0
+                                                                                                                                                            ofs01ec:
+                                                                                                                                                                     returnvoid
+                                                                                                                                                                  end ; code
+                                                                                                                                                               end ; body
+                                                                                                                                                            end ; method

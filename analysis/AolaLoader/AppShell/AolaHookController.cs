@@ -1,3 +1,5 @@
+// 架构角色：宿主侧 EasyHook 生命周期控制器，把 AolaSocketHack.dll 注入指定 network.mojom 进程。
+// 数据流：目标 PID + DLL 路径 -> RemoteHooking.Inject；注入状态 -> PacketHost 状态事件。
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

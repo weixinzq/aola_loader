@@ -1,3 +1,5 @@
+// 架构角色：统一复用、激活和关闭功能子窗口，避免同一功能重复创建多个窗体实例。
+// 数据流：窗口键 + factory -> 已有或新 Form；FormClosed/Dispose -> 生命周期清理。
 using System;
 using System.Collections.Generic;
 using System.Linq;

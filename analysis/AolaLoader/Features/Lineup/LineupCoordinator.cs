@@ -1,3 +1,5 @@
+// 架构角色：阵容功能门面，负责读取、保存方案并创建一次性恢复会话。
+// 数据流：UI 请求 -> packet source/command sender/battle gate -> LineupSession 或方案结果。
 using System;
 using System.Collections.Generic;
 using System.IO;

@@ -1,3 +1,5 @@
+// 架构角色：规则评估的判别联合模型，表达 PassThrough、LocalResponse、RewriteRemote 等结果。
+// 数据流：feature rule -> pipeline/CEF adapter；计划携带必要数据而不执行副作用。
 using System;
 
 namespace AolaLoader.ResourceInterception.Contracts;

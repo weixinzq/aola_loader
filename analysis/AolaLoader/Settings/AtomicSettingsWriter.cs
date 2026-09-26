@@ -1,3 +1,5 @@
+// 架构角色：设置文件的原子落盘机制，通过临时文件与替换降低半写入风险。
+// 数据流：完整 JSON 文本 -> 临时路径 -> 原子替换目标 settings.json。
 using System;
 using System.IO;
 using System.Text;

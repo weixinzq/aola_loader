@@ -209,6 +209,7 @@ def parse_abc(data: bytes, targets: set[tuple[str, str]]) -> list[dict[str, int 
 
     class_count = reader.u30()
     target_methods: dict[int, tuple[str, str]] = {}
+    class_names: list[str] = []
     for _ in range(class_count):
         class_name_index = reader.u30()
         reader.u30()
@@ -220,6 +221,7 @@ def parse_abc(data: bytes, targets: set[tuple[str, str]]) -> list[dict[str, int 
         initializer_method_index = reader.u30()
         traits = skip_traits(reader, reader.u30())
         class_name = multiname_text(class_name_index, strings, namespaces, multinames)
+        class_names.append(class_name)
         if class_name:
             if (class_name, "$iinit") in targets:
                 if initializer_method_index in target_methods:
@@ -233,8 +235,12 @@ def parse_abc(data: bytes, targets: set[tuple[str, str]]) -> list[dict[str, int 
                         raise ParseError(f"duplicate target method index {method_index}")
                     target_methods[method_index] = (class_name, method_name)
 
-    for _ in range(class_count):
-        reader.u30()
+    for class_name in class_names:
+        class_initializer_method_index = reader.u30()
+        if (class_name, "$cinit") in targets:
+            if class_initializer_method_index in target_methods:
+                raise ParseError(f"duplicate target method index {class_initializer_method_index}")
+            target_methods[class_initializer_method_index] = (class_name, "$cinit")
         skip_traits(reader, reader.u30())
 
     for _ in range(reader.u30()):
@@ -409,12 +415,15 @@ def load_manifest(path: Path, production: bool) -> dict[str, int | str]:
         ):
             raise ParseError(f"{field} is invalid")
 
-    expected_candidate = (
-        "petfightnew-battle-state-current.fws.swf"
+    expected_candidates = (
+        {
+            "petfightnew-battle-state-current.fws.swf",
+            f"petfightnew-battle-visual-{version}.fws.swf",
+        }
         if production
-        else f"..\\variants\\petfightnew-battle-state-{version}.fws.swf"
+        else {f"..\\variants\\petfightnew-battle-state-{version}.fws.swf"}
     )
-    if document["candidateFile"] != expected_candidate:
+    if document["candidateFile"] not in expected_candidates:
         raise ParseError("candidateFile is not the expected exact filename")
     return document
 

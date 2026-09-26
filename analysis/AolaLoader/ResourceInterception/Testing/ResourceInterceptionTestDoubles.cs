@@ -1,3 +1,5 @@
+// 架构角色：资源管线各端口的委托式测试替身，支持精确注入规则、探测、获取和变换行为。
+// 数据流：测试 Lambda <-> pipeline，被测调用与结果均可观察。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

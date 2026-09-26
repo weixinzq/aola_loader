@@ -1,3 +1,5 @@
+// 架构角色：定义功能模块使用的主动发送端口及提交阶段语义，隐藏页面桥实现。
+// 数据流：Feature 提交请求；实现以进度回调和最终状态返回 Page/Flash 提交结果。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

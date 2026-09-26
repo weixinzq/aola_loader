@@ -1,3 +1,5 @@
+// 架构角色：读取宠物海报目录并提供 petId 到资源标识的只读查询。
+// 数据流：catalog JSON -> 规范化条目 -> PetPosterResourceRule。
 using System;
 using System.Collections.Generic;
 using System.IO;

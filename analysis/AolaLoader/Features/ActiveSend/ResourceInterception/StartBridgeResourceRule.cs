@@ -1,3 +1,5 @@
+// 架构角色：拥有 start SWF 路径，将匹配的官方资源替换为内置 ActiveSend bridge 候选。
+// 数据流：ResourceRequestContext -> 路径/版本校验 -> LocalResponse 或 PassThrough。
 using System;
 using System.IO;
 using System.Security.Cryptography;

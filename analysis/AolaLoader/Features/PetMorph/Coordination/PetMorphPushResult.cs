@@ -1,3 +1,5 @@
+// 架构角色：承载页面形态桥一次推送的成功、待处理和失败信息。
+// 数据流：AolaPetMorphLiveBridge -> PetMorphCoordinator -> UI。
 namespace AolaLoader.Features.PetMorph.Coordination;
 
 /// <summary>

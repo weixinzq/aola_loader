@@ -80,7 +80,13 @@ start bridge、petfight bridge、newpetpackage 模板、catalog 和 BattleAssist
 
 新增资源时应只让 CompositionRoot 拥有长期 service 的最终释放，Form 只停止自身 timer/退订自身事件；若整理此处，应作为独立、可验证的小任务。
 
-## 12. 运行时未知项
+## 12. CefSharp 版本存在已知安全警告（高）
+
+`AolaLoader.csproj` 固定 `CefSharp.WinForms` 87.1.132。2026-09-22 的 Release 构建对该版本报告两条 `NU1903` 高危漏洞警告（GHSA-f87w-3j5w-v58p、GHSA-vv6j-ww6x-54gx）。
+
+影响：CEF、PPAPI Flash 和现有补丁链存在强版本耦合，不能只因警告直接升级；但继续发布旧版本也需要明确风险接受。触发升级时，应先建立登录、Flash 加载、资源规则、network.mojom 发现、Hook 注入和页面桥的完整兼容性矩阵，再做独立升级任务。
+
+## 13. 运行时未知项
 
 - PPAPI Flash 在当前 CEF 版本下的精确进程归属和重启行为。
 - 官网登录/选服页面的当前真实流程。

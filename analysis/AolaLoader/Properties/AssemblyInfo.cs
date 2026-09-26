@@ -1,3 +1,4 @@
+// 架构角色：AolaLoader 程序集元数据；不参与运行时控制流。
 using System.Reflection;
 using System.Runtime.InteropServices;
 

@@ -1,3 +1,5 @@
+// 架构角色：定义远端资源轻量探测端口，用于替换前确认长度、版本和可用性。
+// 数据流：probe request -> 缓存友好的 metadata/result，不返回完整资源主体。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

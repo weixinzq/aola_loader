@@ -1,3 +1,5 @@
+// 架构角色：定义响应变换端口及输入输出，隔离 SWF 处理算法与 CEF 流式 API。
+// 数据流：原响应 bytes/metadata -> transformer -> 新 bytes/headers 或失败关闭。
 using System;
 
 namespace AolaLoader.ResourceInterception.Contracts;

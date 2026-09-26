@@ -1,3 +1,5 @@
+// 架构角色：宿主到页面/Flash 的白名单控制边界，把类型化操作翻译为受限 JavaScript 调用。
+// 数据流：PageBridgeRequest/功能状态 -> IBrowserSession -> envelope 校验后的 PageBridgeResult。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

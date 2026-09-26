@@ -1,3 +1,5 @@
+// 架构角色：按保留优先级评估所有资源规则；同级多命中或异常时安全放行官方资源。
+// 数据流：ResourceRequestContext -> RuleEvaluation 集合 -> 唯一 ResourceInterceptionPlan。
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -71,6 +73,7 @@ internal sealed class ResourceRulePipeline
 
 		foreach (IGrouping<int, RuleEntry> priorityGroup in _rules.GroupBy(entry => entry.Rule.Priority))
 		{
+			// 同一优先级的规则必须全部评估后再选择，注册顺序不能偷偷决定资源所有权。
 			List<RuleMatch> matches = new List<RuleMatch>();
 			foreach (RuleEntry entry in priorityGroup)
 			{

@@ -1,3 +1,5 @@
+// 架构角色：处理 FWS/CWS/ZWS 解压、压缩和类级二进制适配，是 SWF transformer 的格式边界。
+// 数据流：任一支持的 SWF 编码 -> 标准 FWS/修改 -> 保持约束的输出。
 using System;
 using System.Collections.Generic;
 using System.IO;

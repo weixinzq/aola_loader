@@ -5,10 +5,11 @@
 按以下顺序阅读，目标是先知道“对象在哪里创建、边界在哪里”，暂时不要钻协议细节：
 
 1. [00-OVERVIEW.md](00-OVERVIEW.md)：确认系统解决的问题与两条主链。
-2. `analysis/AolaLoader/Program.cs`：看进程入口、单实例和最终关闭。
-3. `analysis/AolaLoader/AppShell/AolaCompositionRoot.cs`：看所有长期对象如何连接。
-4. [01-SYSTEM-MAP.md](01-SYSTEM-MAP.md) 和 [04-DEPENDENCIES.md](04-DEPENDENCIES.md)：建立进程与依赖方向。
-5. `analysis/AolaLoader/AppShell/AolaMainForm.cs`：只看构造函数、Shown、OnFormClosed、EnsureHookInjectedAsync、BrowserFrameLoadEnd。
+2. [10-SOURCE-FILE-GUIDE.md](10-SOURCE-FILE-GUIDE.md)：按模块查任意源文件的职责、输入和输出。
+3. `analysis/AolaLoader/Program.cs`：看进程入口、单实例和最终关闭。
+4. `analysis/AolaLoader/AppShell/AolaCompositionRoot.cs`：看所有长期对象如何连接。
+5. [01-SYSTEM-MAP.md](01-SYSTEM-MAP.md) 和 [04-DEPENDENCIES.md](04-DEPENDENCIES.md)：建立进程与依赖方向。
+6. `analysis/AolaLoader/AppShell/AolaMainForm.cs`：只看构造函数、Shown、OnFormClosed、EnsureHookInjectedAsync、BrowserFrameLoadEnd。
 
 完成标准：能够解释宿主、network.mojom、Hook DLL、页面/Flash 和服务端之间的关系。
 

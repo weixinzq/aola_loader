@@ -1,3 +1,5 @@
+// 架构角色：IAolaPacketEventSource 的手工测试实现，可主动发布 packet、status 和发送结果。
+// 数据流：测试触发 -> 真实 feature consumers，不经过 IPC 或 Hook。
 using System;
 using AolaSocketHack.Contracts;
 

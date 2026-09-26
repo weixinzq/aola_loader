@@ -1,3 +1,5 @@
+// 架构角色：拥有 petfightnew 主 SWF 路径，仅在 artifact 验证通过时返回本地 bridge。
+// 数据流：CEF 资源请求 -> URL/版本匹配 -> 已验证候选或官方 PassThrough。
 using System;
 using System.Text.RegularExpressions;
 using AolaLoader.ResourceInterception.Contracts;

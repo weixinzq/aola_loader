@@ -1,3 +1,5 @@
+// 架构角色：一次性初始化进程级 CEF、缓存、日志和 PPAPI Flash 参数，必须先于浏览器控件创建。
+// 数据流：exe/runtime/pepflashplayer.dll + CefSettings -> Cef.Initialize 和全局插件偏好。
 using System;
 using System.IO;
 using CefSharp;

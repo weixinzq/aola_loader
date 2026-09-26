@@ -1,3 +1,5 @@
+// 架构角色：定义分区设置存储和模块 codec 契约，防止 feature 任意改写完整文档。
+// 数据流：section key + codec/value <-> load/save result。
 using System;
 using Newtonsoft.Json.Linq;
 

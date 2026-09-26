@@ -1,6 +1,7 @@
 using System;
 using AolaLoader.Features.PetMorph;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -12,6 +13,7 @@ using AolaLoader.Features.ActiveSend.ResourceInterception;
 using AolaLoader.Features.Battle.Coordination;
 using AolaLoader.Features.Battle.ResourceInterception;
 using AolaLoader.Features.Battle.Settings;
+using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.PetMorph.ResourceInterception;
 using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Contracts;
@@ -36,6 +38,7 @@ internal static class ResourceInterceptionContractVerifier
 			VerifyThemeLeafRule() &&
 			VerifyStartBridgeRule() &&
 			VerifyBattleBridgeRule() &&
+			VerifyBattleBackgroundImageRule() &&
 			VerifyPetPackageLiveRule() &&
 			VerifyRemotePlanExecutor() &&
 			VerifyBattlePetMovieRule() &&
@@ -385,11 +388,28 @@ internal static class ResourceInterceptionContractVerifier
 		byte[] fws = CreateHeader('F', 8);
 		byte[] cws = CreateHeader('C', 128);
 		byte[] zws = CreateHeader('Z', 128, 3, 1024);
+		const uint skin5436ResponseLength = 16791137;
+		const uint skin5436DeclaredLength = 20971028;
+		byte[] skin5436 = CreateHeader(
+			'Z',
+			skin5436DeclaredLength,
+			skin5436ResponseLength - 17,
+			16 * 1024 * 1024);
 		if (!SwfResponseHeaderValidator.IsSupported(fws, 8, 8, 1024) ||
 			SwfResponseHeaderValidator.IsSupported(fws, 8, 9, 1024) ||
 			!SwfResponseHeaderValidator.IsSupported(cws, 8, 32, 1024) ||
 			!SwfResponseHeaderValidator.IsSupported(zws, 17, 20, 1024) ||
-			SwfResponseHeaderValidator.IsSupported(zws, 17, 21, 1024))
+			SwfResponseHeaderValidator.IsSupported(zws, 17, 21, 1024) ||
+			SwfResponseHeaderValidator.IsSupported(
+				skin5436,
+				17,
+				skin5436ResponseLength,
+				16 * 1024 * 1024) ||
+			!SwfResponseHeaderValidator.IsSupported(
+				skin5436,
+				17,
+				skin5436ResponseLength,
+				PetMorphLiveSkinMapping.MaximumBackgroundSwfBytes))
 		{
 			return false;
 		}
@@ -512,8 +532,8 @@ internal static class ResourceInterceptionContractVerifier
 		byte[] template = CreatePetPackageTemplate(includeIconMarker: true);
 		PetPackageLiveResourceRule rule = new PetPackageLiveResourceRule(template);
 		template[8] = 0;
-		string exactUrl = "https://aola.100bt.com/play/pet/newpetpackage~" +
-			PetPackageLiveResourceRule.SupportedVersion + ".swf?cache=1";
+		string exactUrl =
+			"https://aola.100bt.com/play/pet/newpetpackage~2026091780747880.swf?cache=1";
 		ResourceInterceptionPlan matched = rule.Evaluate(
 			new ResourceRequestContext(exactUrl, "GET", "Other"));
 		byte[] firstRead = matched.LocalContent;
@@ -523,6 +543,9 @@ internal static class ResourceInterceptionContractVerifier
 			CountAscii(firstRead, "aolaMorphRefresh") != 1 ||
 			CountAscii(firstRead, "aolaMorphShouldHideBackground") != 1 ||
 			CountAscii(firstRead, "aolaMorphResolveIconId") != 1 ||
+			CountAscii(firstRead, "getAolaMorphControlSkinId") != 1 ||
+			CountAscii(firstRead, "getAolaMorphVisualSkinId") != 1 ||
+			CountAscii(firstRead, "getAolaMorphVisualSkinIdByRace") != 1 ||
 			CountAscii(firstRead, "aolaSendCommand") != 0 ||
 			CountAscii(firstRead, "aolaOpenPanel") != 0 ||
 			CountAscii(firstRead, "aolaSetPlayback") != 0 ||
@@ -542,34 +565,42 @@ internal static class ResourceInterceptionContractVerifier
 				new ResourceRequestContext(exactUrl, "GET", "Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(
-				"https://aola.100bt.com/play/pet/newpetpackage~2026081331982424.swf",
+				"https://aola.100bt.com/play/pet/newpetpackage~2026082731219998.swf",
 				"GET",
-				"Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+				"Other")).Outcome == ResourceInterceptionOutcome.LocalResponse &&
 			rule.Evaluate(new ResourceRequestContext(
-				"https://aola.100bt.com/play/pet/newpetpackage~" +
-				PetPackageLiveResourceRule.SupportedVersion + ".swf.bak",
+				"https://aola.100bt.com/play/pet/newpetpackage~2026091780747880.swf.bak",
 				"GET",
 				"Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(exactUrl, "POST", "Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
 			rule.Evaluate(new ResourceRequestContext(
-				"https://example.test/play/pet/newpetpackage~" +
-				PetPackageLiveResourceRule.SupportedVersion + ".swf",
+				"https://example.test/play/pet/newpetpackage~2026091780747880.swf",
 				"GET",
 				"Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
 			Throws<ArgumentException>(() => new PetPackageLiveResourceRule(
-				CreatePetPackageTemplate(includeIconMarker: false))) &&
+				CreatePetPackageTemplate(includeIconMarker: false, includeControlMarker: true))) &&
 			Throws<ArgumentException>(() => new PetPackageLiveResourceRule(
-				CreatePetPackageTemplate(includeIconMarker: true, includeCommandMarker: true)));
+				CreatePetPackageTemplate(includeIconMarker: true, includeControlMarker: false))) &&
+			Throws<ArgumentException>(() => new PetPackageLiveResourceRule(
+				CreatePetPackageTemplate(includeIconMarker: true, includeControlMarker: true,
+					includeVisualMarker: false))) &&
+			Throws<ArgumentException>(() => new PetPackageLiveResourceRule(
+				CreatePetPackageTemplate(includeIconMarker: true, includeControlMarker: true,
+					includeCommandMarker: true)));
 	}
 
 	private static byte[] CreatePetPackageTemplate(
 		bool includeIconMarker,
+		bool includeControlMarker = true,
+		bool includeVisualMarker = true,
 		bool includeCommandMarker = false)
 	{
 		string body = "aolaMorphResolveSkinId|aolaMorphRefresh|aolaMorphShouldHideBackground" +
 			(includeIconMarker ? "|aolaMorphResolveIconId" : string.Empty) +
+			(includeControlMarker ? "|getAolaMorphControlSkinId" : string.Empty) +
+			(includeVisualMarker ? "|getAolaMorphVisualSkinIdByRace" : string.Empty) +
 			(includeCommandMarker ? "|aolaSendCommand" : string.Empty);
 		byte[] bodyBytes = Encoding.ASCII.GetBytes(body);
 		byte[] content = new byte[8 + bodyBytes.Length];
@@ -630,7 +661,35 @@ internal static class ResourceInterceptionContractVerifier
 				CreateStartBridgeTemplate(includeLoadBytesMarker: false)));
 	}
 
-	private static bool VerifyBattleBridgeRule()
+	internal static bool VerifyBattleBackgroundImageRule()
+	{
+		string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+			"TestData", "BattleBackground", "background.jpg");
+		BattleBackgroundImageResourceRule rule = new BattleBackgroundImageResourceRule(imagePath);
+		string url = "https://aola.100bt.com" + BattleBackgroundImageResourceRule.ResourcePath;
+		ResourceInterceptionPlan response = rule.Evaluate(
+			new ResourceRequestContext(url, "GET", "Image"));
+		if (response.Outcome != ResourceInterceptionOutcome.LocalResponse ||
+			response.ContentType != "image/jpeg" ||
+			new BattleBackgroundImageResourceRule(imagePath + ".missing")
+				.Evaluate(new ResourceRequestContext(url, "GET", "Image")).Outcome !=
+				ResourceInterceptionOutcome.PassThrough ||
+			rule.Evaluate(new ResourceRequestContext(url, "POST", "Image")).Outcome !=
+				ResourceInterceptionOutcome.PassThrough ||
+			rule.Evaluate(new ResourceRequestContext(
+				"https://example.test" + BattleBackgroundImageResourceRule.ResourcePath,
+				"GET", "Image")).Outcome != ResourceInterceptionOutcome.PassThrough)
+		{
+			return false;
+		}
+		using (MemoryStream content = new MemoryStream(response.LocalContent))
+		using (Image image = Image.FromStream(content))
+		{
+			return image.Width == 960 && image.Height == 560;
+		}
+	}
+
+	internal static bool VerifyBattleBridgeRule()
 	{
 		string testData = Path.Combine(
 			AppDomain.CurrentDomain.BaseDirectory,

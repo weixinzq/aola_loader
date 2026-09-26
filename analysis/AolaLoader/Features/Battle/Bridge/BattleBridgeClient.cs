@@ -1,3 +1,5 @@
+// 架构角色：封装 battle.* 页面桥操作，区分表现设置提交与 Flash 输入状态读取。
+// 数据流：BattleSettings/revision 或状态请求 -> IPageBridge -> 类型化 battle 结果。
 using System;
 using System.Threading;
 using System.Threading.Tasks;

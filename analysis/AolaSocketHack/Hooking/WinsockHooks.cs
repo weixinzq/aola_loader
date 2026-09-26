@@ -1,3 +1,5 @@
+// 架构角色：安装并管理 ws2_32 本地 Hook；回调先保持原调用语义，再有界复制成功收发字节。
+// 数据流：send/recv/WSA/connect/close -> filter -> captured callbacks；不在 Hook 线程解析协议。
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -26,12 +28,14 @@ internal sealed class WinsockHooks : IDisposable
 
 	public WinsockHooks(AolaSocketCaptureFilter filter, Action<long, byte[]> sendCaptured, Action<long, byte[]> receiveCaptured, Action<int> ignored, Action<long, int> connected, Action<long> closed)
 	{
+		// 第一组委托把捕获结果交还给 MainClass；它们不直接参与 native Hook 安装。
 		_filter = filter ?? throw new ArgumentNullException(nameof(filter));
 		_sendCaptured = sendCaptured;
 		_receiveCaptured = receiveCaptured;
 		_ignored = ignored;
 		_connected = connected;
 		_closed = closed;
+		// 第二组委托必须与 Winsock ABI 完全一致，LocalHook 会把原函数调用转入这些方法。
 		_sendHandler = SendHook;
 		_recvHandler = RecvHook;
 		_wsaSendHandler = WSASendHook;
@@ -68,8 +72,12 @@ internal sealed class WinsockHooks : IDisposable
 
 	private void Install(string function, Delegate callback)
 	{
+		// GetProcAddress 只解析当前进程内 ws2_32 导出地址；Create 在该地址安装进程内 Hook。
+		// 第三个参数是可由 HookRuntimeInfo.Callback 取回的上下文对象，本实现不主动读取它。
 		LocalHook hook = LocalHook.Create(LocalHook.GetProcAddress("ws2_32.dll", function), callback, this);
+		// Exclusive ACL 中的 0 代表当前安装线程：排除它，拦截本进程中的其他工作线程。
 		hook.ThreadACL.SetExclusiveACL(new[] { 0 });
+		// 保存句柄以维持生命周期，并在 Dispose 时逐个卸载。
 		_hooks.Add(hook);
 	}
 
@@ -77,6 +85,7 @@ internal sealed class WinsockHooks : IDisposable
 	{
 		long handle = socket.ToInt64();
 		SocketCaptureKind kind = SafeClassify(handle);
+		// 先执行原始 send；EasyHook 的 handler barrier 会避免本次原调用再次进入 SendHook。
 		int result = WinsockNative.Send(socket, buffer, length, flags);
 		int error = Marshal.GetLastWin32Error();
 		try
@@ -89,6 +98,7 @@ internal sealed class WinsockHooks : IDisposable
 		catch
 		{
 		}
+		// 托管复制/回调可能改写线程 last-error，返回前恢复原 send 的错误语义。
 		WinsockNative.WSASetLastError(error);
 		return result;
 	}
@@ -97,6 +107,7 @@ internal sealed class WinsockHooks : IDisposable
 	{
 		long handle = socket.ToInt64();
 		SocketCaptureKind kind = SafeClassify(handle);
+		// recv 成功后 buffer 才包含服务端数据，因此只能在原调用返回后复制 result 个字节。
 		int result = WinsockNative.Recv(socket, buffer, length, flags);
 		int error = Marshal.GetLastWin32Error();
 		try

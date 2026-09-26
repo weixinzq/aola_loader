@@ -360,7 +360,7 @@ internal static class SettingsBoundaryVerifier
 		JObject battle = (JObject)migratedDoc["Sections"]["battle"];
 		if (battle.Value<int>("Version") != 6 ||
 			battle.Value<bool>("HideDamageNumbers") || battle.Value<bool>("HideHealingNumbers") ||
-			battle.Value<bool>("SkipBattlePresentation") || battle.Value<bool>("BattleMorphEnabled") ||
+			!battle.Value<bool>("SkipBattlePresentation") || battle.Value<bool>("BattleMorphEnabled") ||
 			battle["SkipAttackAnimation"] != null ||
 			battle["SkipPetAttackActions"] != null || battle["FightSkillEffect"] != null ||
 			((JArray)battle["MorphRules"]).Count != 0)
@@ -486,7 +486,7 @@ internal static class SettingsBoundaryVerifier
 		return value != null &&
 			!value.HideDamageNumbers &&
 			!value.HideHealingNumbers &&
-			!value.SkipBattlePresentation &&
+			value.SkipBattlePresentation &&
 			!value.BattleMorphEnabled &&
 			value.MorphRules != null &&
 			value.MorphRules.Count == 0;
