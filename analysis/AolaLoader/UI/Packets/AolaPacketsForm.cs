@@ -53,7 +53,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	};
 	private readonly CheckBox _battleStateMode = new CheckBox
 	{
-		Text = "按战斗状态逐条发送",
+		Text = "确认战斗入口后发送",
 		AutoSize = true,
 		Margin = new Padding(12, 10, 0, 0)
 	};

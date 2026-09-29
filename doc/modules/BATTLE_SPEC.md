@@ -68,7 +68,7 @@ PacketHost 事件可在后台线程；State 在锁内更新、锁外发布快照
 
 资源事件分析使用 `analysis/tools/Analyze-BattleResourceTrace.ps1 -PerformanceCsv <aola-battle-flash.csv> -TraceJsonl <aola-battle-resource.jsonl>`，输出预加载和技能特效的次数/耗时/未完成项、预加载同局重复申请、资源完成前后长帧与内存变化、攻击缺策略/15 秒超时/恢复失败计数，以及最后一次生命周期快照。若同时传入外部进程采样文件 `-ProcessPerformanceCsv <aola-*.csv>`，脚本只关联其中 `Role=ppapi-flash` 且前后进程编号一致的样本，额外输出资源完成前后的 PPAPI 专用内存变化；不传入时该值为空。`-SwfCaptureLog` 只用于独立的冷/热缓存采集，不应在正式帧率对比组启用。
 
-`BattleState contract self-test` 验证初始值、读取值、发布值和逐订阅者通知均为防御性深复制，覆盖全部场下宠物、最终六维、PP/CD、订阅者异常隔离、晚开读取缓存与 Dispose；同时用手动 PacketHost 验证生产 Tracker 只处理接收方向、发布结束快照并在释放后停止消费。`ActiveSend` 与 `BattleReplay` contract self-test 覆盖严格桥参数、负数 `battleId`、`br`/`battleUniqueId` 分离、`readyEpoch` 和停止条件。资源规则自测还覆盖当前战斗桥清单，以及战斗模型的精确 URL、版本目录显式值/默认 `1210`、双方朝向、六个真实 6000→6047 分片、损坏 SWF 和混合类名。2303/2304 完整 roster、2401 保留、后续更新、UQI/槽位合并和结束命令仍由现有 Tracker/解析回归覆盖。
+`BattleState contract self-test` 验证初始值、读取值、发布值和逐订阅者通知均为防御性深复制，覆盖全部场下宠物、最终六维、PP/CD、订阅者异常隔离、晚开读取缓存与 Dispose；同时用手动 PacketHost 验证生产 Tracker 只处理接收方向、发布结束快照并在释放后停止消费。`ActiveSend` 与 `BattleReplay` contract self-test 覆盖严格桥参数、负数 `battleId`、`br`/`battleUniqueId` 分离、入口/首次附着确认、后续 200ms 定时提交（不逐条等待 `2405`/输入窗口）和停止条件。资源规则自测还覆盖当前战斗桥清单，以及战斗模型的精确 URL、版本目录显式值/默认 `1210`、双方朝向、六个真实 6000→6047 分片、损坏 SWF 和混合类名。2303/2304 完整 roster、2401 保留、后续更新、UQI/槽位合并和结束命令仍由现有 Tracker/解析回归覆盖。
 
 ## 完成标准
 

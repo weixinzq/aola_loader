@@ -17,6 +17,12 @@ internal static class Program
 	[STAThread]
 	private static int Main(string[] args)
 	{
+		if (args.Length == 1 && args[0] == "--battle-replay-contract")
+		{
+			bool battleReplayPassed = BattleReplayContractVerifier.Verify();
+			Console.WriteLine("Battle replay contract: " + (battleReplayPassed ? "PASS" : "FAIL"));
+			return battleReplayPassed ? 0 : 1;
+		}
 		if (args.Length == 1 && args[0] == "--battle-bridge-contract")
 		{
 			bool battleBridgePassed = ResourceInterceptionContractVerifier.VerifyBattleBridgeRule();

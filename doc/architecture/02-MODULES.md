@@ -94,7 +94,7 @@
 
 ## Battle
 
-- **职责**：接收包到不可变读快照；配置解析；战斗页面桥状态；状态驱动序列；表现设置；模型资源替换；性能诊断。
+- **职责**：接收包到不可变读快照；配置解析；战斗页面桥状态；入口确认后定时发送序列；表现设置；模型资源替换；性能诊断。
 - **对外接口**：`IBattleStateSource`、`BattleBridgeClient`、`BattlePresentationCoordinator`、`IBattleMorphRuleTarget`。
 - **输入**：已解析 packet、页面桥状态、战斗设置、严格发送计划、资源清单。
 - **输出**：`AolaBattleSnapshot`、战斗设置应用结果、序列状态、诊断 JSONL、匹配的 SWF 响应。

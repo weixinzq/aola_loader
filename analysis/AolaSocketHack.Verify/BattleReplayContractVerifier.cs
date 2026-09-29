@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,12 +21,11 @@ internal static class BattleReplayContractVerifier
 	public static bool Verify()
 	{
 		return VerifyStrictValidation() && VerifyStrictBridgeState() && VerifyStrictDiagnostics() &&
-			VerifyStateDrivenProgression() && VerifyMixedPrefixProgression() &&
-			VerifySameTurnPacing() && VerifyServerReadyIsRequired() &&
-			VerifyDoesNotAdvanceWhileFlashTurnStaysCurrent() &&
-			VerifyCurrentBattleAttachment() &&
-			VerifyPrefixFailureStopsBeforeBattle() && VerifyGroupPartialFailureDoesNotRetry() &&
-			VerifySignatureOrderMismatchStopsGroup() && VerifyNextTurnBridgeFailureStops() &&
+			VerifyEntryProgression() && VerifyMixedPrefixProgression() &&
+			VerifyFixedDelayWithoutResponses() && VerifyEntryRequiresMatchingIdentity() &&
+			VerifyCurrentBattleAttachment() && VerifyPrefixFailureStopsBeforeBattle() &&
+			VerifyGroupPartialFailureDoesNotRetry() && VerifyNextMessageBridgeFailureStops() &&
+			VerifyBattleStateChangesStop() && VerifyCancellationStopsRemainingMessages() &&
 			VerifyAttachmentStopsOnInvalidState() && VerifyAttachmentBridgeFailure() &&
 			VerifyTimeoutDoesNotRetry();
 	}
@@ -229,7 +229,7 @@ internal static class BattleReplayContractVerifier
 			}));
 	}
 
-	private static bool VerifyStateDrivenProgression()
+	private static bool VerifyEntryProgression()
 	{
 		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
 		ManualPageBridge page = new ManualPageBridge();
@@ -293,7 +293,6 @@ internal static class BattleReplayContractVerifier
 			sender.Requests[1].ExtensionId == 15 &&
 			sender.Requests[2].Command == "1401" && sender.Requests[3].Command == "1403" &&
 			statuses.Contains(BattleSequenceStatus.WaitingForBattle) &&
-			statuses.Contains(BattleSequenceStatus.WaitingForTurn) &&
 			statuses.Contains(BattleSequenceStatus.SkippedFlashOwned) &&
 			!statuses.Contains(BattleSequenceStatus.Stopped);
 	}
@@ -361,114 +360,99 @@ internal static class BattleReplayContractVerifier
 			!statuses.Contains(BattleSequenceStatus.Stopped);
 	}
 
-	private static bool VerifySameTurnPacing()
+	private static bool VerifyFixedDelayWithoutResponses()
 	{
-		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
-		ManualPageBridge page = new ManualPageBridge();
-		page.SetAvailability(PageBridgeAvailability.Ready);
-		int reads = 0;
-		int turn = 0;
-		int epoch = 7;
-		const int BattleRouteId = -7654321;
-		page.InvokeHandler = (request, token) =>
+		using (ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource())
+		using (ManualPageBridge page = new ManualPageBridge())
 		{
-			reads++;
-			return Task.FromResult(PageBridgeResult.Success(State(true, BattleRouteId, turn, true, epoch, false)));
-		};
-		int actionCount = 0;
-		List<int> readsAtSend = new List<int>();
-		FakeSender sender = new FakeSender(request =>
-		{
-			readsAtSend.Add(reads);
-			packets.PublishPacket(Send(request));
-			actionCount++;
-			packets.PublishPacket(ServerReady(BattleRouteId));
-			if (actionCount == 1)
-			{
-				packets.PublishPacket(ServerResult("2413", 999));
-			}
-			else if (actionCount == 2)
-			{
-				packets.PublishPacket(ServerResult("2413", BattleRouteId));
-				turn = 1;
-				epoch++;
-			}
-			else if (actionCount == 4)
-			{
-				packets.PublishPacket(ServerResult("2413", BattleRouteId));
-			}
-		});
-		BattleSequenceRunner runner = new BattleSequenceRunner(
-			packets, sender, new BattleBridgeClient(page),
-			TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(1),
-			TimeSpan.FromMilliseconds(5));
-		List<BattleSequenceStatus> statuses = new List<BattleSequenceStatus>();
-		runner.StatusChanged += update => statuses.Add(update.Status);
-		runner.RunAsync(BattleSequenceValidator.Validate(new[]
-		{
-			Request(13, "1403", new JObject { ["pmId"] = 3130, ["reqPSId"] = 0, ["turn"] = 0 }),
-			Request(13, "1403", new JObject { ["pmId"] = 3380, ["reqPSId"] = 0, ["turn"] = 0 }),
-			Skill(1),
-			Request(13, "1403", new JObject { ["pmId"] = 2540, ["reqPSId"] = 0, ["turn"] = 2 })
-		}), CancellationToken.None).GetAwaiter().GetResult();
-		page.Dispose();
-		packets.Dispose();
-		return sender.Requests.Count == 4 && readsAtSend.Count == 4 &&
-			readsAtSend[1] > readsAtSend[0] && readsAtSend[2] > readsAtSend[1] &&
-			readsAtSend[3] > readsAtSend[2] &&
-			statuses.Count(status => status == BattleSequenceStatus.WaitingForTurn) >= 4 &&
-			!statuses.Contains(BattleSequenceStatus.Stopped);
+			page.SetAvailability(PageBridgeAvailability.Ready);
+			int reads = 0;
+			// 首次附着可操作，之后不再就绪；turn/epoch 始终不变，且没有任何收发抓包。
+			page.InvokeHandler = (request, token) => Task.FromResult(
+				PageBridgeResult.Success(State(true, -1357, 55, reads++ == 0, 1, false)));
+			FakeSender sender = new FakeSender(null);
+			BattleSequenceRunner runner = new BattleSequenceRunner(packets, sender, new BattleBridgeClient(page));
+			int stopped = 0;
+			runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
+			runner.RunAsync(BattleSequenceValidator.Validate(new[] { Skill(0), Skill(0), Skill(1) }),
+				CancellationToken.None).GetAwaiter().GetResult();
+			return stopped == 0 && sender.Requests.Count == 3 &&
+				sender.Requests.Select(request => JObject.Parse(request.ParametersJson).Value<int>("turn"))
+					.SequenceEqual(new[] { 0, 0, 1 }) &&
+				sender.SubmissionTicks.Zip(sender.SubmissionTicks.Skip(1), (left, right) =>
+					(double)(right - left) / Stopwatch.Frequency).All(gap => gap >= 0.195);
+		}
 	}
 
-	private static bool VerifyServerReadyIsRequired()
+	private static bool VerifyEntryRequiresMatchingIdentity()
 	{
-		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
-		ManualPageBridge page = ReadyBattlePage(1357, 0, 1);
-		FakeSender sender = new FakeSender(request =>
+		for (int scenario = 0; scenario < 4; scenario++)
 		{
-			packets.PublishPacket(Send(request));
-			packets.PublishPacket(ServerReady(999));
-		});
-		BattleSequenceRunner runner = new BattleSequenceRunner(
-			packets, sender, new BattleBridgeClient(page),
-			TimeSpan.FromMilliseconds(25), TimeSpan.FromMilliseconds(25), TimeSpan.FromMilliseconds(1),
-			TimeSpan.FromMilliseconds(5));
-		int stopped = 0;
-		runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
-		runner.RunAsync(BattleSequenceValidator.Validate(new[] { Skill(0), Skill(0) }), CancellationToken.None)
-			.GetAwaiter().GetResult();
-		page.Dispose();
-		packets.Dispose();
-		return sender.Requests.Count == 1 && stopped == 1;
+			using (ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource())
+			using (ManualPageBridge page = new ManualPageBridge())
+			{
+				page.SetAvailability(PageBridgeAvailability.Ready);
+				page.InvokeHandler = (request, token) => Task.FromResult(
+					PageBridgeResult.Success(State(true, 123, 0, scenario != 3, 1, false)));
+				FakeSender sender = new FakeSender(request =>
+				{
+					packets.PublishPacket(Receive("2303", new JObject()));
+					if (scenario != 0) packets.PublishPacket(Receive("2304", new JObject()));
+					packets.PublishPacket(Receive("2401", new JObject
+					{
+						["br"] = scenario == 1 ? 456 : 123,
+						["battleUniqueId"] = scenario == 2 ? 0 : 789
+					}));
+				});
+				BattleSequenceRunner runner = new BattleSequenceRunner(packets, sender, new BattleBridgeClient(page),
+					TimeSpan.FromMilliseconds(25), TimeSpan.FromMilliseconds(25), TimeSpan.FromMilliseconds(1));
+				int stopped = 0;
+				runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
+				runner.RunAsync(BattleSequenceValidator.Validate(new[] { Entry(), Skill(0) }),
+					CancellationToken.None).GetAwaiter().GetResult();
+				if (sender.Requests.Count != 1 || stopped != 1) return false;
+			}
+		}
+		return true;
 	}
 
-	private static bool VerifyDoesNotAdvanceWhileFlashTurnStaysCurrent()
+	private static bool VerifyBattleStateChangesStop()
 	{
-		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
-		ManualPageBridge page = new ManualPageBridge();
-		page.SetAvailability(PageBridgeAvailability.Ready);
-		int epoch = 1;
-		page.InvokeHandler = (request, token) => Task.FromResult(
-			PageBridgeResult.Success(State(true, 2468, 0, true, epoch, false)));
-		FakeSender sender = new FakeSender(request =>
+		for (int scenario = 0; scenario < 2; scenario++)
 		{
-			packets.PublishPacket(Send(request));
-			packets.PublishPacket(ServerReady(2468));
-			epoch++;
-		});
-		BattleSequenceRunner runner = new BattleSequenceRunner(
-			packets, sender, new BattleBridgeClient(page),
-			TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(1));
-		int stopped = 0;
-		runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
-		runner.RunAsync(BattleSequenceValidator.Validate(new[]
+			using (ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource())
+			using (ManualPageBridge page = new ManualPageBridge())
+			{
+				page.SetAvailability(PageBridgeAvailability.Ready);
+				bool changed = false;
+				page.InvokeHandler = (request, token) => Task.FromResult(PageBridgeResult.Success(
+					State(true, changed && scenario == 1 ? 456 : 123, 0, true, 1, changed && scenario == 0)));
+				FakeSender sender = new FakeSender(request => changed = true);
+				BattleSequenceRunner runner = new BattleSequenceRunner(packets, sender, new BattleBridgeClient(page));
+				int stopped = 0;
+				runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
+				runner.RunAsync(BattleSequenceValidator.Validate(new[] { Skill(0), Skill(1) }),
+					CancellationToken.None).GetAwaiter().GetResult();
+				if (sender.Requests.Count != 1 || stopped != 1) return false;
+			}
+		}
+		return true;
+	}
+
+	private static bool VerifyCancellationStopsRemainingMessages()
+	{
+		using (ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource())
+		using (ManualPageBridge page = ReadyBattlePage(123, 0, 1))
+		using (CancellationTokenSource cancellation = new CancellationTokenSource())
 		{
-			Skill(0), Skill(0), Skill(0), Skill(1)
-		}), CancellationToken.None).GetAwaiter().GetResult();
-		page.Dispose();
-		packets.Dispose();
-		return sender.Requests.Count == 3 && sender.Requests.All(request =>
-			JObject.Parse(request.ParametersJson).Value<int>("turn") == 0) && stopped == 1;
+			FakeSender sender = new FakeSender(request => cancellation.Cancel());
+			BattleSequenceRunner runner = new BattleSequenceRunner(packets, sender, new BattleBridgeClient(page));
+			int stopped = 0;
+			runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
+			runner.RunAsync(BattleSequenceValidator.Validate(new[] { Skill(0), Skill(1) }), cancellation.Token)
+				.GetAwaiter().GetResult();
+			return sender.Requests.Count == 1 && stopped == 1;
+		}
 	}
 
 	private static bool VerifyPrefixFailureStopsBeforeBattle()
@@ -523,32 +507,13 @@ internal static class BattleReplayContractVerifier
 		return sender.Requests.Count == 2 && stopMessage != null && stopMessage.Contains("已提交 1 条");
 	}
 
-	private static bool VerifySignatureOrderMismatchStopsGroup()
-	{
-		AolaSendRequest first = Skill(0);
-		AolaSendRequest second = Request(13, "1403", new JObject { ["pmId"] = 3478, ["reqPSId"] = 0, ["turn"] = 0 });
-		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
-		ManualPageBridge page = ReadyBattlePage(654, 0, 1);
-		FakeSender sender = new FakeSender(request => packets.PublishPacket(Send(second)));
-		BattleSequenceRunner runner = new BattleSequenceRunner(
-			packets, sender, new BattleBridgeClient(page),
-			TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(1));
-		int stopped = 0;
-		runner.StatusChanged += update => { if (update.Status == BattleSequenceStatus.Stopped) stopped++; };
-		runner.RunAsync(BattleSequenceValidator.Validate(new[] { first, second }), CancellationToken.None)
-			.GetAwaiter().GetResult();
-		page.Dispose();
-		packets.Dispose();
-		return sender.Requests.Count == 1 && stopped == 1;
-	}
-
-	private static bool VerifyNextTurnBridgeFailureStops()
+	private static bool VerifyNextMessageBridgeFailureStops()
 	{
 		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
 		ManualPageBridge page = new ManualPageBridge();
 		page.SetAvailability(PageBridgeAvailability.Ready);
 		int reads = 0;
-		page.InvokeHandler = (request, token) => reads++ == 0
+		page.InvokeHandler = (request, token) => reads++ < 2
 			? Task.FromResult(PageBridgeResult.Success(State(true, 987, 0, true, 1, false)))
 			: Task.FromResult(PageBridgeResult.Failure(PageBridgeFailureKind.InvocationFailed, "bridge unavailable"));
 		FakeSender sender = new FakeSender(request => packets.PublishPacket(Send(request)));
@@ -614,7 +579,6 @@ internal static class BattleReplayContractVerifier
 			sender.Requests.All(request => request.ExtensionId == 13) &&
 			sender.Requests[0].Command == "1401" && sender.Requests[1].Command == "1403" &&
 			statuses.Contains(BattleSequenceStatus.WaitingForBattle) &&
-			statuses.Contains(BattleSequenceStatus.WaitingForTurn) &&
 			!statuses.Contains(BattleSequenceStatus.Stopped) && reads >= 4;
 	}
 
@@ -623,17 +587,13 @@ internal static class BattleReplayContractVerifier
 		return VerifyAttachmentFailure(_ => State(false, 0, 0, false, 0, false)) &&
 			VerifyAttachmentFailure(_ => State(true, 0, 0, true, 1, false)) &&
 			VerifyAttachmentFailure(_ => State(true, 123, 0, true, 1, true)) &&
-			VerifyAttachmentFailure(_ => State(true, 123, 1, true, 1, false)) &&
 			VerifyAttachmentFailure(index => index == 0
 				? State(true, 123, 0, false, 1, false)
-				: State(true, 456, 0, true, 2, false)) &&
-			VerifyAttachmentFailure(_ => State(true, 123, 0, true, 1, false), packets =>
-				packets.PublishPacket(Send(Skill(0))));
+				: State(true, 456, 0, true, 2, false));
 	}
 
 	private static bool VerifyAttachmentFailure(
-		Func<int, JObject> stateFactory,
-		Action<ManualAolaPacketEventSource> onRead = null)
+		Func<int, JObject> stateFactory)
 	{
 		ManualAolaPacketEventSource packets = new ManualAolaPacketEventSource();
 		ManualPageBridge page = new ManualPageBridge();
@@ -641,7 +601,6 @@ internal static class BattleReplayContractVerifier
 		int reads = 0;
 		page.InvokeHandler = (request, token) =>
 		{
-			onRead?.Invoke(packets);
 			return Task.FromResult(PageBridgeResult.Success(stateFactory(reads++)));
 		};
 		FakeSender sender = new FakeSender(null);
@@ -775,11 +734,6 @@ internal static class BattleReplayContractVerifier
 		["reqId"] = Math.Abs((long)battleRouteId)
 	});
 
-	private static AolaPacketEvent ServerResult(string command, int battleRouteId) => Receive(command, new JObject
-	{
-		["reqId"] = Math.Abs((long)battleRouteId)
-	});
-
 	private static AolaPacketEvent Send(AolaSendRequest request) => new AolaPacketEvent
 	{
 		Direction = "发送",
@@ -803,6 +757,7 @@ internal static class BattleReplayContractVerifier
 		private readonly Action<AolaSendRequest> _onSend;
 		public FakeSender(Action<AolaSendRequest> onSend) { _onSend = onSend; }
 		public List<AolaSendRequest> Requests { get; } = new List<AolaSendRequest>();
+		public List<long> SubmissionTicks { get; } = new List<long>();
 		public int FailAtIndex { get; set; } = -1;
 		public event Action<AolaCommandSendUpdate> StatusChanged;
 
@@ -810,6 +765,7 @@ internal static class BattleReplayContractVerifier
 		{
 			int requestIndex = Requests.Count;
 			Requests.Add(request);
+			SubmissionTicks.Add(Stopwatch.GetTimestamp());
 			bool failed = requestIndex == FailAtIndex;
 			if (!failed) _onSend?.Invoke(request);
 			AolaCommandSendUpdate update = new AolaCommandSendUpdate(

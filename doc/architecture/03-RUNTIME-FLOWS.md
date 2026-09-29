@@ -166,14 +166,14 @@ IBattleStateSource.CurrentSnapshot / SnapshotChanged
   └─ LineupCoordinator：只把 HasBattle && !IsEnded 用作禁止阵容操作的门
 ```
 
-它不等同于 `BattleBridgeState`。后者直接从 patched `petfightnew` 读取 `active/battleId/turn/inputReady/readyEpoch/ended`，供战斗序列节奏控制与模型规则安全激活使用。两者不得互换：
+它不等同于 `BattleBridgeState`。后者直接从 patched `petfightnew` 读取 `active/battleId/turn/inputReady/readyEpoch/ended`，供战斗序列首次确认、身份检查与模型规则安全激活使用。两者不得互换：
 
 | 状态 | 来源 | 适合回答的问题 |
 | --- | --- | --- |
 | `AolaBattleSnapshot` | 服务器接收包的宿主聚合 | 参战者是谁、属性/配置是什么、是否看到结束包 |
 | `BattleBridgeState` | Flash 内部状态桥 | 当前 turn、输入窗口是否打开、readyEpoch 是否推进 |
 
-## 8. 战斗状态驱动发送
+## 8. 战斗入口确认后定时发送
 
 ```text
 严格 #send 列表
@@ -183,12 +183,12 @@ IBattleStateSource.CurrentSnapshot / SnapshotChanged
       → 可选入口消息各提交一次
       → 等待 packet 战斗身份 + Flash bridge inputReady
       → 每条 IAolaCommandSender.SendAsync 一次
-      → 匹配发送抓包和当前玩家 2405
-      → 等对应执行结果或新 readyEpoch
-      → 异常、手动操作、超时：停止，不自动重试
+      → 后续相邻提交间隔 200ms，不等待抓包/2405/执行结果/新输入窗口
+      → 每条提交前检查战斗仍活动且身份未变化，保留输入 turn
+      → 入口超时、取消、提交/桥失败、战斗结束或身份变化：停止，不自动重试
 ```
 
-控制链仍通过 ActiveSend 进入 Flash 原连接。packet 只作为身份、方向、服务端确认和外部干扰证据。
+控制链仍通过 ActiveSend 进入 Flash 原连接。该 runner 的 packet 订阅只用于新战斗入口身份确认；后续操作不以收发包作为放行条件。
 
 ## 9. 阵容读取与恢复
 

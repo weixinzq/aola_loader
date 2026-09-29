@@ -112,7 +112,7 @@ AolaPacketEvent
 
 patched petfight SWF
   -> BattleBridgeClient
-  -> BattleBridgeState(inputReady/readyEpoch)
+  -> BattleBridgeState(入口 inputReady / 战斗身份)
   -> BattleSequenceRunner
   -> IAolaCommandSender
 ```
@@ -168,7 +168,7 @@ patched petfight SWF
 | `Features/Battle/Diagnostics/BattleDiagnosticsClient.cs` | Flash 诊断读取 | page bridge -> diagnostics/trace |
 | `Features/Battle/Diagnostics/BattlePerformanceRecorder.cs` | 性能采样与文件输出 | packet + Flash diagnostics -> logs |
 | `Features/Battle/Replay/BattleSequenceValidator.cs` | 序列 JSON 静态验证 | JSON -> immutable plan |
-| `Features/Battle/Replay/BattleSequenceRunner.cs` | 战斗序列状态机 | plan + packet/bridge state -> sends/updates |
+| `Features/Battle/Replay/BattleSequenceRunner.cs` | 战斗入口确认与 200ms 定时发送 | plan + packet/bridge state -> sends/updates |
 | `Features/Battle/ResourceInterception/BattlePetMovieResourceRule.cs` | 战斗模型资源选择 | movie URL + active snapshot -> local/pass |
 | `Features/Battle/ResourceInterception/BattlePetMovieResourceTransformer.cs` | 模型 SWF 变换 | official SWF + rule -> transformed SWF |
 | `Features/Battle/ResourceInterception/BattlePetMovieVersionCatalog.cs` | pet movie 版本目录 | JSON -> petId/version |
