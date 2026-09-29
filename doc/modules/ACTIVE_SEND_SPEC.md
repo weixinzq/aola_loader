@@ -62,7 +62,9 @@ AolaPacketsForm
 
 当前战斗附着路径已由 BattleReplay contract self-test 覆盖；尚未在真实账号中执行“已进入战斗后仅提交 id=13”的实机复测。该复测需单独确认没有补发 `54_22`/`preFightLoad`、目标技能只提交一次且后续正常战斗消息仍有效。
 
-普通发送 UI 在取得 `SubmittedToFlash` 后立即恢复，不轮询、不等待接收结果，也不弹出模态结果框。按战斗状态发送的 runner 则按上节继续等待匹配抓包、服务器确认和状态窗口；两者不能混为一条完成语义。`SubmittedToFlash` 绝不显示为服务器成功。`ActClientSender.sendMessage(extension:String, cmd:String, params:Object, callback:Function, isNeedLock:Boolean=true):void` 的当前指令证据表明：先为 `cmd` 注册监听，再调用 `SocketClient.instance.sendXtMessage`；只有服务器回调才有资格产生服务器终态。
+普通发送 UI 不轮询、不等待接收结果，也不弹出模态结果框。点击发送时解析并固定编辑器中的全部消息作为一组，按原顺序逐条提交，相邻消息之间在上一条提交返回后等待 200ms。“发送组数”默认 1，“组间休息（毫秒）”默认 1000，休息从一组最后一条提交返回后开始，结束后发送下一组，不再叠加组内的 200ms；最后一组之后不额外等待。发送期间禁用发送按钮、模式和次数/间隔设置，提供“停止”按钮；停止或关闭窗口会取消等待并停止后续提交，已经提交给 Flash 的消息无法撤回。全部组执行结束后恢复控件，不自动重试失败的单次提交；普通发送仍按输入顺序继续后续项，选择多组代表用户明确要求重复整份输入。
+
+勾选“按战斗状态逐条发送”时，组数和组间休息设置禁用且不参与执行，runner 仍只执行一份状态计划，按上节等待匹配抓包、服务器确认和状态窗口，不套用普通发送的固定 200ms。两者不能混为一条完成语义。`SubmittedToFlash` 绝不显示为服务器成功。`ActClientSender.sendMessage(extension:String, cmd:String, params:Object, callback:Function, isNeedLock:Boolean=true):void` 的当前指令证据表明：先为 `cmd` 注册监听，再调用 `SocketClient.instance.sendXtMessage`；只有服务器回调才有资格产生服务器终态。
 
 ## SWF 承载与失败关闭
 
@@ -71,6 +73,8 @@ AolaPacketsForm
 启动桥不可用、版本变化、ExternalInterface 不可用或模板校验失败时，发送失败关闭，不回退到 IPC sidecar。旧 Hook 队列即使收到请求也只返回拒绝结果。
 
 ## 本地面板调用
+
+抓包/发包窗口默认尺寸为 1280×900。顶部导航和底部状态栏使用紧凑的固定高度，发包页压缩标题、设置及操作区域的占用，消息编辑框随剩余空间伸展；窗口仍可手动调整尺寸及最大化。
 
 Packets UI 使用“抓包 / 发包 / 打开映射面板”三个独立页面。“抓包”页只显示能够导出为严格 `#send` 的发送消息，逐条提供复选框；“选中内容加入发包”只向发包编辑器追加，不自动切页。“发包”页允许直接编辑、清空和从 UTF-8 文件导入。“打开映射面板”页接受用户输入的资源 URL/资源键字符串和 CLS 类名字符串，经 `panel.open -> aolaOpenPanel -> Panel_Helper.loadResAndShow` 调用 Flash 自身面板加载器。该操作不属于 `#send`，不发送自制协议帧，也不改变 `#send` 的严格格式。
 

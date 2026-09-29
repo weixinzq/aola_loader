@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
@@ -41,6 +42,15 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private readonly TextBox _panelResourceInput = new TextBox();
 	private readonly TextBox _panelClassInput = new TextBox();
 	private readonly CupertinoButton _sendButton = new CupertinoButton("发送", true);
+	private readonly CupertinoButton _stopSendButton = new CupertinoButton("停止") { Enabled = false };
+	private readonly NumericUpDown _sendGroupCount = new NumericUpDown
+	{
+		Minimum = 1, Maximum = int.MaxValue, Value = 1, Width = 96, Margin = new Padding(0, 8, 16, 0)
+	};
+	private readonly NumericUpDown _groupRestMilliseconds = new NumericUpDown
+	{
+		Minimum = 0, Maximum = int.MaxValue, Value = 1000, Increment = 100, Width = 110, Margin = new Padding(0, 8, 16, 0)
+	};
 	private readonly CheckBox _battleStateMode = new CheckBox
 	{
 		Text = "按战斗状态逐条发送",
@@ -76,7 +86,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		Text = "奥拉星抓包 / 发包";
 		StartPosition = FormStartPosition.CenterParent;
 		MinimumSize = new Size(920, 620);
-		Size = new Size(1180, 780);
+		Size = new Size(1280, 900);
 		BackColor = Background;
 		Font = new Font("Microsoft YaHei UI", 9.5f);
 
@@ -126,6 +136,12 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_panelClassInput.Font = new Font("Consolas", 10f);
 		_panelClassInput.Text = "mmo.activity241101.challengeandtrialentrance.panel.CATE_MainPl";
 		_sendButton.Click += delegate { QueueSends(); };
+		_stopSendButton.Click += delegate { _sequenceCancellation?.Cancel(); };
+		_battleStateMode.CheckedChanged += delegate
+		{
+			_sendGroupCount.Enabled = !_battleStateMode.Checked;
+			_groupRestMilliseconds.Enabled = !_battleStateMode.Checked;
+		};
 		_openPanelButton.Click += delegate { OpenMappedPanel(); };
 	}
 
@@ -140,13 +156,13 @@ internal sealed class AolaPacketsForm : AolaFormBase
 			BackColor = Background
 		};
 		shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-		shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78f));
+		shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 70f));
 		shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-		shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
+		shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34f));
 		shell.Controls.Add(BuildNavigation(), 0, 0);
 
 		_contentHost.Dock = DockStyle.Fill;
-		_contentHost.Margin = new Padding(0, 12, 0, 12);
+		_contentHost.Margin = new Padding(0, 8, 0, 8);
 		_contentHost.BackColor = Background;
 		_captureView = BuildCaptureView();
 		_sendView = BuildSendView();
@@ -160,7 +176,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 
 	private Control BuildNavigation()
 	{
-		CupertinoCard card = new CupertinoCard { Dock = DockStyle.Fill, Padding = new Padding(16, 12, 16, 12) };
+		CupertinoCard card = new CupertinoCard { Dock = DockStyle.Fill, Padding = new Padding(16, 8, 16, 8) };
 		FlowLayoutPanel row = ActionRow();
 		ConfigureNavigation(_captureNavigation, 170);
 		ConfigureNavigation(_sendNavigation, 170);
@@ -284,15 +300,25 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private Control BuildSendView()
 	{
 		CupertinoCard card = PageCard();
+		card.Padding = new Padding(16);
 		TableLayoutPanel layout = PageLayout(72, 0);
+		layout.RowCount = 4;
 		layout.RowStyles.Clear();
-		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72f));
-		layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
+		layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40f));
+		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48f));
 		layout.Controls.Add(Header("发包", "直接编写严格 #send 消息，或从 UTF-8 文本文件导入。"), 0, 0);
 		_sendInput.Dock = DockStyle.Fill;
-		_sendInput.Margin = new Padding(0, 0, 0, 10);
+		_sendInput.Margin = new Padding(0, 0, 0, 8);
 		layout.Controls.Add(_sendInput, 0, 1);
+		FlowLayoutPanel timing = ActionRow();
+		timing.Controls.Add(FieldLabel("发送组数"));
+		timing.Controls.Add(_sendGroupCount);
+		timing.Controls.Add(FieldLabel("组间休息（毫秒）"));
+		timing.Controls.Add(_groupRestMilliseconds);
+		timing.Controls.Add(FieldLabel("普通发送：组内间隔 200ms"));
+		layout.Controls.Add(timing, 0, 2);
 
 		TableLayoutPanel actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
 		actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -308,9 +334,12 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_sendButton.MinimumSize = new Size(120, 44);
 		_sendButton.Margin = new Padding(10, 0, 0, 0);
 		right.Controls.Add(_sendButton);
+		_stopSendButton.MinimumSize = new Size(96, 44);
+		_stopSendButton.Margin = new Padding(10, 0, 0, 0);
+		right.Controls.Add(_stopSendButton);
 		actions.Controls.Add(left, 0, 0);
 		actions.Controls.Add(right, 1, 0);
-		layout.Controls.Add(actions, 0, 2);
+		layout.Controls.Add(actions, 0, 3);
 		card.Controls.Add(layout);
 		return card;
 	}
@@ -606,21 +635,43 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	{
 		_sendButton.Enabled = false;
 		_battleStateMode.Enabled = false;
+		_sendGroupCount.Enabled = false;
+		_groupRestMilliseconds.Enabled = false;
+		_stopSendButton.Enabled = true;
+		_sequenceCancellation = new CancellationTokenSource();
+		CancellationToken cancellationToken = _sequenceCancellation.Token;
 		try
 		{
 			List<AolaSendRequest> requests = AolaSendRequestParser.ParseLines(_sendInput.Text);
 			if (_battleStateMode.Checked)
 			{
 				BattleSequencePlan plan = BattleSequenceValidator.Validate(requests);
-				_sequenceCancellation?.Dispose();
-				_sequenceCancellation = new CancellationTokenSource();
-				await _battleSequenceRunner.RunAsync(plan, _sequenceCancellation.Token);
+				await _battleSequenceRunner.RunAsync(plan, cancellationToken);
 				return;
 			}
-			foreach (AolaSendRequest request in requests)
+			int groupCount = (int)_sendGroupCount.Value;
+			int restMilliseconds = (int)_groupRestMilliseconds.Value;
+			for (int group = 0; group < groupCount; group++)
 			{
-				await _commandSender.SendAsync(request, CancellationToken.None);
+				for (int index = 0; index < requests.Count; index++)
+				{
+					if (index > 0)
+					{
+						await Task.Delay(200, cancellationToken);
+					}
+					cancellationToken.ThrowIfCancellationRequested();
+					await _commandSender.SendAsync(requests[index], cancellationToken);
+				}
+				if (group < groupCount - 1)
+				{
+					_status.Text = string.Format("第 {0}/{1} 组已结束，休息 {2}ms 后发送下一组。", group + 1, groupCount, restMilliseconds);
+					await Task.Delay(restMilliseconds, cancellationToken);
+				}
 			}
+		}
+		catch (OperationCanceledException)
+		{
+			if (Volatile.Read(ref _closed) == 0) _status.Text = "发送已停止；已提交给 Flash 的消息无法撤回。";
 		}
 		catch (Exception ex) when (ex is JsonException || ex is InvalidOperationException || ex is ArgumentException)
 		{
@@ -628,10 +679,15 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		}
 		finally
 		{
-			if (!IsDisposed)
+			_sequenceCancellation.Dispose();
+			_sequenceCancellation = null;
+			if (Volatile.Read(ref _closed) == 0 && !IsDisposed)
 			{
 				_sendButton.Enabled = true;
 				_battleStateMode.Enabled = true;
+				_sendGroupCount.Enabled = !_battleStateMode.Checked;
+				_groupRestMilliseconds.Enabled = !_battleStateMode.Checked;
+				_stopSendButton.Enabled = false;
 			}
 		}
 	}

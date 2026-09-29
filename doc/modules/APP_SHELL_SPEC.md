@@ -22,6 +22,12 @@ OwnerPaths: `analysis/AolaLoader/AppShell/**`, `analysis/AolaLoader/UI/**`
 
 输入为用户命令、窗口生命周期事件和模块状态；输出为导航、功能调用、子窗口动作及状态呈现。主窗口“保留日志”在后台调用 logger 的 `TryRetain`，成功后显示路径与缓存丢弃数量；完整日志默认关闭，点击后才开始记录。主窗口提供“抓包 / 发包”“战斗助手”和“战斗表现”入口；Packets 子窗口不随主窗口启动自动创建，点击入口后才显示，并提供“抓包 / 发包 / 打开映射面板”三页导航，发包页可切换普通发送与按战斗状态逐条发送。
 
+主窗口的“窗口大小”菜单提供 1×、1.25×、1.5×、2×，以用户测量的页面内容 962×560 CSS 像素为基准，按当前显示器 DPI 换算浏览器区域并加上工具栏和窗口边框；超过当前屏幕工作区时等比缩小并在当前屏幕居中。允许最大化，页面始终按浏览器可用宽高的较小比例完整显示，宽高比不同时允许留白。页面缩放读取 CEF 实际 CSS 视口及当前缩放值，不假设 CEF 像素比例与 WinForms DeviceDpi 一致；页面加载、客户区尺寸及显示器 DPI 变化时重新计算，旧的异步测量结果不覆盖更新的布局。普通窗口跨屏时恢复所选比例并限制在目标屏幕工作区内。
+
+`app.config`、Windows 10 兼容 manifest 和 `Application.EnableVisualStyles` 启用 .NET Framework 的 PerMonitorV2，替代旧 `SetProcessDPIAware`；主窗体使用 DPI 自动布局。DPI 模式作用于整个宿主。构建和尺寸检查不能证明 CefSharp 87/PPAPI Flash 在不同 DPI 显示器上的画面及点击位置均正常，仍需实机跨屏和子窗口回归。
+
+2026-09-28：Release 构建通过；临时测量工具在 DPI 120、单显示器环境核对生产入口和主窗体，原生窗口 PerMonitorV2、四个比例档位的屏幕边界及 CEF 962×560 CSS 视口、最大化检查通过。未验证真实跨不同 DPI 显示器移动、Flash 游戏画面或服务器操作。
+
 ## 允许依赖
 
 BrowserHost、PacketHost、Theme/PetMorph/Battle 的公开契约，以及 WinForms UI 类型。

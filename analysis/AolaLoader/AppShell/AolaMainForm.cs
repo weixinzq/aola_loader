@@ -36,6 +36,12 @@ namespace AolaLoader.AppShell;
 internal sealed class AolaMainForm : AolaFormBase
 {
 	internal const string DefaultUrl = "https://aola.100bt.com/play/play.html";
+	private const double PageWidth = 962;
+	private const double PageHeight = 560;
+	private readonly ToolStrip _toolbar;
+	private readonly ToolStripDropDownButton _windowSizeMenu = new ToolStripDropDownButton("窗口大小");
+	private double _windowScale = 1;
+	private int _browserZoomRevision;
 	private readonly ToolStripStatusLabel _status = new ToolStripStatusLabel("正在初始化奥拉星登录页面");
 	private readonly ToolStripDropDownButton _playbackMenu = new ToolStripDropDownButton("速度");
 	private readonly ToolStripDropDownButton _qualityMenu = new ToolStripDropDownButton("画质");
@@ -91,12 +97,13 @@ internal sealed class AolaMainForm : AolaFormBase
 		_lineupCoordinator = lineupCoordinator ?? throw new ArgumentNullException(nameof(lineupCoordinator));
 
 		Text = "Aola Loader";
+		AutoScaleDimensions = new SizeF(96, 96);
+		AutoScaleMode = AutoScaleMode.Dpi;
 		StartPosition = FormStartPosition.CenterScreen;
 		FormBorderStyle = FormBorderStyle.FixedSingle;
-		MaximizeBox = false;
-		Size = new Size(1220, 777);
+		MaximizeBox = true;
 
-		ToolStrip toolbar = BuildToolbar();
+		_toolbar = BuildToolbar();
 		StatusStrip statusStrip = new StatusStrip();
 	//	statusStrip.Items.Add(_status);
 		ThemeChangeResult restoredTheme = _themeCoordinator.ApplyToRule(
@@ -105,11 +112,12 @@ internal sealed class AolaMainForm : AolaFormBase
 		_petMorphCoordinator.RestoreFromSavedSettings();
 		_browserSession.PageLifecycleChanged += OnBrowserLifecycleChanged;
 		_browser.FrameLoadEnd += BrowserFrameLoadEnd;
+		_browser.ClientSizeChanged += BrowserClientSizeChanged;
 
 		Controls.Add(_browser);
 	//	Controls.Add(statusStrip);
-		Controls.Add(toolbar);
-		toolbar.Dock = DockStyle.Top;
+		Controls.Add(_toolbar);
+		_toolbar.Dock = DockStyle.Top;
 		statusStrip.Dock = DockStyle.Bottom;
 
 		_injectTimer.Interval = 750;
@@ -134,6 +142,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetEventSource.StatusReceived += HookStatusReceived;
 		Shown += async delegate
 		{
+			await UpdateBrowserZoomAsync();
 			_injectTimer.Start();
 			_battleMorphTimer.Start();
 			EnsureHookInjectedAsync();
@@ -149,10 +158,29 @@ internal sealed class AolaMainForm : AolaFormBase
 		};
 	}
 
+	protected override void OnLoad(EventArgs e)
+	{
+		base.OnLoad(e);
+		ApplyWindowScale(_windowScale);
+	}
+
+	protected override void OnDpiChanged(DpiChangedEventArgs e)
+	{
+		base.OnDpiChanged(e);
+		// 等 WinForms 应用新 DPI 的控件尺寸后，再使用最终布局计算页面缩放。
+		BeginInvoke(new Action(async delegate
+		{
+			if (_isClosing || IsDisposed) return;
+			if (WindowState == FormWindowState.Normal) ApplyWindowScale(_windowScale);
+			await UpdateBrowserZoomAsync();
+		}));
+	}
+
 	protected override void OnFormClosed(FormClosedEventArgs e)
 	{
 		_isClosing = true;
 		_packetEventSource.StatusReceived -= HookStatusReceived;
+		_browser.ClientSizeChanged -= BrowserClientSizeChanged;
 		_injectTimer.Stop();
 		_injectTimer.Dispose();
 		_battleMorphTimer.Stop();
@@ -339,6 +367,11 @@ internal sealed class AolaMainForm : AolaFormBase
 		AddPlaybackOption("3×（75 FPS）", 75);
 		AddQualityOption("高（游戏默认）", "high");
 		AddQualityOption("最佳", "best");
+		AddWindowSizeOption("1×", 1);
+		AddWindowSizeOption("1.25×", 1.25);
+		AddWindowSizeOption("1.5×", 1.5);
+		AddWindowSizeOption("2×", 2);
+		_windowSizeMenu.ToolTipText = "超过当前屏幕可用区域时等比缩小";
 		refresh.Click += delegate { _browserSession.Refresh(BrowserRefreshMode.IgnoreCache); };
 		packets.Click += delegate { ShowPackets(); };
 		devTools.Click += delegate { _browser.ShowDevTools(); };
@@ -365,9 +398,39 @@ internal sealed class AolaMainForm : AolaFormBase
 		};
 		toolbar.Items.AddRange(new ToolStripItem[]
 		{
-			extensions, refresh, packets, _playbackMenu, _qualityMenu, devTools, retainLog
+			extensions, refresh, packets, _playbackMenu, _qualityMenu, _windowSizeMenu, devTools, retainLog
 		});
 		return toolbar;
+	}
+
+	private void AddWindowSizeOption(string text, double scale)
+	{
+		ToolStripMenuItem item = new ToolStripMenuItem(text) { Tag = scale };
+		item.Click += delegate { ApplyWindowScale(scale); };
+		_windowSizeMenu.DropDownItems.Add(item);
+	}
+
+	private void ApplyWindowScale(double scale)
+	{
+		_windowScale = scale;
+		WindowState = FormWindowState.Normal;
+		Rectangle workingArea = Screen.FromControl(this).WorkingArea;
+		double dpiScale = DeviceDpi / 96.0;
+		int frameWidth = Width - ClientSize.Width;
+		int frameHeight = Height - ClientSize.Height;
+		double fittedScale = Math.Min(scale, Math.Min(
+			(workingArea.Width - frameWidth) / (PageWidth * dpiScale),
+			(workingArea.Height - frameHeight - _toolbar.Height) / (PageHeight * dpiScale)));
+		ClientSize = new Size(
+			(int)Math.Floor(PageWidth * fittedScale * dpiScale),
+			(int)Math.Floor(PageHeight * fittedScale * dpiScale) + _toolbar.Height);
+		Location = new Point(
+			workingArea.Left + (workingArea.Width - Width) / 2,
+			workingArea.Top + (workingArea.Height - Height) / 2);
+		foreach (ToolStripMenuItem item in _windowSizeMenu.DropDownItems)
+		{
+			item.Checked = (double)item.Tag == scale;
+		}
 	}
 
 	private void AddPlaybackOption(string text, int frameRate)
@@ -529,6 +592,10 @@ internal sealed class AolaMainForm : AolaFormBase
 		}
 		try
 		{
+			if (IsHandleCreated)
+			{
+				BeginInvoke(new Action(async delegate { await UpdateBrowserZoomAsync(); }));
+			}
 			bool isAolaPlayPage = Uri.TryCreate(e.Url, UriKind.Absolute, out Uri pageUri) &&
 				string.Equals(pageUri.Host, "aola.100bt.com", StringComparison.OrdinalIgnoreCase) &&
 				pageUri.AbsolutePath.StartsWith("/play/", StringComparison.OrdinalIgnoreCase);
@@ -580,6 +647,42 @@ internal sealed class AolaMainForm : AolaFormBase
 		}
 		catch
 		{
+		}
+	}
+
+	private async void BrowserClientSizeChanged(object sender, EventArgs e)
+	{
+		await UpdateBrowserZoomAsync();
+	}
+
+	private async Task UpdateBrowserZoomAsync()
+	{
+		if (_isClosing || IsDisposed || !_browser.IsBrowserInitialized ||
+			!_browser.CanExecuteJavascriptInMainFrame || WindowState == FormWindowState.Minimized)
+		{
+			return;
+		}
+		int revision = ++_browserZoomRevision;
+		try
+		{
+			double currentZoom = await _browser.GetZoomLevelAsync();
+			JavascriptResponse response;
+			using (IFrame frame = _browser.GetMainFrame())
+			{
+				response = await frame.EvaluateScriptAsync(
+					"JSON.stringify({width:window.innerWidth,height:window.innerHeight})");
+			}
+			if (!response.Success || _isClosing || IsDisposed || revision != _browserZoomRevision) return;
+			// CSS 视口已反映 CEF 当前 DPI 和页面缩放；不假设它与 WinForms DeviceDpi 相同。
+			JObject viewport = JObject.Parse((string)response.Result);
+			double adjustment = Math.Min(
+				viewport.Value<double>("width") / PageWidth,
+				viewport.Value<double>("height") / PageHeight);
+			_browser.GetBrowserHost().SetZoomLevel(currentZoom + Math.Log(adjustment, 1.2));
+		}
+		catch (Exception ex)
+		{
+			if (!_isClosing && !IsDisposed) _status.Text = "页面缩放失败：" + ex.Message;
 		}
 	}
 

@@ -19,11 +19,9 @@ internal static class Program
 	[STAThread]
 	private static void Main()
 	{
+		// app.config 的 PerMonitorV2 在创建任何 WinForms/CEF 控件前启用。
+		Application.EnableVisualStyles();
 		Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
-		if (Environment.OSVersion.Version.Major >= 6)
-		{
-			SetProcessDPIAware();
-		}
 		string mutexName = "Global\\" + (Assembly.GetEntryAssembly()?.GetCustomAttribute<GuidAttribute>()?.Value ?? "AolaLoader");
 		using (Mutex mutex = new Mutex(true, mutexName, out bool createdNew))
 		{
@@ -32,7 +30,6 @@ internal static class Program
 				ActivateExistingInstance();
 				return;
 			}
-			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 			try
 			{
@@ -69,9 +66,6 @@ internal static class Program
 			}
 		}
 	}
-
-	[DllImport("user32.dll")]
-	private static extern bool SetProcessDPIAware();
 
 	[DllImport("user32.dll")]
 	private static extern bool SetForegroundWindow(IntPtr window);
