@@ -17,6 +17,12 @@ internal static class Program
 	[STAThread]
 	private static int Main(string[] args)
 	{
+		if (args.Length == 1 && args[0] == "--text-sequence-contract")
+		{
+			bool textSequencePassed = TextSequenceContractVerifier.Verify() && ActiveSendContractVerifier.Verify();
+			Console.WriteLine("Text sequence contract: " + (textSequencePassed ? "PASS" : "FAIL"));
+			return textSequencePassed ? 0 : 1;
+		}
 		if (args.Length == 1 && args[0] == "--battle-replay-contract")
 		{
 			bool battleReplayPassed = BattleReplayContractVerifier.Verify();

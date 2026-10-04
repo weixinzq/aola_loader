@@ -22,7 +22,7 @@ AolaPacketsForm
 
 ## 输入契约
 
-只接受按 `id`、`param`、`cmd` 顺序包含三个字段的 `#send={"id":42,"param":{},"cmd":"CMD"}|`。`param` 必须是 JSON 对象；用户提供的 `:ext_seq;` 在宿主与 Flash 两层移除。
+导出仍使用按 `id`、`param`、`cmd` 顺序包含三个字段的 `#send={"id":42,"param":{},"cmd":"CMD"}|`。导入/编辑支持任意字段顺序、多行 JSON、BOM、空段、整行 `//` 注释、末尾省略 `|`，字符串中的 `|` 不分段；错误包含行号。支持 `#wait|` 与 `#time = 2.5|`，解析本身不发送。`param` 必须是 JSON 对象；用户提供的 `:ext_seq;` 在宿主与 Flash 两层移除。
 
 数值扩展 ID 只按实时捕获的 `socketclient~2026073064044545.swf` 中 `mmo.framework.comm.ExtMap` 映射。证据原件 SHA-256 为 `9951ad202058c551d05bcb1e1dbc68250129c9e35db93d4083ae9068596eb0d7`。缺失的 51、80、88..98 等 ID 必须拒绝，不能猜测或按默认扩展发送。
 
@@ -34,7 +34,27 @@ AolaPacketsForm
 - `TimedOut`：提交给 Flash 本身超时，不能确认是否进入 Flash API。
 - `SubmissionFailed`：页面、启动桥、参数或扩展映射在提交前失败。
 
-## 战斗入口确认与定时发送
+## 统一文本序列（2026-10-03）
+
+生产 UI 使用 AolaTextSequenceRunner，旧模式复选框已移除。整份文本先解析、检查扩展映射和战斗参数，再开始提交；任何解析或预检查错误都不会部分发送。本地步骤以 Send / WaitBattleEnd / Delay 区分，不进入 Hook 待发队列。id=18 与 55_1/55_2/55_9 会话维护消息由 Flash 所有，拒绝重放。
+
+编辑框全部步骤为一组，组数默认 1、组间休息默认 1000ms。相邻实际文本提交至少间隔 200ms，入口确认、#wait、#time 已耗费的时间计入间隔；不重复叠加。组间休息从末次提交/本地步骤完成后开始，定义下一组的间隔，不额外叠加 200ms；最后一组后不休息。失败或提交超时立即停止，不重试。
+
+- 新入口 15/54_22 要求此前状态明确为 idle；提交后沿用 2303/2304/2401 身份与 Flash 首次 inputReady 确认。后续不逐条等待 2405、不改写输入 turn。preFightLoad 只检查并跳过，由 Flash 自行发送。
+- #wait 在明确 idle 时立即继续，否则等待匹配本场 battleUniqueId 的 2403；旧结束包忽略。不自动提交 1404，不设置固定战斗时长。要开始下一场，须自然结束，或显式 1404 后 #wait。
+- #time = 秒数 只暂停文本序列，抓包与 Flash 原自动战斗继续。秒数有限且非负，支持小数。
+- AolaCompositionRoot 长期持有 AolaExecutionState，按 ProcessId / SocketHandle / ConnectionPlayerId 绑定接收连接，保存战斗 ID、唯一 ID、回合和 idle/entering/active/ending/unknown。它不替代展示用 BattleSnapshot。状态变化信号唤醒等待，不另开接收循环。连接切换、关闭、捕获失效或战斗身份异常停止后续步骤；观察代际号防止状态恢复后旧任务继续。
+- 停止或关闭发包窗口只取消文本序列，已开启的 Flash 自动战斗保持运行；用 1409/useAiType=0 或游戏按钮关闭。
+
+### 原游戏自动战斗
+
+13/1409 的 useAiType=0/1 只走 battle.auto -> aolaBattleSetAuto -> DocPetFight.setNativeAutoBattle，不再通过 activeSend.submit 重复提交。原自动按钮也调用此共享设置方法：修改 isAutoUseSkill，调用 PetClient.autoUseAI；关闭时保留原关闭事件和 changeAutoUseSkillState(false)，重置原技能策略并刷新按钮。相同状态不额外点击/发包；无活动战斗或原游戏禁止切换时拒绝。
+
+技能与替补继续由 FightPanel.autoUseSkill / handleAutoSwitchPM 及原 PetClient 负责。宿主不生成第二份 1401/1403，不承诺 Python AutoBattle 的技能/替补选择策略。桥结果仍只表示 SubmittedToFlash。Bridge Version 5 的七字段 battle.state 契约保持不变，新增独立 battle.auto 操作。
+
+### 历史模式记录（生产 UI 不再使用）
+
+以下描述与实机记录属于旧 BattleSequenceRunner/validator 模式。原契约检查保留作入口回归用途；旧 UI 的模式选择、严格回合分组及 1409 拒绝规则不适用于上面的统一文本执行路径。
 
 启用“确认战斗入口后发送”时，校验器先完整检查整份输入，并以首次出现的
 `id=15/cmd=54_22` 或已验证回合命令 `id=13/cmd=1401..1407/1410` 作为战斗边界。边界前的其他严格
@@ -76,11 +96,13 @@ AolaPacketsForm
 
 抓包/发包窗口默认尺寸为 1280×900。顶部导航和底部状态栏使用紧凑的固定高度，发包页压缩标题、设置及操作区域的占用，消息编辑框随剩余空间伸展；窗口仍可手动调整尺寸及最大化。
 
-Packets UI 使用“抓包 / 发包 / 打开映射面板”三个独立页面。“抓包”页只显示能够导出为严格 `#send` 的发送消息，逐条提供复选框；“选中内容加入发包”只向发包编辑器追加，不自动切页。“发包”页允许直接编辑、清空和从 UTF-8 文件导入。“打开映射面板”页接受用户输入的资源 URL/资源键字符串和 CLS 类名字符串，经 `panel.open -> aolaOpenPanel -> Panel_Helper.loadResAndShow` 调用 Flash 自身面板加载器。该操作不属于 `#send`，不发送自制协议帧，也不改变 `#send` 的严格格式。
+Packets UI 使用“抓包 / 发包 / 打开映射面板”三个独立页面。“抓包”页只显示能够导出为严格 `#send` 的发送消息，逐条提供复选框；“选中内容加入发包”只向发包编辑器追加，不自动切页。“发包”页允许直接编辑、清空和从 UTF-8 文件导入。“打开映射面板”页接受用户输入的资源 URL/资源键字符串和 CLS 类名字符串，经 `panel.open -> aolaOpenPanel -> Panel_Helper.loadResAndShow` 调用 Flash 自身面板加载器。该操作不属于 `#send`，不发送自制协议帧，也不改变 `#send` 的导出格式。
 
 URL/资源键与 CLS 作为普通字符串传递，不解释为 JavaScript 或 ActionScript 代码；两项均限制为 1..2048 字符。同步结果 `PanelOpenRequested` 只表示 Flash 已开始面板加载，不表示资源下载、类解析或最终渲染成功。面板自身后续发包继续由 Flash 原连接负责。
 
 ## 本次验证
+
+2026-10-03：新增文本序列针对性契约检查，覆盖解析、200ms 与暂停计时、分组、完整预检查零提交、失败停止、自然结束/旧包过滤、断开/捕获失效、取消、多场入口及 1409 单次桥路由。自动桥候选完成 FFDec 重编译与静态复读；真实 Flash 加载、出手、替补及服务器执行尚未验收。
 
 2026-09-29：宿主及 Verify 的 Release 构建通过，`AolaSocketHack.Verify --battle-replay-contract` 通过。针对性契约检查覆盖入口身份/首个窗口确认、无发送抓包和 `2405`/执行结果且实时 turn/epoch 不变时仍按 200ms 提交、保留输入 turn、初次附着、提交失败不重试、桥失败、战斗结束/ID 变化与取消。尚未执行新策略的真实 Flash/服务器验收。
 

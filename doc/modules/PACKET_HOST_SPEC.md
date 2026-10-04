@@ -18,6 +18,8 @@ OwnerPaths: `analysis/AolaLoader/PacketHost/**`
 
 ## 输入与输出
 
+2026-10-03：AolaHookStatus 增加可序列化的可选 ExecutionEvent / SocketHandle。ConnectionClosed 表示已观察游戏 socket 关闭；CaptureInvalid 表示队列丢失、TCP 缓冲/帧失效或 Hook 失效。通知沿原 Report -> StatusReceived 分发，不传 SID 或登录帧。执行消费者据此使观察代际失效；Hook 回调仍只入队，不阻塞执行 IPC。
+
 输入为 remoting 发布；输出为隔离分发的 DTO 事件。遗留队列请求会在注入端明确拒绝，不创建 socket、不复制登录帧。
 
 ## 允许依赖

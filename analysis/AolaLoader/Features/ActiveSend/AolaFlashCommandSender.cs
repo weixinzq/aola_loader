@@ -61,8 +61,17 @@ internal sealed class AolaFlashCommandSender : IAolaCommandSender
 			["command"] = request.Command,
 			["parametersJson"] = parameters.ToString(Formatting.None)
 		};
+		string operation = "activeSend.submit";
+		if (request.ExtensionId == 13 && request.Command == "1409")
+		{
+			if (parameters.Count != 1 || parameters["useAiType"]?.Type != JTokenType.Integer ||
+				(parameters.Value<int>("useAiType") != 0 && parameters.Value<int>("useAiType") != 1))
+				return Publish(request, AolaCommandSendStatus.SubmissionFailed, "1409 只接受 useAiType=0 或 1。");
+			operation = "battle.auto";
+			submitArguments = new JObject { ["enabled"] = parameters.Value<int>("useAiType") == 1 };
+		}
 		PageBridgeResult submitted = await _pageBridge.InvokeAsync(
-			new PageBridgeRequest("activeSend.submit", submitArguments, SubmissionTimeout),
+			new PageBridgeRequest(operation, submitArguments, SubmissionTimeout),
 			cancellationToken).ConfigureAwait(false);
 		if (!submitted.Succeeded)
 		{

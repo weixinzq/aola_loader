@@ -6,6 +6,7 @@ package mmo.petfightnew
    import flash.system.System;
    import flash.utils.Dictionary;
    import flash.utils.getTimer;
+   import flash.utils.getDefinitionByName;
    import mmo.loader.LoaderContainer;
    import mmo.petfightnew.common.FightController;
    import mmo.petfightnew.common.FightData;
@@ -131,6 +132,7 @@ package mmo.petfightnew
                ExternalInterface.addCallback("aolaBattleBridgeReady",onAolaBattleBridgeReady);
                ExternalInterface.addCallback("aolaBattleApplyOptions",onAolaBattleApplyOptions);
                ExternalInterface.addCallback("aolaBattleGetState",onAolaBattleGetState);
+               ExternalInterface.addCallback("aolaBattleSetAuto",onAolaBattleSetAuto);
                ExternalInterface.addCallback("aolaBattleGetDiagnostics",onAolaBattleGetDiagnostics);
                ExternalInterface.addCallback("aolaBattleDrainTraceEvents",onAolaBattleDrainTraceEvents);
                _aolaBattleBridgeRegistered = true;
@@ -212,6 +214,54 @@ package mmo.petfightnew
             param1.hasOwnProperty("hideDamageNumbers") &&
             param1.hasOwnProperty("hideHealingNumbers") &&
             param1.hasOwnProperty("skipBattlePresentation");
+      }
+
+      // 与原按钮共享设置行为；技能与替补仍由原 Flash 控制器执行。
+      public static function setNativeAutoBattle(enabled:Boolean) : String
+      {
+         try
+         {
+            var controller:FightController = FightController.instance;
+            if(controller.fightPanel == null || controller.whoWon != -1 || controller.isReplay)
+               return JSON.stringify({"status":"Rejected","message":"当前没有活动战斗"});
+            if(FightController.isAutoUseSkill == enabled)
+               return JSON.stringify({"status":"SubmittedToFlash","changed":false});
+            if(!controller.canAuto || controller.isAuto || controller.useAiType == 2 || controller.useAiType == 3 || FightData.instance.isPVPForceAuto)
+               return JSON.stringify({"status":"Rejected","message":"原游戏不允许切换自动战斗"});
+            var client:Object = getDefinitionByName("mmo.framework.comm.PetClient");
+            var dispatcher:Object = getDefinitionByName("mmo.common.eventdispatcher.CommonEventDispatcher");
+            var eventClass:Object = getDefinitionByName("mmo.interfaces.pet.fight.PetFightEvent");
+            var strategy:Object = getDefinitionByName("mmo.petfightnew.common.useskill.NewOrderlySkillStrategy");
+            FightController.isAutoUseSkill = enabled;
+            client.instance.autoUseAI(enabled ? 1 : 0);
+            if(!enabled)
+            {
+               dispatcher.instance.dispatchEvent(new Event("newlearn_on_fight_auto_close"));
+               client.instance.changeAutoUseSkillState(false);
+            }
+            strategy.reset();
+            dispatcher.instance.dispatchEvent(new eventClass(eventClass.END_AUTO_FIGHT));
+            return JSON.stringify({"status":"SubmittedToFlash","changed":true});
+         }
+         catch(error:Error)
+         {
+            return JSON.stringify({"status":"Rejected","message":error.message});
+         }
+      }
+
+      private static function onAolaBattleSetAuto(raw:String) : String
+      {
+         try
+         {
+            var options:Object = JSON.parse(raw);
+            if(!(options.enabled is Boolean))
+               return JSON.stringify({"status":"Rejected","message":"enabled 必须是 Boolean"});
+            return setNativeAutoBattle(options.enabled);
+         }
+         catch(error:Error)
+         {
+            return JSON.stringify({"status":"Rejected","message":error.message});
+         }
       }
 
       private static function onAolaBattleGetState() : String

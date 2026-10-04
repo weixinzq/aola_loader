@@ -20,6 +20,8 @@ OwnerPaths: `analysis/AolaLoader/Features/PetMorph/**`, `analysis/AolaLoader/UI/
 
 输入为 UI 规则、PageBridge 就绪状态和规范化资源请求；输出为不可变规则/桥状态、目标皮肤映射、资源转换计划和明确诊断。显式 `PosterId` 优先；未填写时，满足目录与背景探测的 `BackpackId` 自动作为目标皮肤。设置结构和规则编辑界面不新增字段。
 
+`Resources/Data/pet-poster-catalog.json` 由 `analysis/tools/generate_pet_poster_catalog.py` 从 `PetSkinConfig.as` 生成；2026-09-30 更新的源配置有 1060 项，目录只收录其中 426 项 `hasBackground=true` 的映射。
+
 ## 允许依赖
 
 Settings Section、BrowserHost PageBridge、ResourceInterception 契约、PetMorph 纯 SWF 转换器和只读 poster catalog。

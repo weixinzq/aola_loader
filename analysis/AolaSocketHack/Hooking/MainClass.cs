@@ -26,7 +26,7 @@ public sealed class MainClass : IEntryPoint
 		// Hook 回调是生产者，Parser 线程是唯一消费者。容量上限保护 CEF 网络进程内存。
 		using (BlockingCollection<CapturedChunk> queue = new BlockingCollection<CapturedChunk>(new ConcurrentQueue<CapturedChunk>(), 4096))
 		{
-			AolaCaptureEngine engine = new AolaCaptureEngine(PublishSafely);
+			AolaCaptureEngine engine = new AolaCaptureEngine(PublishSafely, ReportStatusSafely);
 			CaptureRuntimeMetrics metrics = new CaptureRuntimeMetrics();
 			bool diagnosticCaptureAll = string.Equals(Environment.GetEnvironmentVariable("AOLA_CAPTURE_ALL_SOCKETS"), "1", StringComparison.Ordinal);
 			AolaSocketCaptureFilter filter = new AolaSocketCaptureFilter(captureAllSockets: diagnosticCaptureAll);
@@ -61,7 +61,7 @@ public sealed class MainClass : IEntryPoint
 					}
 					catch (Exception ex)
 					{
-						Report("Warning", "抓包解析异常：" + ex.Message);
+						Report("Warning", "抓包解析异常：" + ex.Message, "CaptureInvalid", chunk.Socket);
 					}
 					finally
 					{
@@ -90,11 +90,18 @@ public sealed class MainClass : IEntryPoint
 						? "Aola Winsock Hook 已安装（诊断：全 socket 捕获后筛选）"
 						: "Aola Winsock Hook 已安装（游戏 socket 前置筛选；旁路登录发包已禁用）");
 					DateTime nextStatusUtc = DateTime.UtcNow.AddSeconds(5);
+					long reportedDrops = 0;
 					CaptureRuntimeSnapshot lastStatus = null;
 					AolaCaptureEngineMetrics lastEngineStatus = null;
 					while (_host.Ping())
 					{
 						DateTime now = DateTime.UtcNow;
+						long drops = metrics.Snapshot().DroppedChunks;
+						if (drops > reportedDrops)
+						{
+							Report("Warning", "捕获队列丢失数据，停止文本执行。", "CaptureInvalid");
+							reportedDrops = drops;
+						}
 						if (now >= nextStatusUtc)
 						{
 							filter.CleanupIdle(now.AddMinutes(-30));
@@ -128,7 +135,7 @@ public sealed class MainClass : IEntryPoint
 				}
 				catch (Exception ex)
 				{
-					Report("Error", "Aola Hook 运行失败：" + ex.Message);
+					Report("Error", "Aola Hook 运行失败：" + ex.Message, "CaptureInvalid");
 				}
 			}
 			// 停止接受新的 Hook 事件，再等待 parser 排空已有数据，避免卸载时截断队列。
@@ -143,7 +150,7 @@ public sealed class MainClass : IEntryPoint
 				Report("Warning", "抓包解析线程未在卸载等待期内停止；进程退出时释放剩余分析状态");
 			}
 		}
-		Report("Info", "Aola Winsock Hook 已卸载");
+		Report("Info", "Aola Winsock Hook 已卸载", "CaptureInvalid");
 	}
 
 	private void RejectLegacySendRequest(AolaSendRequest request, int processId)
@@ -177,7 +184,12 @@ public sealed class MainClass : IEntryPoint
 		}
 	}
 
-	private void Report(string level, string message)
+	private void ReportStatusSafely(AolaHookStatus status)
+	{
+		try { _host.Report(status); } catch { }
+	}
+
+	private void Report(string level, string message, string executionEvent = null, long? socket = null)
 	{
 		try
 		{
@@ -186,7 +198,9 @@ public sealed class MainClass : IEntryPoint
 				TimestampUtc = DateTime.UtcNow,
 				ProcessId = Process.GetCurrentProcess().Id,
 				Level = level,
-				Message = message
+				Message = message,
+				ExecutionEvent = executionEvent,
+				SocketHandle = socket
 			});
 		}
 		catch

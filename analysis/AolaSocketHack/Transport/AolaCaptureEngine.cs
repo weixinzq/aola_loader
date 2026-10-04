@@ -19,14 +19,16 @@ internal sealed class AolaCaptureEngine : IDisposable
 	private static readonly byte[] PolicyRequestPrefix = Encoding.ASCII.GetBytes("<policy-file-request/>");
 	private readonly ConcurrentDictionary<long, ConnectionState> _connections = new ConcurrentDictionary<long, ConnectionState>();
 	private readonly Action<AolaPacketEvent> _publish;
+	private readonly Action<AolaHookStatus> _status;
 	private readonly int _processId = Process.GetCurrentProcess().Id;
 	private long _bufferOverflows;
 	private long _protocolErrors;
 
-	public AolaCaptureEngine(Action<AolaPacketEvent> publish)
+	public AolaCaptureEngine(Action<AolaPacketEvent> publish, Action<AolaHookStatus> status = null)
 	{
 		// publish 通常指向 MainClass.PublishSafely；解析器不直接依赖 Remoting 服务。
 		_publish = publish ?? throw new ArgumentNullException(nameof(publish));
+		_status = status;
 	}
 
 	public void NoteConnect(long socket, int port)
@@ -49,9 +51,16 @@ internal sealed class AolaCaptureEngine : IDisposable
 		{
 			lock (state.SyncRoot)
 			{
+				if (state.Candidate || state.Confirmed) PublishStatus(socket, "ConnectionClosed", "当前游戏 socket 已关闭。");
 				state.ClearSensitiveData();
 			}
 		}
+	}
+
+	private void PublishStatus(long socket, string code, string message)
+	{
+		_status?.Invoke(new AolaHookStatus { TimestampUtc = DateTime.UtcNow, ProcessId = _processId,
+			SocketHandle = socket, ExecutionEvent = code, Level = "Warning", Message = message });
 	}
 
 	public void CaptureSend(long socket, byte[] bytes)
@@ -67,6 +76,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 			if (bytes.Length > MaximumConnectionBufferedBytes - state.Outgoing.Count - state.Incoming.Count || !state.Outgoing.TryAppend(bytes))
 			{
 				System.Threading.Interlocked.Increment(ref _bufferOverflows);
+				PublishStatus(socket, "CaptureInvalid", "TCP 捕获缓冲溢出，执行状态不完整。");
 				return;
 			}
 			if (state.Outgoing.CouldStartWith(PolicyRequestPrefix))
@@ -77,6 +87,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 					if (policyExceeded)
 					{
 						System.Threading.Interlocked.Increment(ref _protocolErrors);
+				PublishStatus(socket, "CaptureInvalid", "TCP 帧解析失效，执行状态不完整。");
 					}
 					return;
 				}
@@ -107,6 +118,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 			if (invalidLength)
 			{
 				System.Threading.Interlocked.Increment(ref _protocolErrors);
+				PublishStatus(socket, "CaptureInvalid", "TCP 帧解析失效，执行状态不完整。");
 			}
 		}
 	}
@@ -124,6 +136,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 			if (bytes.Length > MaximumConnectionBufferedBytes - state.Outgoing.Count - state.Incoming.Count || !state.Incoming.TryAppend(bytes))
 			{
 				System.Threading.Interlocked.Increment(ref _bufferOverflows);
+				PublishStatus(socket, "CaptureInvalid", "TCP 捕获缓冲溢出，执行状态不完整。");
 				return;
 			}
 			if (state.Incoming.CouldStartWith(PolicyPrefix))
@@ -137,6 +150,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 					if (policyExceeded)
 					{
 						System.Threading.Interlocked.Increment(ref _protocolErrors);
+				PublishStatus(socket, "CaptureInvalid", "TCP 帧解析失效，执行状态不完整。");
 					}
 					return;
 				}
@@ -160,6 +174,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 			if (invalidLength)
 			{
 				System.Threading.Interlocked.Increment(ref _protocolErrors);
+				PublishStatus(socket, "CaptureInvalid", "TCP 帧解析失效，执行状态不完整。");
 			}
 		}
 	}
@@ -176,6 +191,7 @@ internal sealed class AolaCaptureEngine : IDisposable
 			}
 			lock (removedState.SyncRoot)
 			{
+				if (removedState.Candidate || removedState.Confirmed) PublishStatus(item.Key, "CaptureInvalid", "捕获连接已因空闲清理，执行状态不完整。");
 				removedState.ClearSensitiveData();
 			}
 			removed++;

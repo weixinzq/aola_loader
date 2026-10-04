@@ -227,6 +227,14 @@ internal sealed class AolaPageBridge : IPageBridge
 				message: applied ? '' : String(state.battle.lastError || '战斗模块尚未加载，进入战斗后自动应用。')
 			}, '', '');
 		}
+		if (operation === 'battle.auto') {
+			if (typeof args.enabled !== 'boolean') return envelope(false, null, 'InvocationFailed', 'enabled must be boolean.');
+			var autoFlash = findFlash('aolaBattleSetAuto');
+			if (!autoFlash) return envelope(false, null, 'BridgeNotInstalled', '自动战斗桥尚未就绪。');
+			var autoResult = JSON.parse(String(autoFlash.aolaBattleSetAuto(JSON.stringify(args)) || ''));
+			if (!autoResult || autoResult.status !== 'SubmittedToFlash') return envelope(false, null, 'InvocationFailed', (autoResult && autoResult.message) || 'Flash 未接受自动战斗设置。');
+			return envelope(true, autoResult, '', '');
+		}
 		if (operation === 'battle.state') {
 			var stateFlash = findFlash('aolaBattleGetState');
 			if (!stateFlash) return envelope(false, null, 'BridgeNotInstalled', '战斗桥尚未就绪。');

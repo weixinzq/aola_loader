@@ -14,4 +14,10 @@ public sealed class AolaHookStatus
 	public string Level { get; set; }
 
 	public string Message { get; set; }
+
+	[field: System.Runtime.Serialization.OptionalField]
+	public string ExecutionEvent { get; set; }
+
+	[field: System.Runtime.Serialization.OptionalField]
+	public long? SocketHandle { get; set; }
 }

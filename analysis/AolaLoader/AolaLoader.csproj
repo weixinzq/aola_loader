@@ -35,7 +35,7 @@
 	<Content Include="Resources\Patches\petfightnew-battle-cinematics-2026091780747880-v4.fws.swf">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
-	<Content Include="Resources\Patches\petfightnew-battle-visual-260924918360271.fws.swf">
+	<Content Include="Resources\Patches\petfightnew-battle-visual-260929024751831.fws.swf">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
 	<Content Include="Resources\Battle\background.jpg">

@@ -116,6 +116,7 @@ internal sealed class WinsockHooks : IDisposable
 			{
 				CaptureSingle(handle, buffer, result, false, kind);
 			}
+			else if (result == 0 && length > 0) _closed?.Invoke(handle);
 		}
 		catch
 		{
@@ -158,6 +159,7 @@ internal sealed class WinsockHooks : IDisposable
 			{
 				CaptureBuffers(handle, buffers, bufferCount, actual, false, kind);
 			}
+			else if (actual == 0 && overlapped == IntPtr.Zero) _closed?.Invoke(handle);
 		}
 		catch
 		{

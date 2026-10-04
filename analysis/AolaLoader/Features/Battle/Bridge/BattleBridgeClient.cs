@@ -56,6 +56,9 @@ internal sealed class BattleBridgeClient
 			result.Value?.Value<string>("message"));
 	}
 
+	public Task<PageBridgeResult> SetAutoBattleAsync(bool enabled, CancellationToken token) =>
+		_pageBridge.InvokeAsync(new PageBridgeRequest("battle.auto", new JObject { ["enabled"] = enabled }, Timeout), token);
+
 	public async Task<BattleBridgeStateResult> GetStateAsync(CancellationToken cancellationToken)
 	{
 		PageBridgeResult result = await _pageBridge.InvokeAsync(

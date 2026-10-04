@@ -23,6 +23,8 @@ $requiredMarkers = @(
     'aolaBattleBridgeReady',
     'aolaBattleApplyOptions',
     'aolaBattleGetState',
+    'aolaBattleSetAuto',
+    'setNativeAutoBattle',
     'aolaBattleGetDiagnostics',
     'aolaBattleDrainTraceEvents',
     'mmo.petfightnew.DocPetFight',
@@ -1253,6 +1255,10 @@ if ($Mode -eq 'Prepare') {
             'mmo.petfightnew.DocPetFight', $generatedDoc
         ) 'DocPetFight replacement'
     }
+    # Doc 模板已包含原生自动桥；按钮只替换该方法，保留其余已生成的 p-code。
+    $autoCandidate = Join-Path $EvidenceRoot 'variants\battle-native-auto.fws.swf'
+    & (Join-Path $PSScriptRoot 'Add-PetFightNativeAutoBridge.ps1') -InputSwf $candidate -OutputSwf $autoCandidate -EvidenceRoot (Join-Path $EvidenceRoot 'evidence\native-auto') -FFDecPath $FFDecPath -ButtonOnly
+    [IO.File]::Copy($autoCandidate, $candidate, $true)
     $candidateDetails = Assert-Fws $candidate
     Assert-CandidateMarkers $candidate
 

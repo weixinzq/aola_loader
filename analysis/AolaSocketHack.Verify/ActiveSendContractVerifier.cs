@@ -27,11 +27,10 @@ internal static class ActiveSendContractVerifier
 		return requests.Count == 1 && requests[0].ExtensionId == 42 &&
 			requests[0].Command == "VERIFY" &&
 			JObject.Parse(requests[0].ParametersJson)[":ext_seq;"] == null &&
-			Throws<InvalidOperationException>(() => AolaSendRequestParser.ParseLines(
-				"#send={\"param\":{},\"id\":42,\"cmd\":\"VERIFY\"}|")) &&
+			AolaSendRequestParser.ParseLines("#send={\"param\":{},\"id\":42,\"cmd\":\"VERIFY\"}|").Count == 1 &&
 			Throws<InvalidOperationException>(() => AolaSendRequestParser.ParseLines(
 				"#send={\"id\":42,\"param\":{},\"cmd\":\"VERIFY\",\"extra\":1}|")) &&
-			Throws<JsonException>(() => AolaSendRequestParser.ParseLines(
+			Throws<InvalidOperationException>(() => AolaSendRequestParser.ParseLines(
 				"#send={\"id\":42,\"id\":43,\"param\":{},\"cmd\":\"VERIFY\"}|"));
 	}
 

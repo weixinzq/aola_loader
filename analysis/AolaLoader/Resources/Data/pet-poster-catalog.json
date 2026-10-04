@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "source": "PetSkinConfig.as",
-  "sourceSha256": "bc8d8282e83c8cfaa34ffe37e5276cee5290c2c6c406a574755247b860208323",
-  "entryCount": 1049,
-  "backgroundCount": 421,
+  "sourceSha256": "e46abd8128057b2ace6cebf2fe9161eef402498c263b7dbd6dea8d468bb4681c",
+  "entryCount": 1060,
+  "backgroundCount": 426,
   "entries": [
     {
       "skinId": 3735,
@@ -2949,6 +2949,41 @@
       "skinId": 6061,
       "resourceId": 1052,
       "name": "未来之光（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6081,
+      "resourceId": 1058,
+      "name": "山海异兽·耳鼠（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6082,
+      "resourceId": 1059,
+      "name": "夜色膛线（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6084,
+      "resourceId": 1060,
+      "name": "终端归演之核-阿比斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 6088,
+      "resourceId": 1061,
+      "name": "莲灯映芙蓉-卡蜜拉（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6092,
+      "resourceId": 1065,
+      "name": "红绡帐暖醉良夜（海报）",
       "hasBackground": true,
       "showPet": false
     }

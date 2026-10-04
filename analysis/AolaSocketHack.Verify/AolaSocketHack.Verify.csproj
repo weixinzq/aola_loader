@@ -97,8 +97,8 @@
 	  <Link>TestData\petfightnew-battle-cinematics-2026091780747880-v4.fws.swf</Link>
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
-	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-visual-260924918360271.fws.swf">
-	  <Link>TestData\petfightnew-battle-visual-260924918360271.fws.swf</Link>
+	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-visual-260929024751831.fws.swf">
+	  <Link>TestData\petfightnew-battle-visual-260929024751831.fws.swf</Link>
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
 	<Content Include="..\AolaLoader\Resources\Patches\petfightnew-battle-state.current.json">
@@ -119,7 +119,9 @@
     <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualPageBridge.cs" Link="BrowserHost\Testing\ManualPageBridge.cs" />
 	<Compile Include="..\AolaLoader\Features\ActiveSend\IAolaCommandSender.cs" Link="Features\ActiveSend\IAolaCommandSender.cs" />
 	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaExtensionMap.cs" Link="Features\ActiveSend\AolaExtensionMap.cs" />
-	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaSendRequestParser.cs" Link="Features\ActiveSend\AolaSendRequestParser.cs" />
+	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaTextSequenceRunner.cs" Link="Features\ActiveSend\AolaTextSequenceRunner.cs" />
+    <Compile Include="..\AolaLoader\Features\Battle\Replay\AolaExecutionState.cs" Link="Battle\Replay\AolaExecutionState.cs" />
+    <Compile Include="..\AolaLoader\Features\ActiveSend\AolaSendRequestParser.cs" Link="Features\ActiveSend\AolaSendRequestParser.cs" />
 	<Compile Include="..\AolaLoader\Features\ActiveSend\AolaFlashCommandSender.cs" Link="Features\ActiveSend\AolaFlashCommandSender.cs" />
   </ItemGroup>
   <ItemGroup>

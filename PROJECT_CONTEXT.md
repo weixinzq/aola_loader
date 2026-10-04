@@ -4,7 +4,7 @@
 
 Aola Loader 是受控站点上的旧版奥拉星 Flash 桌面宿主，提供登录、发送包查看/导出、通过当前 Flash 游戏会话主动发包、收发日志、主题与背包形态资源替换、战斗状态查看和战斗表现设置。重构必须保持现有行为和协议语义。当前不升级 .NET、WinForms、CefSharp、PPAPI Flash 或 EasyHook，不重写协议/AMF3/TCP 重组算法。
 
-2026-09-11 静态核对：生产战斗清单为资源版本 `2026091003596777`、Bridge Version 5；`PetFightBattleBridgeArtifact.BridgeVersion` 与清单一致。当前接入的是 `ConservativeCleanup` 候选，已完成静态验证但尚未进行真实 Flash 登录、战斗或三组 A/B。9 月 4 日实机记录对应旧资源的纯状态候选。旧失败候选不进入生产路径，清单无效时透传官方资源；9 月 5 日的[文档核对记录](doc/DOCUMENTATION_AUDIT.md)保留为历史快照。
+2026-09-30 静态核对：生产战斗清单为资源版本 `260929024751831`、Bridge Version 5；`PetFightBattleBridgeArtifact.BridgeVersion` 与清单一致。当前接入的是 `ConservativeCleanup` 候选，已完成静态验证但尚未进行真实 Flash 登录、战斗或三组 A/B。9 月 4 日实机记录对应旧资源的纯状态候选。旧失败候选不进入生产路径，清单无效时透传官方资源；9 月 5 日的[文档核对记录](doc/DOCUMENTATION_AUDIT.md)保留为历史快照。
 
 ## 技术栈与顶层模块
 

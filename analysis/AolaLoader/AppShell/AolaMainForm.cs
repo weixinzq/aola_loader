@@ -54,6 +54,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly AolaHookController _hookController;
 	private readonly IAolaPacketEventSource _packetEventSource;
 	private readonly IAolaCommandSender _commandSender;
+	private readonly AolaTextSequenceRunner _textSequenceRunner;
 	private readonly LineupCoordinator _lineupCoordinator;
 	private readonly IPageBridge _pageBridge;
 	private readonly AolaReceiveLogger _receiveLogger;
@@ -80,7 +81,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		IPetMorphCoordinator petMorphCoordinator,
 		BattlePresentationCoordinator battlePresentationCoordinator,
 		IChildWindowCoordinator childWindowCoordinator,
-		LineupCoordinator lineupCoordinator)
+		LineupCoordinator lineupCoordinator,
+		AolaTextSequenceRunner textSequenceRunner)
 	{
 		_browser = browser ?? throw new ArgumentNullException(nameof(browser));
 		_browserSession = browserSession ?? throw new ArgumentNullException(nameof(browserSession));
@@ -95,6 +97,7 @@ internal sealed class AolaMainForm : AolaFormBase
 		_battlePresentationCoordinator = battlePresentationCoordinator ?? throw new ArgumentNullException(nameof(battlePresentationCoordinator));
 		_childWindowCoordinator = childWindowCoordinator ?? throw new ArgumentNullException(nameof(childWindowCoordinator));
 		_lineupCoordinator = lineupCoordinator ?? throw new ArgumentNullException(nameof(lineupCoordinator));
+		_textSequenceRunner = textSequenceRunner;
 
 		Text = "Aola Loader";
 		AutoScaleDimensions = new SizeF(96, 96);
@@ -490,7 +493,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	{
 		_childWindowCoordinator.Show(
 			"packets",
-			() => new AolaPacketsForm(_packetEventSource, _commandSender, _pageBridge),
+			() => new AolaPacketsForm(_packetEventSource, _commandSender, _pageBridge, _textSequenceRunner),
 			activate: false);
 	}
 

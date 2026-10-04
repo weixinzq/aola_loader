@@ -51,6 +51,23 @@ internal sealed class BattleSequenceRunner
 
 	public event Action<BattleSequenceUpdate> StatusChanged;
 
+	internal async Task<BattleBridgeState> ConfirmEntryAsync(
+		Func<Task<AolaCommandSendUpdate>> submit, CancellationToken token, Action checkState)
+	{
+		lock (_syncRoot) { _identityFlags = 0; _packetBattleRouteId = 0; _packetBattleUniqueId = 0; }
+		_packetSource.PacketReceived += OnPacket;
+		try
+		{
+			if (!WasSubmitted(await submit().ConfigureAwait(false)))
+				throw new InvalidOperationException("战斗入口未提交给 Flash，不会重试。");
+			BattleBridgeState ready = await WaitForBattleAsync(token, checkState).ConfigureAwait(false);
+			return ready ?? throw new InvalidOperationException("等待战斗身份或首次可操作状态超时。");
+		}
+		finally { _packetSource.PacketReceived -= OnPacket; }
+	}
+
+	internal Task<BattleBridgeState> ConfirmCurrentAsync(CancellationToken token) => AttachCurrentBattleAsync(token);
+
 	public async Task RunAsync(BattleSequencePlan plan, CancellationToken cancellationToken)
 	{
 		if (plan == null) throw new ArgumentNullException(nameof(plan));
@@ -231,12 +248,13 @@ internal sealed class BattleSequenceRunner
 		return state;
 	}
 
-	private async Task<BattleBridgeState> WaitForBattleAsync(CancellationToken cancellationToken)
+	private async Task<BattleBridgeState> WaitForBattleAsync(CancellationToken cancellationToken, Action checkState = null)
 	{
 		DateTime deadline = DateTime.UtcNow + _battleTimeout;
 		while (DateTime.UtcNow < deadline)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
+			checkState?.Invoke();
 			BattleBridgeStateResult result = await _bridge.GetStateAsync(cancellationToken).ConfigureAwait(false);
 			int flags;
 			int packetBattleRouteId;

@@ -14,7 +14,7 @@ namespace AolaLoader.Features.Battle.ResourceInterception;
 internal sealed class PetFightBattleBridgeArtifact
 {
 	internal const string ManifestFileName = "petfightnew-battle-state.current.json";
-	internal const string CandidateFileName = "petfightnew-battle-visual-260924918360271.fws.swf";
+	internal const string CandidateFileName = "petfightnew-battle-visual-260929024751831.fws.swf";
 	private const int ManifestSchemaVersion = 1;
 	private const int BridgeVersion = 5;
 	private const int MaximumManifestBytes = 16 * 1024;

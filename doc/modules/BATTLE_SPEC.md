@@ -8,6 +8,14 @@ OwnerPaths: `analysis/AolaLoader/Features/Battle/**`, `analysis/AolaLoader/UI/Ba
 
 State 子模块消费接收包、解析 roster/增量并发布防御性快照；UI 仅展示已确认的敌方亚比，支持单人 PVP/PVE。内部仍保留识别己方所需资料。Presentation 保存战斗表现设置，通过页面桥向精确版本的 `petfightnew` 注册选项并读取只读战斗状态，供设置窗口和战斗状态回放使用；页面桥与 Flash 的战斗选项契约均使用 Version 5。开启跳过战斗演出后，已收到的战斗事件仍按官方队列顺序结算并写入“完整信息”，但不再在相邻队列项之间固定等待一帧；多段伤害结束回调保留一帧最小延迟。Diagnostics 在收到 2401/结束包时自动记录开局和结束，在战斗中、资源加载仍进行中及结束后至少 120 秒内每 5 秒读取 Flash 内存、显示列表、资源生命周期和帧间隔统计，分别写入 `logs/performance/aola-battle-flash-*.csv` 与 `aola-battle-resource-*.jsonl`；不新增 GC。诊断结构 Version 4 以弱键跟踪 `FightPanel`、`StartMovie`、战斗 `ApplicationDomain`、预加载会话、`SkillEffectLoader` 和活动攻击；页面桥按 Version 4 的必需字段校验并允许附加字段。容量 512 的环形事件队列记录预加载/技能特效申请、攻击生命周期及不短于 50 ms 的长帧，溢出只增加累计丢弃计数，读取后清空。保守释放版复用同一个逐帧监听，在攻击持续 15 秒或攻击策略缺失时调用官方 `setNormal()` 完成路径；仅诊断版只记录，不恢复。
 
+## 文本执行与原生自动桥（2026-10-03）
+
+Replay 增加 AolaExecutionState，长期订阅 PacketHost 的接收/状态事件，独立保存连接、战斗身份、当前回合和执行 phase；不修改展示快照的合并规则。AolaTextSequenceRunner 统一调用原入口确认与首次附着确认，并执行 #wait / #time；本场最终结束依据匹配 battleUniqueId 的 2403。连接或观察代际变化使旧任务停止，不自动退出上一场。
+
+BattleBridgeClient 增加 SetAutoBattleAsync，页面操作 battle.auto 接入 aolaBattleSetAuto。DocPetFight.setNativeAutoBattle 与 NewSkillPanel 原按钮共享设置行为；技能和替补由原 FightPanel/PetClient 管理。已有七字段 Version 5 状态结构、演出与资源生命周期补丁保留。关闭文本窗口不关闭原游戏自动战斗。
+
+Add-PetFightNativeAutoBridge.ps1 可在已有基础/视觉候选上叠加 Doc 接口和原按钮方法 p-code；Update-PetFightBattleBridge Prepare 在生成 Doc 模板后应用按钮补丁。每次输入副本、阶段输出和静态复读保留在指定证据目录。当前新增接口只有静态与本地契约证据，未执行真实 Flash 自动出手/替补验收。
+
 ## 非职责
 
 State 不依赖 WinForms/CefSharp，不过滤网络捕获，不修改协议消息；Presentation 不改变 State 包处理契约；头像不决定 roster 正确性。
@@ -84,7 +92,7 @@ State/UI/Presentation 物理边界清晰，Tracker 只依赖 PacketHost，F3 与
 
 ## 已知限制
 
-2026-09-24 当前资源清单绑定官方 `petfightnew~260924918360271.swf` 与独立候选 `petfightnew-battle-visual-260924918360271.fws.swf`。候选将 `DocPetFight.skipBattlePresentation` 的 Flash 初始值设为真，避免首次桥接推送前播放过场；随后仍接受设置里的显式选择。在跳过演出选项为真时，候选绕过 `MCPetContainer.onResPrepared` 的亚比出场分支并直接派发原 `GOT_PET` 回调，绕过 `onStartCriEff` 的大招/暴击附加电影；换宠、变身与部分技能过场沿用既有跳过路径。手动开启播放过场可恢复这些动画，但不恢复技能背景切换：`BackGroundViewHandler.changeSkillBackGround` 始终不执行，`setBS` 仍更新状态与提示并保持平台可见。新版 `BackGroundViewHandler` 的私有命名空间编号已由 `62` 变为 `63`，视觉补丁脚本已同步。旧候选和官方原件保留；FWS、SymbolClass 和 FFDec 复读为静态通过，真实 Flash 战斗尚未验收。未知 `petfightnew` 版本继续透传官方资源，新版不能直接套用旧补丁。
+2026-09-30 当前资源清单绑定官方 `petfightnew~260929024751831.swf` 与独立候选 `petfightnew-battle-visual-260929024751831.fws.swf`。候选将 `DocPetFight.skipBattlePresentation` 的 Flash 初始值设为真，避免首次桥接推送前播放过场；随后仍接受设置里的显式选择。在跳过演出选项为真时，候选绕过 `MCPetContainer.onResPrepared` 的亚比出场分支并直接派发原 `GOT_PET` 回调，绕过 `onStartCriEff` 的大招/暴击附加电影；换宠、变身与部分技能过场沿用既有跳过路径。手动开启播放过场可恢复这些动画，但不恢复技能背景切换：`BackGroundViewHandler.changeSkillBackGround` 始终不执行，`setBS` 仍更新状态与提示并保持平台可见。本版 `BackGroundViewHandler` 的私有命名空间编号为 `62`，视觉补丁脚本已同步。旧候选和官方原件保留；FWS、SymbolClass 和 FFDec 复读为静态通过，真实 Flash 战斗尚未验收。未知 `petfightnew` 版本继续透传官方资源，新版不能直接套用旧补丁。
 
 官方 `GetBackgroundUtil.getFileName` 按场景预加载 `petfightbackground/*` SWF，`getBackground` 再从战斗 `ApplicationDomain` 构造导出类。当前候选在 `BackGroundViewHandler.setSceneBackGround` 放入官方背景后，另加一个 `Loader` 直接加载同源 JPEG；CEF 仅对 `/play/petfightbackground/aola-custom.jpg` 返回运行目录 `Resources/Battle/background.jpg` 按比例居中裁切成 960×560 的 JPEG，不替换或嵌入官方背景 SWF。项目默认源图为 3576×1996，原文件保留；“战斗表现”中的“选择 JPEG”将所选图片副本导入运行目录，下一场战斗加载，当前战斗不强制刷新。`changeSkillBackGround` 始终短路，以使普通技能背景不能盖过自选图；图片读取失败时底层官方场景背景仍在。活动/Boss 的其他独立覆层、图片裁切效果以及真实战斗显示尚未实机验证，不能仅凭静态补丁认定所有场景完全覆盖。图片不能直接充当官方预期带导出类的 SWF，但经 `Loader` 可直接作为 JPEG 展示，无须先导出 SWF。
 

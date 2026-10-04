@@ -109,9 +109,9 @@ $doc[$defaultIndex + 1] = ' pushtrue'
 $patches += [pscustomobject]@{ Name='$cinit'; Class='mmo.petfightnew.DocPetFight'; Body=$doc }
 
 $setBS = Get-Method $backgroundPcode 'public function setBS('
-Insert-After $setBS 'callpropvoid QName(PrivateNamespace(null,"63"),"setSkillBackGroundIcon"), 1' @(
+Insert-After $setBS 'callpropvoid QName(PrivateNamespace(null,"62"),"setSkillBackGroundIcon"), 1' @(
     ' getlocal0',
-    ' getproperty QName(PrivateNamespace(null,"63"),"_layerPlatform")',
+    ' getproperty QName(PrivateNamespace(null,"62"),"_layerPlatform")',
     ' pushtrue',
     ' setproperty QName(PackageNamespace(""),"visible")'
 )
@@ -125,7 +125,7 @@ Insert-After $scene 'ofs0044:' @(
     ' coerce QName(PackageNamespace("flash.display"),"Loader")',
     ' setlocal2',
     ' getlocal0',
-    ' getproperty QName(PrivateNamespace(null,"63"),"_layerBackGround")',
+    ' getproperty QName(PrivateNamespace(null,"62"),"_layerBackGround")',
     ' getlocal2',
     ' callpropvoid QName(PackageNamespace(""),"addChild"), 1',
     ' getlocal2',

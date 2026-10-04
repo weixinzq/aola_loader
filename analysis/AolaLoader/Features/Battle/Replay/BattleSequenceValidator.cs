@@ -28,6 +28,53 @@ internal static class BattleSequenceValidator
 	private static readonly FieldRule[] PreludeSchema = Fields("eventId:i");
 	private static readonly FieldRule[] PreFightSchema = Fields("ul:s", "msg:s");
 
+	public static void ValidateTextSteps(IReadOnlyList<AolaLoader.Features.ActiveSend.AolaTextStep> steps)
+	{
+		bool entrySeen = false, actionSeen = false;
+		foreach (var step in steps)
+		{
+			if (step.Kind == AolaLoader.Features.ActiveSend.AolaTextStepKind.WaitBattleEnd) { entrySeen = false; actionSeen = false; }
+			if (step.Kind != AolaLoader.Features.ActiveSend.AolaTextStepKind.Send) continue;
+			AolaSendRequest request = step.Request;
+			try
+			{
+				if (!AolaLoader.Features.ActiveSend.AolaExtensionMap.TryGetName(request.ExtensionId, out _))
+					throw new InvalidOperationException("当前 Flash 没有该扩展 ID 的映射。");
+				if (request.ExtensionId == 18 || request.Command == "55_1" || request.Command == "55_2" || request.Command == "55_9")
+					throw new InvalidOperationException("会话维护消息由 Flash 管理，不能重放。");
+				JObject p = JObject.Parse(request.ParametersJson);
+				if (request.Command == "54_22")
+				{
+					if (request.ExtensionId != 15) throw new InvalidOperationException("54_22 必须使用 id=15。");
+					ValidateObject(0, p, EntrySchema); entrySeen = true; actionSeen = false;
+				}
+				else if (request.Command == "preFightLoad")
+				{
+					if (request.ExtensionId != 16 || !entrySeen || actionSeen)
+						throw new InvalidOperationException("preFightLoad 只允许位于入口后、回合操作前；由 Flash 自行发送。");
+					ValidateObject(0, p, PreFightSchema);
+				}
+				else if (request.Command == "1409")
+				{
+					if (request.ExtensionId != 13) throw new InvalidOperationException("1409 必须使用 id=13。");
+					ValidateObject(0, p, Fields("useAiType:i"));
+					if (p.Value<int>("useAiType") != 0 && p.Value<int>("useAiType") != 1)
+						throw new InvalidOperationException("自动战斗只接受 useAiType=0 或 1。");
+					actionSeen = true;
+				}
+				else if (ActionSchemas.TryGetValue(request.Command, out FieldRule[] schema))
+				{
+					if (request.ExtensionId != 13) throw new InvalidOperationException("战斗动作必须使用 id=13。");
+					ValidateObject(0, p, schema);
+					if (p.Value<int>("turn") < 0) throw new InvalidOperationException("turn 不能为负数。");
+					actionSeen = true;
+				}
+			}
+			catch (InvalidOperationException ex)
+			{ throw new InvalidOperationException(string.Format("第 {0} 行：{1}", step.Line, ex.Message), ex); }
+		}
+	}
+
 	public static BattleSequencePlan Validate(IReadOnlyList<AolaSendRequest> requests)
 	{
 		if (requests == null || requests.Count == 0)

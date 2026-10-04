@@ -7,12 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
-using AolaLoader.Features.Battle.Bridge;
-using AolaLoader.Features.Battle.Replay;
 using AolaLoader.PacketHost;
 using AolaLoader.UI.Common;
 using AolaSocketHack.Contracts;
@@ -51,12 +48,6 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	{
 		Minimum = 0, Maximum = int.MaxValue, Value = 1000, Increment = 100, Width = 110, Margin = new Padding(0, 8, 16, 0)
 	};
-	private readonly CheckBox _battleStateMode = new CheckBox
-	{
-		Text = "确认战斗入口后发送",
-		AutoSize = true,
-		Margin = new Padding(12, 10, 0, 0)
-	};
 	private readonly CupertinoButton _openPanelButton = new CupertinoButton("打开映射面板", true);
 	private readonly CupertinoButton _captureNavigation = new CupertinoButton("抓包", true);
 	private readonly CupertinoButton _sendNavigation = new CupertinoButton("发包");
@@ -66,7 +57,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private Control _captureView;
 	private Control _sendView;
 	private Control _panelView;
-	private readonly BattleSequenceRunner _battleSequenceRunner;
+	private readonly AolaTextSequenceRunner _textSequenceRunner;
 	private CancellationTokenSource _sequenceCancellation;
 	private int _pendingPacketDrops;
 	private int _closed;
@@ -74,15 +65,13 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	public AolaPacketsForm(
 		IAolaPacketEventSource packetEventSource,
 		IAolaCommandSender commandSender,
-		IPageBridge pageBridge)
+		IPageBridge pageBridge,
+		AolaTextSequenceRunner textSequenceRunner)
 	{
 		_packetEventSource = packetEventSource ?? throw new ArgumentNullException(nameof(packetEventSource));
 		_commandSender = commandSender ?? throw new ArgumentNullException(nameof(commandSender));
 		_pageBridge = pageBridge ?? throw new ArgumentNullException(nameof(pageBridge));
-		_battleSequenceRunner = new BattleSequenceRunner(
-			_packetEventSource,
-			_commandSender,
-			new BattleBridgeClient(_pageBridge));
+		_textSequenceRunner = textSequenceRunner;
 		Text = "奥拉星抓包 / 发包";
 		StartPosition = FormStartPosition.CenterParent;
 		MinimumSize = new Size(920, 620);
@@ -95,7 +84,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetEventSource.PacketReceived += OnPacketReceived;
 		_packetEventSource.StatusReceived += OnStatusReceived;
 		_commandSender.StatusChanged += OnCommandStatusChanged;
-		_battleSequenceRunner.StatusChanged += OnBattleSequenceStatusChanged;
+		_textSequenceRunner.StatusChanged += OnTextSequenceStatusChanged;
 		_packetFlushTimer.Tick += delegate { FlushPendingPackets(); };
 		_packetFlushTimer.Start();
 	}
@@ -112,9 +101,8 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_packetEventSource.PacketReceived -= OnPacketReceived;
 		_packetEventSource.StatusReceived -= OnStatusReceived;
 		_commandSender.StatusChanged -= OnCommandStatusChanged;
-		_battleSequenceRunner.StatusChanged -= OnBattleSequenceStatusChanged;
+		_textSequenceRunner.StatusChanged -= OnTextSequenceStatusChanged;
 		_sequenceCancellation?.Cancel();
-		_sequenceCancellation?.Dispose();
 		base.OnFormClosed(e);
 	}
 
@@ -137,11 +125,6 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_panelClassInput.Text = "mmo.activity241101.challengeandtrialentrance.panel.CATE_MainPl";
 		_sendButton.Click += delegate { QueueSends(); };
 		_stopSendButton.Click += delegate { _sequenceCancellation?.Cancel(); };
-		_battleStateMode.CheckedChanged += delegate
-		{
-			_sendGroupCount.Enabled = !_battleStateMode.Checked;
-			_groupRestMilliseconds.Enabled = !_battleStateMode.Checked;
-		};
 		_openPanelButton.Click += delegate { OpenMappedPanel(); };
 	}
 
@@ -308,7 +291,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40f));
 		layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48f));
-		layout.Controls.Add(Header("发包", "直接编写严格 #send 消息，或从 UTF-8 文本文件导入。"), 0, 0);
+		layout.Controls.Add(Header("发包", "支持 #send、#wait、#time = 秒数；停止只取消文本，Flash 自动战斗继续。"), 0, 0);
 		_sendInput.Dock = DockStyle.Fill;
 		_sendInput.Margin = new Padding(0, 0, 0, 8);
 		layout.Controls.Add(_sendInput, 0, 1);
@@ -317,7 +300,7 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		timing.Controls.Add(_sendGroupCount);
 		timing.Controls.Add(FieldLabel("组间休息（毫秒）"));
 		timing.Controls.Add(_groupRestMilliseconds);
-		timing.Controls.Add(FieldLabel("普通发送：组内间隔 200ms"));
+		timing.Controls.Add(FieldLabel("消息间隔至少 200ms"));
 		layout.Controls.Add(timing, 0, 2);
 
 		TableLayoutPanel actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
@@ -327,7 +310,6 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		left.AutoSize = true;
 		left.Controls.Add(ActionButton("从文件导入", LoadSendFile));
 		left.Controls.Add(ActionButton("清空", ClearSendEditor));
-		left.Controls.Add(_battleStateMode);
 		FlowLayoutPanel right = ActionRow();
 		right.AutoSize = true;
 		right.FlowDirection = FlowDirection.RightToLeft;
@@ -566,15 +548,15 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		_status.Text = "[" + update.Status + "] " + update.Message;
 	}
 
-	private void OnBattleSequenceStatusChanged(BattleSequenceUpdate update)
+	private void OnTextSequenceStatusChanged(string update)
 	{
-		if (update == null || IsDisposed) return;
+		if (update == null || IsDisposed || Volatile.Read(ref _closed) != 0) return;
 		if (InvokeRequired)
 		{
-			BeginInvoke(new Action<BattleSequenceUpdate>(OnBattleSequenceStatusChanged), update);
+			BeginInvoke(new Action<string>(OnTextSequenceStatusChanged), update);
 			return;
 		}
-		_status.Text = "[" + update.Status + "] " + update.Message;
+		_status.Text = update;
 	}
 
 	private void SetAllPacketsChecked(bool value)
@@ -634,7 +616,6 @@ internal sealed class AolaPacketsForm : AolaFormBase
 	private async void QueueSends()
 	{
 		_sendButton.Enabled = false;
-		_battleStateMode.Enabled = false;
 		_sendGroupCount.Enabled = false;
 		_groupRestMilliseconds.Enabled = false;
 		_stopSendButton.Enabled = true;
@@ -642,40 +623,17 @@ internal sealed class AolaPacketsForm : AolaFormBase
 		CancellationToken cancellationToken = _sequenceCancellation.Token;
 		try
 		{
-			List<AolaSendRequest> requests = AolaSendRequestParser.ParseLines(_sendInput.Text);
-			if (_battleStateMode.Checked)
-			{
-				BattleSequencePlan plan = BattleSequenceValidator.Validate(requests);
-				await _battleSequenceRunner.RunAsync(plan, cancellationToken);
-				return;
-			}
-			int groupCount = (int)_sendGroupCount.Value;
-			int restMilliseconds = (int)_groupRestMilliseconds.Value;
-			for (int group = 0; group < groupCount; group++)
-			{
-				for (int index = 0; index < requests.Count; index++)
-				{
-					if (index > 0)
-					{
-						await Task.Delay(200, cancellationToken);
-					}
-					cancellationToken.ThrowIfCancellationRequested();
-					await _commandSender.SendAsync(requests[index], cancellationToken);
-				}
-				if (group < groupCount - 1)
-				{
-					_status.Text = string.Format("第 {0}/{1} 组已结束，休息 {2}ms 后发送下一组。", group + 1, groupCount, restMilliseconds);
-					await Task.Delay(restMilliseconds, cancellationToken);
-				}
-			}
+			var steps = AolaSendRequestParser.ParseSequence(_sendInput.Text);
+			await _textSequenceRunner.RunAsync(steps, (int)_sendGroupCount.Value,
+				(int)_groupRestMilliseconds.Value, cancellationToken);
 		}
 		catch (OperationCanceledException)
 		{
-			if (Volatile.Read(ref _closed) == 0) _status.Text = "发送已停止；已提交给 Flash 的消息无法撤回。";
+			if (Volatile.Read(ref _closed) == 0) _status.Text = "文本序列已停止；Flash 自动战斗继续，已提交的消息无法撤回。";
 		}
 		catch (Exception ex) when (ex is JsonException || ex is InvalidOperationException || ex is ArgumentException)
 		{
-			MessageBox.Show(this, ex.Message, "#send 格式错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			MessageBox.Show(this, ex.Message, "文本序列停止", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 		}
 		finally
 		{
@@ -684,9 +642,8 @@ internal sealed class AolaPacketsForm : AolaFormBase
 			if (Volatile.Read(ref _closed) == 0 && !IsDisposed)
 			{
 				_sendButton.Enabled = true;
-				_battleStateMode.Enabled = true;
-				_sendGroupCount.Enabled = !_battleStateMode.Checked;
-				_groupRestMilliseconds.Enabled = !_battleStateMode.Checked;
+				_sendGroupCount.Enabled = true;
+				_groupRestMilliseconds.Enabled = true;
 				_stopSendButton.Enabled = false;
 			}
 		}

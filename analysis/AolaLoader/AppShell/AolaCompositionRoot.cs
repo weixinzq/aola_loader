@@ -45,6 +45,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 	private readonly AolaBrowserSession _browserSession;
 	private readonly IPageBridge _pageBridge;
 	private readonly IAolaCommandSender _commandSender;
+	private readonly AolaLoader.Features.Battle.Replay.AolaExecutionState _executionState;
+	private readonly AolaTextSequenceRunner _textSequenceRunner;
 	private readonly LineupCoordinator _lineupCoordinator;
 	private readonly ChildWindowCoordinator _childWindowCoordinator;
 	private bool _disposed;
@@ -115,6 +117,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 			_resourceRequestHandler);
 		// 生产主动发送只通过 PageBridge 复用当前 Flash 原连接。
 		_commandSender = new AolaFlashCommandSender(_pageBridge);
+		_executionState = new AolaLoader.Features.Battle.Replay.AolaExecutionState(_packetEventSource);
+		_textSequenceRunner = new AolaTextSequenceRunner(_packetEventSource, _executionState, _commandSender, new BattleBridgeClient(_pageBridge));
 		// 阵容功能需要发送、匹配收发 packet，并在活动战斗中拒绝操作。
 		_lineupCoordinator = new LineupCoordinator(_packetEventSource, _commandSender, _battleTracker);
 		// 统一复用和释放抓包、战斗、形态、阵容等子窗口。
@@ -135,7 +139,8 @@ internal sealed class AolaCompositionRoot : IDisposable
 			_petMorphCoordinator, // 背包/海报形态规则
 			_battlePresentationCoordinator, // 战斗表现和模型规则
 			_childWindowCoordinator, // 子窗口复用及生命周期
-			_lineupCoordinator); // 阵容读取和恢复
+			_lineupCoordinator,
+			_textSequenceRunner); // 统一文本序列执行
 	}
 
 	public AolaMainForm MainForm { get; }
@@ -150,6 +155,7 @@ internal sealed class AolaCompositionRoot : IDisposable
 		// 按依赖关系从上层消费者向下层基础设施释放，最后停止 Hook 控制器。
 		_battlePerformanceRecorder.Dispose();
 		_childWindowCoordinator.Dispose();
+		_executionState.Dispose();
 		_pageBridge.Dispose();
 		_browserSession.Dispose();
 		_browser.Dispose();
