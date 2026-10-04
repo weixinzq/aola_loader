@@ -142,6 +142,26 @@ internal sealed class AolaPageBridge : IPageBridge
 		return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= -1;
 	}
 	try {
+		if (operation === 'theme.apply') {
+			var themeId = Number(args.themeId), themeRequest = Number(args.requestId);
+			if (!Number.isInteger(themeId) || themeId < 0 || themeId > 9 || !Number.isInteger(themeRequest) || themeRequest < 0)
+				return envelope(false, null, 'InvocationFailed', 'Invalid theme request.');
+			if (!state.theme || state.theme.requestId !== themeRequest) state.theme = { requestId: themeRequest, value: null };
+			window.aolaThemeCompleted = function (id, json) {
+				if (Number(id) !== state.theme.requestId) return false;
+				var value = JSON.parse(String(json));
+				if (value.requestId !== state.theme.requestId || value.themeId !== themeId) return false;
+				state.theme.value = value;
+				return true;
+			};
+			if (state.theme.value && (state.theme.value.status === 'Applied' || state.theme.value.status === 'Failed'))
+				return envelope(true, state.theme.value, '', '');
+			var themeFlash = findFlash('aolaThemeApply');
+			if (!themeFlash) return envelope(true, {status:'NotReady',requestId:themeRequest,themeId:themeId}, '', '');
+			var themeValue = JSON.parse(String(themeFlash.aolaThemeApply(themeId, themeRequest)));
+			state.theme.value = themeValue;
+			return envelope(true, themeValue, '', '');
+		}
 		if (operation === 'activeSend.submit') {
 			var requestId = String(args.requestId || '');
 			if (!/^[a-f0-9]{32}$/.test(requestId) ||

@@ -88,7 +88,7 @@ AolaPacketsForm
 
 ## SWF 承载与失败关闭
 
-桥位于精确版本的启动资源 `start~2107300001.swf` 的独立 FWS 副本中，只替换 `mmo.checkversion.Load`，并保留版本检查、`loader.swf` 下载及 `ApplicationDomain.currentDomain` 同域 `loadBytes` 启动链。启动桥使用字符串名称和 `hasDefinition/getDefinition` 动态解析 `ActClientSender` 与 `Panel_Helper`，不得硬 import 未加载类。背包 `newpetpackage~2026082731219998.swf` 只保留形态变化桥，不再承担发包、面板或播放设置。不得修改 `play.swf`、`controlv2.swf`，也不得覆盖官方 SWF 原件。桥只暴露白名单扩展名、32 位请求 ID、受界命令和 JSON 对象；不回传响应正文。
+桥位于精确版本的启动资源 `start~2107300001.swf` 的独立 FWS 副本中，只替换 `mmo.checkversion.Load`，并保留版本检查、`loader.swf` 下载及 `ApplicationDomain.currentDomain` 同域 `loadBytes` 启动链。启动桥使用字符串名称和 `hasDefinition/getDefinition` 动态解析 `ActClientSender` 与 `Panel_Helper`，不得硬 import 未加载类。背包 `newpetpackage~2026082731219998.swf` 只保留形态变化桥，不再承担发包、面板或播放设置。不得修改 `play.swf` 或覆盖官方 SWF 原件；2026-10-04 明确增加 `controlv2~2026082731219998.swf` 的独立主题热切换候选，仅允许主题桥及对象监听生命周期修改，详见 `THEME_SPEC.md`。启动桥新增独立的 `aolaThemeApply` 动态调用入口，不经主动发包路径、不提交主题设置命令。主动发送桥仍只暴露白名单扩展名、32 位请求 ID、受界命令和 JSON 对象；不回传响应正文。
 
 启动桥不可用、版本变化、ExternalInterface 不可用或模板校验失败时，发送失败关闭，不回退到 IPC sidecar。旧 Hook 队列即使收到请求也只返回拒绝结果。
 

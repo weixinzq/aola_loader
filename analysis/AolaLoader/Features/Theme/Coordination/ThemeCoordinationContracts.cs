@@ -1,6 +1,8 @@
 // 架构角色：定义主题选项、协调器和资源目标之间的窄接口及变更结果。
 // 数据流：UI themeId -> IThemeCoordinator -> settings store + selection target。
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using AolaLoader.Features.Theme.Settings;
 
 namespace AolaLoader.Features.Theme.Coordination;
@@ -56,19 +58,37 @@ internal sealed class ThemeChangeResult
 
 /// <summary>
 /// Theme module contract for selection, resource rule updates and Section persistence.
-/// Theme ids are in settings space: 0 = default (full pass-through), 1..9 = local template.
+/// Theme ids are in settings space: 0 = official account skin, 1..9 = local template.
 /// </summary>
 internal interface IThemeCoordinator
 {
 	IReadOnlyList<ThemeOption> Options { get; }
 
 	ThemeSettings Current { get; }
+	int RequestId { get; }
 
 	/// Applies a theme selection to the resource rule without persisting.
 	ThemeChangeResult ApplyToRule(int themeId);
 
 	/// Applies a theme selection to the resource rule and persists it to the theme Section.
 	ThemeChangeResult ApplyAndSave(int themeId);
+	Task<ThemeLiveResult> PushCurrentAsync(CancellationToken token);
+	void ResetPage();
+}
+
+internal interface IThemePushBridge
+{
+	Task<ThemeLiveResult> ApplyAsync(int themeId, int requestId, CancellationToken token);
+}
+
+internal sealed class ThemeLiveResult
+{
+	public ThemeLiveResult(string status, int requestId, int themeId, string message = null)
+	{ Status = status; RequestId = requestId; ThemeId = themeId; Message = message ?? string.Empty; }
+	public string Status { get; }
+	public int RequestId { get; }
+	public int ThemeId { get; }
+	public string Message { get; }
 }
 
 /// <summary>

@@ -82,11 +82,6 @@ internal sealed class AolaCompositionRoot : IDisposable
 			Path.Combine(baseDirectory, "Resources", "Data", "battle-pet-movie-versions.current.json"), // 战斗模型版本表
 			Path.Combine(baseDirectory, "Resources", "Patches", "newpetpackage-morph-20260919895706432-visual-v3.fws.swf"), // 形态 live bridge
 			initialPetMorph.LiveBridgeEnabled); // 是否启用形态 live bridge
-		// ThemeCoordinator 通过接口控制主题规则，不需要直接了解 CefSharp。
-		_themeCoordinator = new ThemeCoordinator(
-			settingsStore,
-			new ThemeSettingsCodec(),
-			_resourceRequestHandler);
 		// CEF 已在上面全局初始化；这里创建真正显示网页的 WinForms 浏览器控件。
 		_browser = new ChromiumWebBrowser(AolaMainForm.DefaultUrl)
 		{
@@ -104,6 +99,9 @@ internal sealed class AolaCompositionRoot : IDisposable
 		// BrowserSession 封装具体 CefSharp 控件；PageBridge 在其上提供受控页面调用。
 		_browserSession = new AolaBrowserSession(_browser);
 		_pageBridge = new AolaPageBridge(_browserSession);
+		// 主题协调器通过页面桥请求 Flash 完成切换，初始官方皮肤不拦截。
+		_themeCoordinator = new ThemeCoordinator(settingsStore, new ThemeSettingsCodec(),
+			_resourceRequestHandler, pushBridge: _resourceRequestHandler.ThemeLiveEnabled ? new ThemeBridgeClient(_pageBridge) : null);
 		// 把 packet 战斗快照与 Flash 页面诊断数据记录到性能日志。
 		_battlePerformanceRecorder = new BattlePerformanceRecorder(
 			_battleTracker,

@@ -1,8 +1,10 @@
-// 架构角色：协调主题选择的校验、资源规则应用和 theme section 持久化。
-// 数据流：themeId -> IThemeSelectionTarget；可选保存 -> ISettingsSectionStore。
+// 架构角色：协调主题选择、theme section 持久化和带请求身份的 Flash 热切换。
+// 数据流：themeId -> 资源目标/设置；最新选择 -> IThemePushBridge -> Flash 应用结果。
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using AolaLoader.Features.Theme.Settings;
 using AolaLoader.Settings;
 
@@ -29,23 +31,31 @@ internal sealed class ThemeCoordinator : IThemeCoordinator
 	private readonly IThemeSelectionTarget _target;
 	private readonly IReadOnlyList<ThemeOption> _options;
 	private ThemeSettings _current;
+	private readonly IThemePushBridge _pushBridge;
+	private int _revision;
+	private int _selectedId;
+	private ThemeLiveResult _lastPush;
 
 	public ThemeCoordinator(
 		ISettingsSectionStore store,
 		ThemeSettingsCodec codec,
 		IThemeSelectionTarget target,
-		IEnumerable<ThemeOption> options = null)
+		IEnumerable<ThemeOption> options = null,
+		IThemePushBridge pushBridge = null)
 	{
 		_store = store ?? throw new ArgumentNullException(nameof(store));
 		_codec = codec ?? throw new ArgumentNullException(nameof(codec));
 		_target = target ?? throw new ArgumentNullException(nameof(target));
 		_options = (options ?? DefaultOptions).ToArray();
 		_current = _store.Load(ThemeSettingsCodec.SectionKey, _codec).Value;
+		_selectedId = _current.SelectedThemeId;
+		_pushBridge = pushBridge;
 	}
 
 	public IReadOnlyList<ThemeOption> Options => _options;
 
 	public ThemeSettings Current => _current;
+	public int RequestId => Volatile.Read(ref _revision);
 
 	public ThemeChangeResult ApplyToRule(int themeId)
 	{
@@ -53,6 +63,8 @@ internal sealed class ThemeCoordinator : IThemeCoordinator
 		try
 		{
 			_target.SetSelectedThemeId(normalized);
+			_selectedId = normalized;
+			Interlocked.Increment(ref _revision);
 			return ThemeChangeResult.Applied(normalized, settingsSaved: false);
 		}
 		catch (Exception ex) when (IsRuleError(ex))
@@ -67,6 +79,8 @@ internal sealed class ThemeCoordinator : IThemeCoordinator
 		try
 		{
 			_target.SetSelectedThemeId(normalized);
+			_selectedId = normalized;
+			Interlocked.Increment(ref _revision);
 		}
 		catch (Exception ex) when (IsRuleError(ex))
 		{
@@ -86,6 +100,24 @@ internal sealed class ThemeCoordinator : IThemeCoordinator
 	private int Normalize(int themeId)
 	{
 		return _codec.Normalize(new ThemeSettings(themeId)).SelectedThemeId;
+	}
+
+	public void ResetPage()
+	{
+		Interlocked.Increment(ref _revision);
+		_lastPush = null;
+	}
+
+	public async Task<ThemeLiveResult> PushCurrentAsync(CancellationToken token)
+	{
+		int revision = Volatile.Read(ref _revision);
+		int themeId = _selectedId;
+		if (_pushBridge == null) return new ThemeLiveResult("RefreshRequired", revision, themeId);
+		if (_lastPush?.RequestId == revision && (_lastPush.Status == "Applied" || _lastPush.Status == "Failed")) return _lastPush;
+		ThemeLiveResult result = await _pushBridge.ApplyAsync(themeId, revision, token).ConfigureAwait(false);
+		if (revision != Volatile.Read(ref _revision)) return new ThemeLiveResult("Superseded", revision, themeId);
+		_lastPush = result;
+		return result;
 	}
 
 	private static bool IsRuleError(Exception ex)

@@ -17,6 +17,13 @@ internal static class Program
 	[STAThread]
 	private static int Main(string[] args)
 	{
+		if (args.Length == 1 && args[0] == "--theme-live-contract")
+		{
+			bool themeLivePassed = ThemeLiveContractVerifier.Verify() && ThemeCoordinatorVerifier.Verify()
+				&& BrowserHostContractVerifier.Verify() && ActiveSendContractVerifier.Verify();
+			Console.WriteLine("Theme live contract: " + (themeLivePassed ? "PASS" : "FAIL"));
+			return themeLivePassed ? 0 : 1;
+		}
 		if (args.Length == 1 && args[0] == "--text-sequence-contract")
 		{
 			bool textSequencePassed = TextSequenceContractVerifier.Verify() && ActiveSendContractVerifier.Verify();

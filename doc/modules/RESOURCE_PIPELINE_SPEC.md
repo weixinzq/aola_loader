@@ -16,7 +16,7 @@ OwnerPaths: `analysis/AolaLoader/ResourceInterception/**`
 
 `IResourceInterceptionRule.Evaluate(ResourceRequestContext)` 返回 `PassThrough`、`LocalResponse` 或 `RewriteRemote`；`ResourceRulePipeline` 采用首个非放行计划；`IRemoteResourceProbe`、`IResourceResponseTransformer` 和不可变 plan/result 表达 I/O。规则不可直接修改 Cef 请求或创建 handler。
 
-管线允许的优先级区间为 `1000..1099`、`800..899`、`600..699`，按降序评估；当前实际值为 Start bridge 1000、Battle bridge 850、Theme 800、Pet package 699、PetMovie 698、BattlePetMovie/Poster 697。两条 697 规则拥有不同路径；若同一请求在同优先级多命中，必须诊断并放行。区间外值由构造函数拒绝。
+管线允许的优先级区间为 `1000..1099`、`800..899`、`600..699`，按降序评估；当前实际值为 Start bridge 1000、Battle bridge 850、Theme control bridge 801、Theme 800、Pet package 699、PetMovie 698、BattlePetMovie/Poster 697。两条 697 规则拥有不同路径；若同一请求在同优先级多命中，必须诊断并放行。区间外值由构造函数拒绝。
 
 ## 输入与输出
 
@@ -59,6 +59,8 @@ WinForms、具体 Form、AolaMainForm、PacketHost、协议解析、可变模块
 Theme、PetMorph 现有分支全部成为独立规则；入口只做适配/管线执行；默认与替换 Flash 路径实测通过。
 
 ## 已知限制
+
+主题热切换的 `ThemeControlBridgeResourceRule` 只替换当前官方 `aola.100bt.com/play/control/controlv2~2026082731219998.swf` 的 GET 请求。`ThemeLeafResourceRule` 在热切换模式下只返回 `/play/aola-helper/theme/skin1..9.swf` 的独立命名空间候选，账号官方皮肤请求始终放行。原件与原主题模板不覆盖；本次明确允许 controlv2 的主题桥及对象监听生命周期补丁，不涉及主题设置协议、连接或登录。环境变量 `AOLA_THEME_LIVE_BRIDGE=0` 在进程启动时关闭这两项增量路径，恢复原叶子替换/刷新语义。启动桥另增加 `aolaThemeApply`，原加载链保留。热切换实机验收待完成。
 
 框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Start bridge、Battle bridge、Theme、Pet package、PetMovie、BattlePetMovie 与 Poster 是独立规则。Start bridge 只精确替换 `start~2107300001.swf`，提供 `aolaSendCommand`、`aolaOpenPanel` 与 `aolaSetPlayback`；Pet package 只精确替换当前 `newpetpackage~2026082731219998.swf` 并仅保留形态桥。
 

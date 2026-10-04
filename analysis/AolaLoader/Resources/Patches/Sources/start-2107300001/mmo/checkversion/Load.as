@@ -114,6 +114,7 @@ package mmo.checkversion
                ExternalInterface.addCallback("aolaSendCommand",this.onAolaSendCommand);
                ExternalInterface.addCallback("aolaOpenPanel",this.onAolaOpenPanel);
                ExternalInterface.addCallback("aolaSetPlayback",this.onAolaSetPlayback);
+               ExternalInterface.addCallback("aolaThemeApply",this.onAolaThemeApply);
                _aolaBridgeRegistered = true;
             }
          }
@@ -122,6 +123,28 @@ package mmo.checkversion
          }
       }
       
+      private function onAolaThemeApply(themeId:int, requestId:int) : String
+      {
+         var result:Object = {status:"NotReady",themeId:themeId,requestId:requestId,message:""};
+         if(themeId < 0 || themeId > 9 || requestId < 0)
+         {
+            result.status = "Failed"; result.message = "Invalid theme request.";
+            return JSON.stringify(result);
+         }
+         try
+         {
+            var name:String = "mmo.controlv2.controlbarskin.ControlBarSkinHandler";
+            if(!ApplicationDomain.currentDomain.hasDefinition(name)) return JSON.stringify(result);
+            var handler:Object = ApplicationDomain.currentDomain.getDefinition(name);
+            return handler.applyTheme(themeId,requestId);
+         }
+         catch(error:Error)
+         {
+            result.status = "Failed"; result.message = error.message;
+            return JSON.stringify(result);
+         }
+      }
+
       private function onAolaSendCommand(param1:String, param2:String, param3:String, param4:String) : String
       {
          var parameters:Object = null;

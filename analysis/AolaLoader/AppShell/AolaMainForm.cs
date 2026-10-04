@@ -47,6 +47,9 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly ToolStripDropDownButton _qualityMenu = new ToolStripDropDownButton("画质");
 	private readonly System.Windows.Forms.Timer _injectTimer = new System.Windows.Forms.Timer();
 	private readonly System.Windows.Forms.Timer _battleMorphTimer = new System.Windows.Forms.Timer();
+	private readonly System.Windows.Forms.Timer _themeTimer = new System.Windows.Forms.Timer();
+	private bool _themePushInProgress;
+	private string _themeStatusKey;
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
 	private readonly IThemeCoordinator _themeCoordinator;
 	private readonly IPetMorphCoordinator _petMorphCoordinator;
@@ -113,6 +116,15 @@ internal sealed class AolaMainForm : AolaFormBase
 			_themeCoordinator.Current.SelectedThemeId);
 		UpdateThemeSelection(restoredTheme.RuleApplied ? restoredTheme.AppliedThemeId : 0);
 		_petMorphCoordinator.RestoreFromSavedSettings();
+		_themeTimer.Interval = 500;
+		_themeTimer.Tick += async delegate
+		{
+			if (_themePushInProgress || _isClosing) return;
+			_themePushInProgress = true;
+			try { UpdateThemeStatus(await _themeCoordinator.PushCurrentAsync(CancellationToken.None)); }
+			finally { _themePushInProgress = false; }
+		};
+		_themeTimer.Start();
 		_browserSession.PageLifecycleChanged += OnBrowserLifecycleChanged;
 		_browser.FrameLoadEnd += BrowserFrameLoadEnd;
 		_browser.ClientSizeChanged += BrowserClientSizeChanged;
@@ -188,6 +200,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		_injectTimer.Dispose();
 		_battleMorphTimer.Stop();
 		_battleMorphTimer.Dispose();
+		_themeTimer.Stop();
+		_themeTimer.Dispose();
 		_childWindowCoordinator.Dispose();
 		base.OnFormClosed(e);
 	}
@@ -265,9 +279,8 @@ internal sealed class AolaMainForm : AolaFormBase
 		}
 		if (result.Succeeded)
 		{
-			_status.Text = themeId == 0
-				? "已恢复默认主题并保存；刷新页面后生效"
-				: "已启用并保存主题：" + themeName + "；刷新页面后生效";
+			_themeMenu.Text = "游戏主题界面（等待应用）";
+			_themeMenu.ToolTipText = "主题选择已保存，等待 Flash 完成切换。";
 			return;
 		}
 		_status.Text = (result.RuleApplied ? "主题设置保存失败：" : "主题资源替换失败：") + result.Error;
@@ -283,6 +296,27 @@ internal sealed class AolaMainForm : AolaFormBase
 		{
 			entry.Value.Checked = entry.Key == themeId;
 		}
+	}
+
+	private void UpdateThemeStatus(ThemeLiveResult result)
+	{
+		if (_isClosing || IsDisposed || result.Status == "Superseded" || result.RequestId != _themeCoordinator.RequestId) return;
+		string key = result.RequestId + ":" + result.Status;
+		if (key == _themeStatusKey) return;
+		_themeStatusKey = key;
+		string text;
+		switch (result.Status)
+		{
+			case "Applied": text = "已应用"; break;
+			case "WaitingBattleEnd": text = "等待战斗结束"; break;
+			case "NotReady": text = "等待控制栏就绪"; break;
+			case "Loading": text = "加载中"; break;
+			case "RefreshRequired": text = "刷新后生效"; break;
+			default: text = "切换失败"; break;
+		}
+		_themeMenu.Text = "游戏主题界面（" + text + "）";
+		_themeMenu.ToolTipText = result.Message.Length > 0 ? result.Message : text;
+		_status.Text = "主题：" + text + (result.Message.Length > 0 ? "；" + result.Message : "");
 	}
 
 	private void ShowPetMorphPanel()
@@ -572,6 +606,7 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private void OnBrowserLifecycleChanged(BrowserPageLifecycleEvent value)
 	{
+		if (value.Kind == BrowserPageLifecycleKind.NavigationStarted) _themeCoordinator.ResetPage();
 		if (IsDisposed)
 		{
 			return;

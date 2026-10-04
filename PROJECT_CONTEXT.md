@@ -30,7 +30,7 @@ Aola Loader 是受控站点上的旧版奥拉星 Flash 桌面宿主，提供登�
 
 ## SWF 与缓存规则摘要
 
-原始 SWF 永不覆盖；先复制并记录大小/SHA-256。识别 FWS/CWS/ZWS，校验声明长度和压缩布局，再用 FFDec 重读并检查文档/导出类、包、方法、`SymbolClass`、实例名和 `ApplicationDomain` 契约。优先拦截 `skinN~*.swf` 等叶子资源；默认主题不拦截，`SkinN` 仅在唯一等长标记前提下适配。不要把服务器状态命令用于本地资源替换。
+原始 SWF 永不覆盖；先复制并记录大小/SHA-256。识别 FWS/CWS/ZWS，校验声明长度和压缩布局，再用 FFDec 重读并检查文档/导出类、包、方法、`SymbolClass`、实例名和 `ApplicationDomain` 契约。优先拦截叶子资源；主题热切换明确允许当前 `controlv2~2026082731219998.swf` 的主题桥及对应对象监听生命周期补丁，默认皮肤请求放行并保留官方对象，本地皮肤通过专用 URL 与独立命名空间加载。关闭热切换时保留原 `skinN~*.swf` 唯一等长标记适配路径。不要把服务器状态命令用于本地资源替换。详见 `doc/modules/THEME_SPEC.md`。
 
 CEF 内存/磁盘缓存、Flash Loader 缓存和 ApplicationDomain 缓存是不同边界。静态成功或编译成功不证明 SWF 可运行；必须先测默认路径，再测替换、切换、关闭重开和必要的新进程路径。发生回归时保存证据并恢复默认路径。
 

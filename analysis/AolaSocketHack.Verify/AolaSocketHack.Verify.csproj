@@ -35,6 +35,8 @@
     <Compile Include="..\AolaLoader\Features\Theme\Settings\ThemeSettings.cs" Link="Features\Theme\Settings\ThemeSettings.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\Coordination\ThemeCoordinationContracts.cs" Link="Features\Theme\Coordination\ThemeCoordinationContracts.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\Coordination\ThemeCoordinator.cs" Link="Features\Theme\Coordination\ThemeCoordinator.cs" />
+    <Compile Include="..\AolaLoader\Features\Theme\Coordination\ThemeBridgeClient.cs" Link="Features\Theme\Coordination\ThemeBridgeClient.cs" />
+    <Compile Include="..\AolaLoader\Features\Theme\ResourceInterception\ThemeControlBridgeResourceRule.cs" Link="Features\Theme\ResourceInterception\ThemeControlBridgeResourceRule.cs" />
     <Compile Include="..\AolaLoader\Features\Theme\Coordination\Testing\ManualThemeSelectionTarget.cs" Link="Features\Theme\Coordination\Testing\ManualThemeSelectionTarget.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Settings\PetMorphSettings.cs" Link="Features\PetMorph\Settings\PetMorphSettings.cs" />
     <Compile Include="..\AolaLoader\Features\PetMorph\Coordination\PetMorphPushResult.cs" Link="Features\PetMorph\Coordination\PetMorphPushResult.cs" />

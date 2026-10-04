@@ -17,6 +17,9 @@
 	<Content Include="Resources\Themes\*.swf">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
+	<Content Include="Resources\Themes\Live\*.swf;Resources\Patches\controlv2-theme-live-2026082731219998.fws.swf">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
 	<Content Include="Resources\Data\pet-poster-catalog.json">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>

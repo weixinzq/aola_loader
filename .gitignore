@@ -58,6 +58,10 @@
 /analysis/reverse-engineering/
 /analysis/tools/*
 !/analysis/tools/Update-PetFightBattleBridge.ps1
+!/analysis/tools/Prepare-ThemeLiveBridge.ps1
+!/analysis/tools/theme_bridge_assets.py
+!/analysis/tools/theme/
+!/analysis/tools/theme/ControlBarTheme.methods.as
 !/analysis/tools/Add-PetFightNativeAutoBridge.ps1
 !/analysis/tools/Add-PetFightNativeAutoBridge.ps1
 !/analysis/tools/Analyze-BattleResourceTrace.ps1

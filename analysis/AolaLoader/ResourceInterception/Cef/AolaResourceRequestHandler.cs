@@ -2,6 +2,7 @@
 // 数据流：CEF request callbacks -> ResourceRulePipeline/Cef adapter -> 官方、远端改写或本地响应。
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,6 +54,10 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		bool petMorphLiveBridgeEnabled)
 	{
 		_themeRule = new ThemeLeafResourceRule(themeDirectory);
+		bool liveTheme = !string.Equals(Environment.GetEnvironmentVariable("AOLA_THEME_LIVE_BRIDGE"), "0", StringComparison.Ordinal);
+		_themeRule.LiveEnabled = liveTheme;
+		var themeBridgeRule = new ThemeControlBridgeResourceRule(
+			Path.Combine(themeDirectory, "..", "Patches", "controlv2-theme-live-2026082731219998.fws.swf"), liveTheme);
 		_startBridgeRule = new StartBridgeResourceRule(startBridgeTemplatePath);
 		_battleBridgeRule = new PetFightBattleBridgeResourceRule(battleBridgeManifestPath);
 		_battleBackgroundRule = new BattleBackgroundImageResourceRule(battleBackgroundImagePath);
@@ -69,11 +74,13 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		_resourceRuleAdapter = new CefResourceRuleAdapter(new ResourceRulePipeline(
 			new IResourceInterceptionRule[]
 			{
-				_startBridgeRule, _battleBridgeRule, _battleBackgroundRule, _themeRule, _petPackageRule,
+				_startBridgeRule, _battleBridgeRule, _battleBackgroundRule, themeBridgeRule, _themeRule, _petPackageRule,
 				_petMovieRule, _battlePetMovieRule, _petPosterRule
 			}),
 			new RemoteResourcePlanExecutor(_remoteResourceProbe, _remoteResourceFetcher));
 	}
+
+	public bool ThemeLiveEnabled => _themeRule.LiveEnabled;
 
 	string IBattleMorphRuleTarget.ValidateRule(BattleMorphRule rule)
 	{
