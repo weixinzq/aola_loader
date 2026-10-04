@@ -126,7 +126,7 @@ package mmo.checkversion
       private function onAolaThemeApply(themeId:int, requestId:int) : String
       {
          var result:Object = {status:"NotReady",themeId:themeId,requestId:requestId,message:""};
-         if(themeId < 0 || themeId > 9 || requestId < 0)
+         if(themeId < 0 || themeId > 10 || requestId < 0)
          {
             result.status = "Failed"; result.message = "Invalid theme request.";
             return JSON.stringify(result);

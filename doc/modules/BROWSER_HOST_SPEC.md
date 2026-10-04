@@ -20,7 +20,7 @@ OwnerPaths: `analysis/AolaLoader/BrowserHost/**`
 
 ## 输入与输出
 
-主题使用 `theme.apply { themeId:0..9, requestId:int }`，调用启动桥 `aolaThemeApply(themeId, requestId)`，动态进入已加载的控制栏模块。返回 `{status, requestId, themeId, message}`；异步资源完成通过 `aolaThemeCompleted(requestId,json)` 更新当前页面结果。JavaScript 及主题协调器均忽略旧请求结果，导航开始后递增请求身份并重新应用保存选择。`NotReady / Loading / WaitingBattleEnd` 可继续推送，`Applied / Failed` 为终态；不把请求提交或资源规则更新视作已应用。
+主题使用 `theme.apply { themeId:0..10, requestId:int }`，调用启动桥 `aolaThemeApply(themeId, requestId)`，动态进入已加载的控制栏模块。10 为仅支持热切换的遐蝶主题，旧模式由 Theme 协调器阻止推送并保留保存值。返回 `{status, requestId, themeId, message}`；异步资源完成通过 `aolaThemeCompleted(requestId,json)` 更新当前页面结果。JavaScript 及主题协调器均忽略旧请求结果，导航开始后递增请求身份并重新应用保存选择。`NotReady / Loading / WaitingBattleEnd` 可继续推送，`Applied / Failed` 为终态；不把请求提交或资源规则更新视作已应用。
 
 输入为受控 HTTP/HTTPS 导航及结构化桥请求；输出为生命周期事件和结构化脚本结果，不向功能模块泄露 `ChromiumWebBrowser`/`IFrame`。
 

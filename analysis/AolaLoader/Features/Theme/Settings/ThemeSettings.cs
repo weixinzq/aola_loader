@@ -20,7 +20,7 @@ internal sealed class ThemeSettingsCodec : ISettingsSectionCodec<ThemeSettings>
 {
 	public const string SectionKey = "theme";
 	public const int CurrentVersion = 1;
-	private const int MaximumThemeId = 9;
+	private const int MaximumThemeId = 10;
 
 	public ThemeSettings CreateDefault()
 	{

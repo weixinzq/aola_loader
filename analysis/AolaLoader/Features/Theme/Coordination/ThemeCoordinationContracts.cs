@@ -58,7 +58,7 @@ internal sealed class ThemeChangeResult
 
 /// <summary>
 /// Theme module contract for selection, resource rule updates and Section persistence.
-/// Theme ids are in settings space: 0 = official account skin, 1..9 = local template.
+/// Theme ids are in settings space: 0 = official account skin, 1..10 = local theme (10 requires live mode).
 /// </summary>
 internal interface IThemeCoordinator
 {

@@ -24,7 +24,7 @@ internal static class ThemeCoordinatorVerifier
 				VerifyApplyAndSavePreservesUnknownFields(root) &&
 				VerifyRuleRejectionDoesNotSave(root) &&
 				VerifySaveFailurePreservesFileAndSnapshot(root) &&
-				VerifyRestoreFromSavedSection(root);
+				VerifyRestoreFromSavedSection(root) && VerifyTheme10LegacyMode(root);
 		}
 		finally
 		{
@@ -195,6 +195,27 @@ internal static class ThemeCoordinatorVerifier
 	{
 		byte[] bytes = File.ReadAllBytes(path);
 		return bytes.Length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf;
+	}
+
+	private static bool VerifyTheme10LegacyMode(string root)
+	{
+		string path = Path.Combine(root, "theme10.json");
+		WriteJson(path, new JObject { ["DocumentVersion"] = 1, ["Sections"] = new JObject
+		{
+			["theme"] = new JObject { ["Version"] = 1, ["SelectedThemeId"] = 10, ["UnknownThemeField"] = "keep" }
+		} });
+		byte[] before = File.ReadAllBytes(path);
+		var codec = new ThemeSettingsCodec();
+		var target = new ManualThemeSelectionTarget();
+		var coordinator = new ThemeCoordinator(new JsonSettingsSectionStore(path), codec, target);
+		return codec.Normalize(new ThemeSettings(10)).SelectedThemeId == 10 &&
+			codec.Serialize(new ThemeSettings(10)).Value<int>("SelectedThemeId") == 10 &&
+			codec.Serialize(new ThemeSettings(10)).Value<int>("Version") == 1 &&
+			codec.Normalize(new ThemeSettings(11)).SelectedThemeId == 0 &&
+			coordinator.Current.SelectedThemeId == 10 && coordinator.Options.All(option => option.Id != 10) &&
+			!coordinator.ApplyToRule(10).RuleApplied && !coordinator.ApplyAndSave(10).Succeeded &&
+			coordinator.PushCurrentAsync(System.Threading.CancellationToken.None).GetAwaiter().GetResult().Status == "Unavailable" &&
+			target.AppliedIds.Count == 0 && before.SequenceEqual(File.ReadAllBytes(path));
 	}
 
 	private static void WriteJson(string path, JObject value)

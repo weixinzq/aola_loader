@@ -54,7 +54,8 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		bool petMorphLiveBridgeEnabled)
 	{
 		_themeRule = new ThemeLeafResourceRule(themeDirectory);
-		bool liveTheme = !string.Equals(Environment.GetEnvironmentVariable("AOLA_THEME_LIVE_BRIDGE"), "0", StringComparison.Ordinal);
+		// 热切换候选已有登录加载回归；正常启动使用官方 controlv2，仅显式测试时启用。
+		bool liveTheme = string.Equals(Environment.GetEnvironmentVariable("AOLA_THEME_LIVE_BRIDGE"), "1", StringComparison.Ordinal);
 		_themeRule.LiveEnabled = liveTheme;
 		var themeBridgeRule = new ThemeControlBridgeResourceRule(
 			Path.Combine(themeDirectory, "..", "Patches", "controlv2-theme-live-2026082731219998.fws.swf"), liveTheme);

@@ -312,6 +312,7 @@ internal sealed class AolaMainForm : AolaFormBase
 			case "NotReady": text = "等待控制栏就绪"; break;
 			case "Loading": text = "加载中"; break;
 			case "RefreshRequired": text = "刷新后生效"; break;
+			case "Unavailable": text = "遐蝶主题不可用，需热切换"; break;
 			default: text = "切换失败"; break;
 		}
 		_themeMenu.Text = "游戏主题界面（" + text + "）";

@@ -144,7 +144,7 @@ internal sealed class AolaPageBridge : IPageBridge
 	try {
 		if (operation === 'theme.apply') {
 			var themeId = Number(args.themeId), themeRequest = Number(args.requestId);
-			if (!Number.isInteger(themeId) || themeId < 0 || themeId > 9 || !Number.isInteger(themeRequest) || themeRequest < 0)
+			if (!Number.isInteger(themeId) || themeId < 0 || themeId > 10 || !Number.isInteger(themeRequest) || themeRequest < 0)
 				return envelope(false, null, 'InvocationFailed', 'Invalid theme request.');
 			if (!state.theme || state.theme.requestId !== themeRequest) state.theme = { requestId: themeRequest, value: null };
 			window.aolaThemeCompleted = function (id, json) {

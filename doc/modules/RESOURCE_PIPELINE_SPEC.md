@@ -60,7 +60,7 @@ Theme、PetMorph 现有分支全部成为独立规则；入口只做适配/管�
 
 ## 已知限制
 
-主题热切换的 `ThemeControlBridgeResourceRule` 只替换当前官方 `aola.100bt.com/play/control/controlv2~2026082731219998.swf` 的 GET 请求。`ThemeLeafResourceRule` 在热切换模式下只返回 `/play/aola-helper/theme/skin1..9.swf` 的独立命名空间候选，账号官方皮肤请求始终放行。原件与原主题模板不覆盖；本次明确允许 controlv2 的主题桥及对象监听生命周期补丁，不涉及主题设置协议、连接或登录。环境变量 `AOLA_THEME_LIVE_BRIDGE=0` 在进程启动时关闭这两项增量路径，恢复原叶子替换/刷新语义。启动桥另增加 `aolaThemeApply`，原加载链保留。热切换实机验收待完成。
+主题热切换的 `ThemeControlBridgeResourceRule` 只替换当前官方 `aola.100bt.com/play/control/controlv2~2026082731219998.swf` 的 GET 请求。`ThemeLeafResourceRule` 在热切换模式下只返回 `/play/aola-helper/theme/skin1..10.swf` 的独立命名空间候选，账号官方皮肤请求始终放行。原件与原主题模板不覆盖；本次明确允许 controlv2 的主题桥及对象监听生命周期补丁，不涉及主题设置协议、连接或登录。当前候选已有刚登录加载卡住和 `Error #1065` 的实机回归，正常启动关闭这两项增量路径、放行官方 controlv2，使用原叶子替换/刷新语义；仅 `AOLA_THEME_LIVE_BRIDGE=1` 显式启用候选测试。主题 10 仅热切换可用，旧模式不返回它的专用资源、不作等长模板适配，保存值 10 不重写。启动桥 `aolaThemeApply` 接受 0～10，原加载链保留。失败候选保留；用户已确认恢复版可进入游戏，修复候选的登录及热切换实机验收仍待完成，独立测试入口见 THEME_SPEC。
 
 框架无关 `ResourceRulePipeline`、受界响应处理、SWF 头验证、HTTP 探测/抓取、TTL 缓存和 Cef 适配均已实现；Start bridge、Battle bridge、Theme、Pet package、PetMovie、BattlePetMovie 与 Poster 是独立规则。Start bridge 只精确替换 `start~2107300001.swf`，提供 `aolaSendCommand`、`aolaOpenPanel` 与 `aolaSetPlayback`；Pet package 只精确替换当前 `newpetpackage~2026082731219998.swf` 并仅保留形态桥。
 

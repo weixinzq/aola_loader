@@ -19,7 +19,7 @@ internal sealed class ThemeLeafResourceRule : IResourceInterceptionRule
 		@"^/play/control/controlbarskin/skin(?<id>[0-9])(?:~[^/]*)?\.swf$",
 		RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 	private readonly ThemeTemplate[] _themes = new ThemeTemplate[10];
-	private readonly byte[][] _liveThemes = new byte[10][];
+	private readonly byte[][] _liveThemes = new byte[11][];
 	public bool LiveEnabled { get; set; }
 	private int _selectedThemeId = -1;
 
@@ -32,8 +32,11 @@ internal sealed class ThemeLeafResourceRule : IResourceInterceptionRule
 			{
 				TryAddTemplate(themeId, File.ReadAllBytes(path));
 			}
+		}
+		for (int themeId = 1; themeId < _liveThemes.Length; themeId++)
+		{
 			string livePath = Path.Combine(themeDirectory ?? string.Empty, "Live", "skin" + themeId + ".swf");
-			if (themeId > 0 && File.Exists(livePath)) _liveThemes[themeId] = File.ReadAllBytes(livePath);
+			if (File.Exists(livePath)) _liveThemes[themeId] = File.ReadAllBytes(livePath);
 		}
 	}
 
@@ -66,11 +69,13 @@ internal sealed class ThemeLeafResourceRule : IResourceInterceptionRule
 		get => Volatile.Read(ref _selectedThemeId);
 		set
 		{
-			if (value < -1 || value >= _themes.Length)
+			if (value < -1 || value >= _liveThemes.Length)
 			{
 				throw new ArgumentOutOfRangeException(nameof(value));
 			}
-			if (value >= 0 && _themes[value] == null)
+			if (value == 10 && !LiveEnabled)
+				throw new InvalidOperationException("遐蝶主题仅支持热切换。");
+			if (value == 10 ? _liveThemes[value] == null : value >= 0 && _themes[value] == null)
 			{
 				throw new InvalidOperationException("Theme " + value + " does not have a verified local SWF.");
 			}
@@ -87,7 +92,7 @@ internal sealed class ThemeLeafResourceRule : IResourceInterceptionRule
 		int selectedThemeId = SelectedThemeId;
 		if (LiveEnabled)
 		{
-			Match live = Regex.Match(request.Path, @"^/play/aola-helper/theme/skin([1-9])\.swf$");
+			Match live = Regex.Match(request.Path, @"^/play/aola-helper/theme/skin([1-9]|10)\.swf$");
 			if (request.Method == "GET" && request.Host == "aola.100bt.com" && live.Success)
 			{
 				int id = int.Parse(live.Groups[1].Value);
@@ -97,7 +102,7 @@ internal sealed class ThemeLeafResourceRule : IResourceInterceptionRule
 			}
 			return ResourceInterceptionPlan.PassThrough(request.OriginalUrl);
 		}
-		if (selectedThemeId < 0 || request.Method != "GET" ||
+		if (selectedThemeId < 0 || selectedThemeId == 10 || request.Method != "GET" ||
 			!string.Equals(request.Host, "aola.100bt.com", StringComparison.OrdinalIgnoreCase))
 		{
 			return ResourceInterceptionPlan.PassThrough(request.OriginalUrl);

@@ -96,7 +96,7 @@
          }
          if(_aolaStatus == "Failed") return themeResult(_aolaStatus,_aolaRequest,_aolaWantedTheme);
          var current:ControlBarSkinBase = getCurrentSkin();
-         var fight:Object = ServiceContainer.getService(flash.utils.getDefinitionByName("mmo.interfaces.pet.fight.IPetFight"));
+         var fight:Object = ServiceContainer.getService(getDefinitionByName("mmo.interfaces.pet.fight.IPetFight"));
          if(fight != null && fight.isFighting()) return themeResult("WaitingBattleEnd",requestId,themeId);
          if(current == null || current.stage == null) return themeResult("NotReady",requestId,themeId);
          for(var ancestor:flash.display.DisplayObject = current.controlBarView; ancestor != null; ancestor = ancestor.parent)

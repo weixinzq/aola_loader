@@ -19,7 +19,7 @@ def u30(value):
     return bytes(result)
 
 
-def rename_abc(data, prefix):
+def rename_abc(data, prefix, root_name=None):
     reader = Reader(data)
     reader.take(4)
     for width in (None, None, 8):
@@ -33,6 +33,8 @@ def rename_abc(data, prefix):
     renamed = []
     for value in values:
         text = value.decode('utf-8', errors='replace')
+        if root_name and text == 'Skin9':
+            value = root_name.encode('utf-8')
         if (text.startswith('skin') and '_fla' in text or text == 'mmo.controlv2.controlbarskin.skin'
                 or text == 'mmo.control' or text.startswith('mmo.control.')):
             value = (prefix + '.' + text).encode('utf-8')
@@ -40,7 +42,7 @@ def rename_abc(data, prefix):
     return data[:start] + u30(count) + b''.join(renamed) + data[end:]
 
 
-def theme_asset(source, target, theme):
+def theme_asset(source, target, theme, root_name=None):
     _, fws = decode_swf(source.read_bytes())
     reader = Reader(fws)
     reader.take(8)
@@ -57,7 +59,7 @@ def theme_asset(source, target, theme):
         body = reader.take(length)
         if code == 82:
             split = body.index(b'\0', 4) + 1
-            body = body[:split] + rename_abc(body[split:], prefix)
+            body = body[:split] + rename_abc(body[split:], prefix, root_name)
         elif code == 76:
             sr = Reader(body)
             count = sr.u16()
@@ -68,6 +70,8 @@ def theme_asset(source, target, theme):
                 while sr.u8() != 0:
                     pass
                 name = body[begin:sr.offset - 1].decode('utf-8')
+                if root_name and name == 'mmo.controlv2.controlbarskin.skin.Skin9':
+                    name = 'mmo.controlv2.controlbarskin.skin.' + root_name
                 if name.startswith('skin') or name.startswith('mmo.controlv2.controlbarskin.skin.') or name.startswith('mmo.control.'):
                     name = prefix + '.' + name
                 parts.append(struct.pack('<H', identifier) + name.encode('utf-8') + b'\0')
@@ -77,6 +81,23 @@ def theme_asset(source, target, theme):
     result = result[:4] + struct.pack('<I', len(result)) + result[8:]
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(result)
+
+
+def handler_binding_patches(source, target):
+    """Restore the official interface-qualified call after AS3 recompilation."""
+    text = source.read_text(encoding='utf-8-sig')
+    target.mkdir(parents=True, exist_ok=True)
+    for signature, name in (('public function ControlBarSkinHandler(', '$iinit'),
+                            ('public function refreshUsingControlBarSkin(', 'refreshUsingControlBarSkin')):
+        method = text[text.index(signature):]
+        method = method[re.search(r'(?m)^\s*method\s*$', method).start():]
+        method = method[:re.search(r'(?m)^\s*end ; method\s*$', method).end()]
+        method, count = re.subn(r'callproperty Multiname\("getUsingSkinId",[^\n]+\), 0',
+            'callproperty QName(Namespace("mmo.interfaces.material.controlbarskin:IControlBarSkinService"),"getUsingSkinId"), 0', method)
+        assert count == 1
+        (target / (name.replace('$', '') + '.pcode')).write_text(
+            '\n'.join(line.strip() for line in method.splitlines()) + '\n', encoding='utf-8')
+        print(name)
 
 
 def listener_patches(source, target):
@@ -126,12 +147,15 @@ def listener_patches(source, target):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=['theme', 'listeners'])
+    parser.add_argument('mode', choices=['theme', 'listeners', 'handler-bindings'])
     parser.add_argument('source', type=Path)
     parser.add_argument('target', type=Path)
     parser.add_argument('--theme', type=int)
+    parser.add_argument('--root-name')
     args = parser.parse_args()
     if args.mode == 'theme':
-        theme_asset(args.source, args.target, args.theme)
+        theme_asset(args.source, args.target, args.theme, args.root_name)
+    elif args.mode == 'handler-bindings':
+        handler_binding_patches(args.source, args.target)
     else:
         listener_patches(args.source, args.target)

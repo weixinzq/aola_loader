@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>遐蝶 · 紫夜蝶影 — T1 视觉预览</title>
+<style>
+:root{color-scheme:dark;--night:#171323;--panel:#29223e;--mist:#a994d1;--silver:#eae6f3}
+*{box-sizing:border-box}body{margin:0;padding:40px;background:#100e17;color:var(--silver);font-family:'Microsoft YaHei',sans-serif}
+main{max-width:1060px;margin:auto}header{display:flex;align-items:end;justify-content:space-between;margin-bottom:22px}h1{font-size:30px;font-weight:500;letter-spacing:3px;margin:9px 0}h2{font-size:19px;font-weight:500;margin:32px 0 16px}.eyebrow{font-size:11px;letter-spacing:4px;color:#ac9cce}.muted{font-size:13px;line-height:1.9;color:#a79bb9}.tag{padding:7px 12px;border:1px solid #534365;border-radius:3px;font-size:12px;color:#c2b3da}.toolbar{display:flex;gap:10px;margin:17px 0}button{font-family:inherit;color:#ddd3ef;background:#29223e;border:1px solid #5b4b74;padding:8px 16px;border-radius:4px;cursor:pointer}button:hover{background:#3c3155}.canvas-shell{border:1px solid #584b70;width:964px;box-shadow:0 12px 45px #0007}#viewport{position:relative;width:962px;height:560px;overflow:hidden;background:#20212a}svg{display:block}#scene{position:absolute;inset:0;background:radial-gradient(ellipse at 60% 44%,#363945 0,#252831 43%,#1c1e27 100%)}#scene:before{content:'';position:absolute;inset:90px 170px 125px 260px;border:1px solid #d5ccdf13;border-radius:48%}.scene-label{position:absolute;left:355px;top:242px;font-size:15px;letter-spacing:3px;color:#bcc1cf60}.scene-note{position:absolute;left:375px;top:277px;font-size:11px;color:#a4a8b44d;letter-spacing:1px}.skin-svg,.effects{position:absolute;inset:0;pointer-events:none}.game-button{position:absolute;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:0;border:0;background:transparent;cursor:pointer}.game-button .tile{position:absolute;inset:0;overflow:visible}.game-button .icon{position:relative;z-index:1;width:25px;height:25px;margin-top:1px;color:#dfd6ed}.game-button .label{z-index:1;position:relative;font-size:13px;font-weight:600;text-shadow:0 1px 3px #08050e;margin-top:3px;white-space:nowrap}.game-button:hover{background:transparent}.game-button:hover .face{fill:url(#hover);stroke:#f0e4ff}.game-button:active .face{fill:#20172f;stroke:#ab8bdc}.game-button:active .icon,.game-button:active .label{transform:translateY(1px)}.tiny .icon{width:13px;height:13px;margin:0}.tiny .label{display:none}.map-btn .label{font-size:23px;letter-spacing:5px;margin:0}.map-btn .icon{width:25px;height:25px;margin:1px 0 7px}.pet-btn .icon{width:34px;height:34px}.pet-btn .label{font-size:16px}.portrait{position:absolute;left:10.3px;top:408.85px;width:109px;height:125px;pointer-events:none}.portrait img{position:absolute;left:15px;top:6px;width:80px;height:96px;object-fit:cover;clip-path:polygon(15% 0,85% 0,100% 15%,100% 83%,75% 100%,25% 100%,0 83%,0 15%)}.portrait .caption{position:absolute;top:104px;width:109px;text-align:center;font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000}.portrait .ornament{position:absolute;inset:0}.info{position:absolute;left:0;top:0;width:253px;height:76px;pointer-events:none}.info .avatar{position:absolute;left:12px;top:8px;width:53px;height:53px;border:1px solid #a994d180;border-radius:50%;background:#383045;color:#ccbfdf;display:grid;place-content:center;text-align:center;font-size:11px;line-height:1.5}.info .name{position:absolute;left:84.9px;top:26.95px;font-size:12px;color:#eae6f3}.info .power{position:absolute;left:90px;top:7px;font-size:10px;color:#ad9dc3}.info .settings{position:absolute;left:82px;top:47px;display:flex;gap:4px}.info .settings span{display:grid;place-content:center;width:18px;height:18px;border:1px solid #9d88bc75;background:#30253f;font-size:10px;border-radius:50%}.weekly{position:absolute;left:792px;top:408px;width:163px;height:62px;pointer-events:none}.weekly span{position:absolute;top:21px;left:18px;letter-spacing:1px;font-size:12px}.extra-label{position:absolute;font-size:10px;color:#c5b8d6}.chat{position:absolute;left:0;top:0;width:374px;height:487px;display:none;z-index:4;pointer-events:none}.chat .panel{position:absolute;left:0;top:0;width:371px;height:487px;background:linear-gradient(105deg,#171323f5,#29223ef4);border:1px solid #b19cca80;border-radius:0 14px 5px 0;box-shadow:5px 0 12px #0004}.chat .tabs{position:absolute;top:45px;left:9px;display:flex;flex-direction:column;gap:12px}.chat .tab{width:45px;height:32px;display:grid;place-content:center;font-size:11px;color:#b8a6d0;background:#342942;border:1px solid #76628d}.chat .tab:first-child{color:#f5efff;background:#57406b;border-color:#d5c5eb}.chat .title{position:absolute;left:66px;top:12px;font-size:13px;letter-spacing:2px}.chat .close{position:absolute;left:346px;top:9px;font-size:14px;color:#cbbbde}.chat .messages{position:absolute;left:66px;top:95px;width:282px;line-height:2.6;font-size:12px;color:#d3c7e3}.chat .channel{color:#b6a0d1}.chat .announce{position:absolute;left:63px;top:43px;border-top:1px solid #74618c70;border-bottom:1px solid #74618c70;padding:5px 7px;width:293px;font-size:11px;color:#ad9ebd}.chat .divider{position:absolute;top:82px;left:58px;width:1px;height:392px;background:linear-gradient(transparent,#79618f,#79618f20)}.chat-input{position:absolute;left:24.15px;top:484.65px;width:330px;height:31px;z-index:5;display:none;align-items:center;background:#211a30;border:1px solid #a48ac580;color:#eae6f3}.chat-input .channel{position:absolute;left:0;top:8px;font-size:9px;padding-left:2px}.chat-input .text{position:absolute;left:53px;top:9px;font-size:11px}.chat-input .send{position:absolute;left:279.3px;top:6.25px;width:50.5px;height:24.5px;border:1px solid #c3afd8;background:#433151;display:grid;place-content:center;font-size:12px}.chat-input .face{position:absolute;left:248px;top:9px;font-size:13px;color:#bba6d8}.notes{display:flex;gap:20px;justify-content:space-between;padding:12px 0;width:962px;font-size:11px;color:#aa9abe}.palette{display:flex;gap:14px;align-items:center;margin:16px 0 24px}.swatch{display:flex;align-items:center;gap:9px;font-size:12px;color:#b7aacb}.swatch i{width:22px;height:22px;display:inline-block;border:1px solid #eae6f338;border-radius:3px}.board{width:962px;background:#1a1625;border:1px solid #504164;padding:24px;display:grid;grid-template-columns:145px repeat(4,1fr);gap:16px;align-items:center}.board .heading{text-align:center;font-size:12px;color:#b7a4d0}.board .type{font-size:13px;color:#d1c3e2}.state-cell{height:90px;position:relative;display:grid;place-content:center}.state-cell .game-button{position:relative;left:auto!important;top:auto!important}.over .face{fill:url(#hover);stroke:#f0e4ff}.down .face{fill:#20172f;stroke:#ab8bdc}.down .icon,.down .label{transform:translateY(1px)}.disabled{opacity:.43;filter:saturate(.35)}.mini-panels{width:962px;display:flex;gap:16px;margin-top:18px}.mini{width:calc((962px - 32px)/3);background:linear-gradient(120deg,#211b30,#30233d);border:1px solid #86709f;border-radius:6px;padding:14px 18px;position:relative}.mini:before{content:'◇';position:absolute;right:10px;top:9px;color:#ac8dcd;font-size:13px}.mini h3{font-size:12px;font-weight:500;letter-spacing:2px;margin:0 0 12px}.mini .item{font-size:12px;border-top:1px solid #a38dc028;padding:9px 0;color:#d6c8e6}.mini .item:first-of-type{border:0}.mini .sub{float:right;font-size:10px;color:#9985ad}footer{margin:25px 0 8px;font-size:11px;color:#91829f;line-height:1.9}
+</style>
+<style>
+.ornament-band{position:absolute;left:0;top:451.4px;width:962px;height:108.6px;overflow:hidden;pointer-events:none}.ornament-band img{position:absolute;left:0;top:-158px;width:962px;height:auto}.game-button .face{stroke-width:1.4}.game-button .filigree{opacity:.55}.game-button:hover .filigree{opacity:.9}.portrait img{left:16px;top:7px;width:78px;height:94px}.portrait .caption{letter-spacing:1px}.game-button .label{font-weight:500}
+</style>
+<style>
+.ornament-band{top:408.85px;height:151.15px}.ornament-band img{top:-98.85px}
+.game-button .tile{pointer-events:none}.game-button .icon{width:27px;height:27px;filter:drop-shadow(0 0 3px #b79bdd80)}
+.game-button .label{text-shadow:0 1px 3px #08050e,0 0 5px #171323,0 0 5px #171323}
+.game-button:hover .icon,.over .icon{color:#fff2ff;filter:drop-shadow(0 0 6px #cb9fffc0)}
+.game-button:hover .label,.over .label{color:#fff2ff}.game-button:active .icon,.down .icon{color:#ac8acb}
+.map-btn .icon{width:29px;height:29px}.pet-btn .icon{width:34px;height:34px}.tiny .icon{width:14px;height:14px}
+.portrait img{left:0;top:-3px;width:109px;height:115px;object-fit:contain;clip-path:none}.portrait .caption{top:110px;font-size:12px}
+.hover-menu{position:absolute;z-index:3;display:none;pointer-events:none}.hover-menu .row{pointer-events:auto;position:absolute;display:flex;align-items:center;justify-content:center;gap:6px;padding:0;color:#eae6f3;font-size:12px;letter-spacing:1px;background:linear-gradient(90deg,#282039f5,#594071f5);border:1px solid #ab8fc8aa;border-radius:12px;cursor:pointer}
+.hover-menu .row:hover{background:#68517c;border-color:#e7d7f9}.hover-menu .row .icon{width:14px;height:14px;margin:0;filter:none}.hover-menu.pet-menu{pointer-events:none}.hover-menu.pet-menu button{pointer-events:auto;position:absolute;inset:0;border:0;padding:0;border-radius:50%;background:radial-gradient(circle,#644b8180,#28203980 65%,transparent 70%)}.hover-menu.pet-menu .icon{width:36px;height:36px;margin:auto;color:#e4cff7;filter:drop-shadow(0 0 4px #b393d6)}
+</style>
+<style>
+.blue-entry{position:absolute;left:17.3px;top:434.45px;width:94px;height:97px;padding:0;border:0;background:transparent;cursor:pointer}.blue-entry:hover,.blue-entry:active{background:transparent}.portrait.hovered img{filter:drop-shadow(0 0 4px #c8a9e3)}.portrait.pressed img{filter:brightness(.85) drop-shadow(0 0 3px #9c76b8)}
+</style>
+<main>
+<header><div><div class="eyebrow">CASTORICE / THEME 10</div><h1>遐蝶 · 紫夜蝶影</h1><div class="muted">深紫夜色 · 银白饰边 · 静态人物与动态蝶群</div></div><span class="tag">界面微调 · 设计预览</span></header>
+<div class="canvas-shell"><div id="viewport">
+<div id="scene"><span class="scene-label">原游戏场景区域</span><span class="scene-note">此处为中性占位，不改动游戏地图</span></div>
+<svg class="skin-svg" width="962" height="560" viewBox="0 0 962 560"><defs>
+<linearGradient id="night" x2="0" y2="1"><stop stop-color="#41304f"/><stop offset=".35" stop-color="#29223e"/><stop offset="1" stop-color="#171323"/></linearGradient>
+<linearGradient id="face" x2="0" y2="1"><stop stop-color="#524060"/><stop offset=".46" stop-color="#30233f"/><stop offset="1" stop-color="#20192d"/></linearGradient>
+<linearGradient id="hover" x2="0" y2="1"><stop stop-color="#79628d"/><stop offset=".5" stop-color="#4f3a67"/><stop offset="1" stop-color="#2c203d"/></linearGradient>
+<linearGradient id="silver"><stop stop-color="#92809e"/><stop offset=".3" stop-color="#eae6f3"/><stop offset=".68" stop-color="#a994d1"/><stop offset="1" stop-color="#eae6f3"/></linearGradient>
+<radialGradient id="aura"><stop stop-color="#9573bc" stop-opacity=".27"/><stop offset="1" stop-color="#9573bc" stop-opacity="0"/></radialGradient>
+<linearGradient id="wing" x2=".6" y2="1"><stop stop-color="#f4eaff"/><stop offset=".45" stop-color="#bd95ed"/><stop offset="1" stop-color="#6d439a"/></linearGradient>
+<path id="butterfly" d="M0 0C-5-14-16-17-13-4C-18 2-12 11-2 3L0 7L2 3C12 11 18 2 13-4C16-17 5-14 0 0Z"/>
+</defs>
+<path d="M0 2H225L252 21V64L238 75H65L0 66Z" fill="url(#night)" stroke="url(#silver)" stroke-width="1"/>
+<path d="M72 2L76 65M78 45H215M215 2L239 22" fill="none" stroke="#a994d1" opacity=".45"/>
+<path d="M231 7L239 15L231 23L224 15Z" fill="#a994d1" opacity=".7"/>
+<ellipse cx="64" cy="470" rx="72" ry="70" fill="url(#aura)"/>
+</svg>
+<div class="ornament-band"><img src="ornament-concept.png" alt="银白蝶翼与深紫底栏装饰，设计候选"></div>
+<div class="info"><div class="avatar">玩家<br>头像</div><span class="power">战斗力　0000000</span><span class="name">玩家昵称</span><div class="settings"><span>♪</span><span>♥</span><span>◉</span><span>◇</span><span>≡</span><span>▣</span></div></div>
+<div class="portrait"><img src="castorice-chibi-v2.png" alt="按用户示意图制作的静态 Q 版遐蝶"><div class="caption">蓝宝石</div></div>
+<button id="blue-entry" class="blue-entry" title="蓝宝石" aria-label="蓝宝石入口"></button><div id="buttons"></div><div id="hover-menus"></div>
+<div class="weekly"><svg width="163" height="62" viewBox="0 0 163 62"><path d="M0 23L12 11H112L124 4L142 13L160 36L146 57H123L115 40H12Z" fill="url(#night)" stroke="url(#silver)"/><path d="M4 24H112M14 36H106" stroke="#a994d1" opacity=".4"/><path d="M135 19L144 35L133 46L124 35Z" fill="#a994d1" stroke="#eae6f3"/></svg><span>达人印即将重置！</span></div>
+<span class="extra-label" style="left:66px;top:536px">00:00</span>
+<svg id="effects" class="effects" width="962" height="560"><g id="motion"></g></svg>
+<div class="chat" id="chat"><div class="panel"></div><div class="title">聊天频道</div><span class="close">×</span><div class="tabs"><div class="tab">附近</div><div class="tab">世界</div><div class="tab">舰队</div><div class="tab">好友</div><div class="tab">队伍</div><div class="tab">系统</div><div class="tab">帮助</div></div><div class="announce">频道公告及游戏提示</div><div class="divider"></div><div class="messages"><div><span class="channel">[附近]</span> 玩家昵称：聊天内容预览</div><div><span class="channel">[系统]</span> 游戏提示保持清晰可读。</div><div><span class="channel">[好友]</span> 玩家昵称：一起探索吧。</div></div></div>
+<div class="chat-input" id="chat-input"><span class="channel">附近 ▾</span><span class="text">输入聊天内容…</span><span class="face">☺</span><span class="send">发送</span></div>
+</div></div>
+<div class="notes"><span>962 × 560 · 银河原布局 · 左下人物区域不扩大</span><span>6 只蝶影 · 流光与边框亮纹 · 8 秒循环 · 无声音</span></div>
+<div class="muted" id="blue-feedback" aria-live="polite"></div><div class="toolbar"><button onclick="setChat(!chatShown)">展开 / 收起聊天</button><button onclick="paused=!paused;this.textContent=paused?'继续动效':'暂停动效'">暂停动效</button><button onclick="document.getElementById('states').scrollIntoView({behavior:'smooth'})">查看按钮状态</button><button onclick="window.showHover('friends')">展示好友菜单</button><button onclick="window.showHover('pet')">展示背包快捷入口</button></div>
+<div class="palette"><span class="swatch"><i style="background:#171323"></i>深紫夜色 #171323</span><span class="swatch"><i style="background:#29223e"></i>面板 #29223E</span><span class="swatch"><i style="background:#a994d1"></i>雾紫 #A994D1</span><span class="swatch"><i style="background:#eae6f3"></i>银白 #EAE6F3</span></div>
+<h2>本轮入口样式 · 游戏中沿用原位置与功能</h2><div class="mini-panels"><div class="mini"><h3>消息盒子 · 保留原未读提醒</h3><img src="preview-external-message.png" width="66" height="70" alt="Q版遐蝶消息盒子"></div><div class="mini"><h3>场景 / 活动</h3><img src="preview-external-scene.png" width="56" height="57" alt="场景入口"> <img src="preview-external-activity.png" width="56" height="57" alt="活动入口"></div><div class="mini"><h3>组队</h3><img src="preview-external-team.png" width="78" height="24" alt="组队入口"></div></div>
+<h2>按钮状态</h2><div class="board" id="states"></div>
+<h2>悬停入口 · 移到好友、背包、图鉴、排行、舰队、家园或仓库上查看</h2><div class="mini-panels"><div class="mini"><h3>好友菜单</h3><div class="item">组队</div><div class="item">兵团</div><div class="item">师徒</div></div><div class="mini"><h3>图鉴菜单</h3><div class="item">全部</div><div class="item">皮肤</div></div><div class="mini"><h3>排行菜单</h3><div class="item">最高荣耀</div><div class="item">荣誉</div></div></div>
+<footer>本页是视觉预览，场景、昵称和玩家头像使用占位内容；游戏中保留真实账号信息。戒指使用用户指定图片，人物保持静态。<br>首充和百星入口在 SWF 中恢复原资源，本页不模拟其官方动画。下方入口样式与候选共用素材；候选的实际提醒、悬停和点击需在 Flash 中验收。</footer>
+</main>
+<script>
+const paths={
+chat:'M4 4H24V19H14L8 24V19H4ZM9 9H19M9 14H16',
+book:'M3 5Q10 2 14 6Q19 2 26 5V24Q19 21 14 25Q9 21 3 24ZM14 6V25M6 10H10M18 10H23M6 15H10M18 15H23',
+rank:'M8 3H21V9Q21 17 15 18Q8 16 8 9ZM8 6H3V9Q3 14 9 14M21 6H26V9Q26 14 20 14M15 18V24M9 25H21',
+shop:'M3 8L6 3H24L27 8V12Q23 15 21 11Q18 15 15 11Q12 15 9 11Q6 15 3 12ZM5 14V26H25V14M12 26V18H19V26',
+friends:'M10 14A5 5 0 1 0 10 4A5 5 0 1 0 10 14M3 26V22Q3 16 10 16Q17 16 17 22V26M21 13A4 4 0 1 0 21 5M20 17Q27 17 27 23V26',
+fleet:'M4 20L15 25L26 20L24 15H6ZM15 2V15M8 11L15 5L21 11ZM2 26Q8 22 15 27Q23 22 28 26',
+home:'M2 13L15 2L28 13M6 11V27H24V11M12 27V18H19V27',
+far:'M3 9L15 3L27 9V22L15 27L3 22ZM3 9L15 15L27 9M15 15V27M9 6L21 12',
+map:'M2 8L10 3L20 7L28 2V23L20 28L10 24L2 28ZM10 3V24M20 7V28',
+pet:'M5 7L4 2L12 5Q15 4 18 5L26 2L25 8Q29 13 25 23Q15 30 5 23Q1 13 5 7ZM8 15H10M20 15H22M12 21L15 23L18 21',
+skin:'M5 3L10 2Q15 8 20 2L25 3L29 9L24 12V27H6V12L1 9Z',
+action:'M15 10A4 4 0 1 0 15 2A4 4 0 1 0 15 10M15 11V20M4 13L15 15L26 13M15 20L7 28M15 20L23 28',
+shoot:'M5 3L25 24M25 3L5 24M2 27L8 25M28 27L22 25',
+service:'M5 19V13A10 10 0 0 1 25 13V19M5 12H2V22H7V13M25 12H28V22H23V13M24 22Q24 28 16 26',
+pause:'M9 4V26M21 4V26',
+nfa:'M15 2L19 10L28 11L21 18L23 27L15 23L7 27L9 18L2 11L11 10Z'};
+const specs=[['聊天',125.13,498.86,66.6,61.2,'chat'],['图鉴',193.7,498.83,66.6,61.2,'book'],['排行',256.95,498.65,66.6,61.2,'rank'],['商城',325.44,499.56,66.6,61.2,'shop'],['好友',588.95,499.4,66.6,61.2,'friends'],['舰队',657.82,499.4,66.6,61.2,'fleet'],['家园',726.64,499.39,66.6,61.2,'home'],['仓库',795.55,499.39,66.6,61.2,'far'],['地图',407.67,473.86,178.2,87,'map'],['亚比背包',855.45,466.9,103.2,93,'pet'],['主题',437.14,499.34,20.4,20.4,'skin'],['动作',548.95,518.24,20.4,20.4,'action'],['射击',413.15,517.65,20.4,20.4,'shoot'],['客服',1.95,517.45,37.2,37.2,'service'],['休息',38.49,528,18.6,19.2,'pause'],['NFA',102.94,470.07,42.08,40.78,'nfa']];
+function icon(kind){return `<svg class="icon" viewBox="0 0 30 30"><path d="${paths[kind]}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+function tile(w,h,large){return `<svg class="tile" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><ellipse cx="${w/2}" cy="${h/2-9}" rx="${w<45?9:21}" ry="${w<45?9:21}" fill="url(#aura)"/></svg>`}
+function button(spec){const [label,x,y,w,h,kind]=spec;let el=document.createElement('button');el.className='game-button '+(w<45?'tiny ':'')+(kind==='map'?'map-btn ':'')+(kind==='pet'?'pet-btn':'');el.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;el.title=label;el.dataset.kind=kind;el.innerHTML=kind==='map'?`<svg width="74" height="${h-4}" viewBox="111 31 1099 1207" style="position:absolute;left:${(w-74)/2}px;top:2px"><image href="mingdie-ring-transparent.png" width="1254" height="1254"/></svg>`:tile(w,h,false)+icon(kind)+`<span class="label">${label}</span>`;if(kind==='chat')el.onclick=()=>setChat(!chatShown);return el}
+specs.forEach(s=>document.getElementById('buttons').append(button(s)));
+let chatShown=false,paused=false,manual=false,phase=0;function setChat(shown){chatShown=shown;document.getElementById('chat').style.display=shown?'block':'none';document.getElementById('chat-input').style.display=shown?'flex':'none'}
+const board=document.getElementById('states');board.append(document.createElement('div'));['正常','悬停','按下','禁用（视觉约定）'].forEach(s=>{let e=document.createElement('div');e.className='heading';e.textContent=s;board.append(e)});[specs[0],specs[8],specs[10]].forEach(s=>{let label=document.createElement('div');label.className='type';label.textContent=s[0]+` · ${s[3]}×${s[4]}`;board.append(label);['up','over','down','disabled'].forEach(state=>{let cell=document.createElement('div');cell.className='state-cell '+state;cell.append(button(s));board.append(cell)})});
+function drawMotion(t){const p=2*Math.PI*t/8;let html=`<g transform="translate(0 33)" fill="none" stroke-linecap="round"><path d="M129 485Q267 454 395 484" stroke="#a994d1" opacity=".23"/><path d="M588 480Q720 450 844 480" stroke="#a994d1" opacity=".25"/><path d="M129 485Q267 454 395 484" stroke="#dfc4fa" stroke-width="2" stroke-dasharray="28 572" stroke-dashoffset="${-t*75}" opacity=".6"/><path d="M588 480Q720 450 844 480" stroke="#cda7ec" stroke-width="2" stroke-dasharray="28 572" stroke-dashoffset="${-t*75+300}" opacity=".65"/></g>`;html+=`<g fill="none" stroke="#e0c8f5" stroke-width="1.3" stroke-linecap="round" opacity=".6"><path d="M0 2H225L252 21V64L238 75H65L0 66" stroke-dasharray="24 576" stroke-dashoffset="${-t*75}"/></g>`;const centers=[[18,445,8,11],[107,444,8,12],[368,475,18,9],[607,473,14,10],[818,478,12,9],[942,457,10,12]];centers.forEach(([cx,cy,rx,ry],i)=>{const a=p+i*1.3,x=cx+rx*Math.cos(a),y=cy+ry*Math.sin(a)+33,flap=.62+.32*Math.cos(p*24+i);html+=`<g transform="translate(${x} ${y}) rotate(${15*Math.sin(a)}) scale(${flap*.85} .85)" opacity=".88"><use href="#butterfly" fill="url(#wing)" stroke="#d3b2ef" stroke-width=".5"/><path d="M0 -3V7" stroke="#f2e8ff" stroke-width=".7"/></g>`});for(let i=0;i<10;i++){const x=155+i*68+8*Math.cos(p+i),y=514+5*Math.sin(p+i*.8),opacity=.15+.36*(1+Math.sin(p*2+i))/2;html+=`<circle cx="${x}" cy="${y}" r="${i%3===0?1.2:.65}" fill="#e9d9ff" opacity="${opacity}"/>`}document.getElementById('motion').innerHTML=html}
+
+const hoverSpecs={
+friends:{box:[582.85,391.9,80,160],rows:[['组队',581.85,440.9,78,24,'friends'],['兵团',583.35,466.9,78,24,'fleet'],['师徒',582.85,492.95,78,24,'book']]},
+pet:{box:[833.3,452.2,50,50],rows:[]},
+book:{box:[181.75,460.7,80.31,99.33],rows:[['全部',184.06,467.13,78,24,'book'],['皮肤',183.25,491.1,78,24,'skin']]},
+rank:{box:[251.9,467.4,80.25,70.7],rows:[['最高荣耀',252.65,467.4,78,24,'rank'],['荣誉',251.9,491.1,78,24,'rank']]},
+fleet:{box:[655.3,492.95,80,48],rows:[['战队',655.4,493.05,78,24,'fleet']]},
+home:{box:[720.05,490,81.3,57.65],rows:[['订单',720.05,493.1,78,24,'book']]},
+far:{box:[788.55,493.15,80.75,50],rows:[['孵化',788.55,493.15,78,24,'pet']]}
+};
+let activeHover=null;
+for(const [key,spec] of Object.entries(hoverSpecs)){
+const [x,y,w,h]=spec.box, menu=document.createElement('div');menu.className='hover-menu '+(key==='pet'?'pet-menu':'');menu.dataset.menu=key;menu.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+if(key==='pet')menu.innerHTML=`<button title="新召唤师入口">${icon('nfa')}</button>`;
+for(const [text,rx,ry,rw,rh,kind] of spec.rows){const row=document.createElement('button');row.className='row';row.style.cssText=`left:${rx-x}px;top:${ry-y}px;width:${rw}px;height:${rh}px;`;row.innerHTML=icon(kind)+`<span>${text}</span>`;menu.append(row)}
+document.getElementById('hover-menus').append(menu);
+document.querySelector(`#buttons [data-kind="${key}"]`).addEventListener('mouseenter',()=>showHover(key));
+}
+function showHover(key){activeHover=key;document.querySelectorAll('.hover-menu').forEach(m=>m.style.display=m.dataset.menu===key?'block':'none')}
+function within(x,y,box){return x>=box[0]&&y>=box[1]&&x<=box[0]+box[2]&&y<=box[1]+box[3]}
+document.getElementById('viewport').addEventListener('mousemove',e=>{if(!activeHover)return;const view=document.getElementById('viewport').getBoundingClientRect(),x=e.clientX-view.left,y=e.clientY-view.top,spec=specs.find(s=>s[5]===activeHover);if(!within(x,y,hoverSpecs[activeHover].box)&&!within(x,y,[spec[1],spec[2],spec[3],spec[4]]))showHover(null)});
+document.getElementById('viewport').addEventListener('mouseleave',()=>showHover(null));
+window.showHover=showHover;
+const blueEntry=document.getElementById('blue-entry'),bluePortrait=document.querySelector('.portrait');
+blueEntry.addEventListener('mouseenter',()=>bluePortrait.classList.add('hovered'));
+blueEntry.addEventListener('mouseleave',()=>bluePortrait.classList.remove('hovered','pressed'));
+blueEntry.addEventListener('mousedown',()=>bluePortrait.classList.add('pressed'));
+blueEntry.addEventListener('mouseup',()=>bluePortrait.classList.remove('pressed'));
+blueEntry.addEventListener('click',()=>{document.getElementById('blue-feedback').textContent='已点击蓝宝石入口（预览反馈，不打开游戏面板）';});
+window.renderAt=t=>{manual=true;phase=t;drawMotion(t)};window.setChat=setChat;let previous;function frame(now){if(previous!==undefined&&!paused&&!manual)phase=(phase+(now-previous)/1000)%8;previous=now;drawMotion(phase);requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script>
+</html>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AolaLoader.BrowserHost.Contracts;
@@ -29,13 +30,22 @@ internal static class ThemeLiveContractVerifier
 			return false;
 		byte[] payload = { 1, 2, 3 };
 		var rule = new ThemeLeafResourceRule(Array.Empty<KeyValuePair<int, byte[]>>(),
-			new[] { new KeyValuePair<int, byte[]>(9, payload) }) { LiveEnabled = true };
+			new[] { new KeyValuePair<int, byte[]>(9, payload), new KeyValuePair<int, byte[]>(10, payload) }) { LiveEnabled = true };
 		payload[0] = 9;
 		const string url = "https://aola.100bt.com/play/aola-helper/theme/skin9.swf";
 		if (rule.Evaluate(new ResourceRequestContext(url, "GET", "Other")).LocalContent[0] != 1 ||
 			rule.Evaluate(new ResourceRequestContext(url, "POST", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough ||
 			rule.Evaluate(new ResourceRequestContext(url.Replace("100bt.com", "invalid.test"), "GET", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough ||
 			rule.Evaluate(new ResourceRequestContext("https://aola.100bt.com/play/control/controlbarskin/skin0~123.swf", "GET", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough)
+			return false;
+		rule.SelectedThemeId = 10;
+		if (rule.Evaluate(new ResourceRequestContext(url.Replace("skin9", "skin10"), "GET", "Other")).LocalContent[0] != 1 ||
+			rule.Evaluate(new ResourceRequestContext(url.Replace("skin9", "skin11"), "GET", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough)
+			return false;
+		rule.LiveEnabled = false;
+		try { rule.SelectedThemeId = 10; return false; }
+		catch (InvalidOperationException) { }
+		if (rule.Evaluate(new ResourceRequestContext("https://aola.100bt.com/play/control/controlbarskin/skin0~123.swf", "GET", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough)
 			return false;
 		return VerifyExecutionAsync().GetAwaiter().GetResult();
 	}
@@ -62,7 +72,7 @@ internal static class ThemeLiveContractVerifier
 		coordinator.ApplyAndSave(1);
 		int oldId = coordinator.RequestId;
 		Task<ThemeLiveResult> old = coordinator.PushCurrentAsync(CancellationToken.None);
-		coordinator.ApplyAndSave(9);
+		if (coordinator.Options.Count != 11 || coordinator.Options.Last().Id != 10 || !coordinator.ApplyAndSave(10).Succeeded) return false;
 		blocked.SetResult(PageBridgeResult.Success(new JObject { ["status"] = "Applied", ["requestId"] = oldId, ["themeId"] = 1 }));
 		if ((await old).Status != "Superseded") return false;
 		if ((await coordinator.PushCurrentAsync(CancellationToken.None)).Status != "WaitingBattleEnd") return false;
