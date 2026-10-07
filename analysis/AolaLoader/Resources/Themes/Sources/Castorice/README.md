@@ -136,6 +136,12 @@ Q 版人物生成提示见 `chibi-prompt.txt`；输入为用户示意图，输�
 - 个人头像、计数/红点、原文本字段及其他业务实例保留；原服务创建的射击、组队、通知对象仍由服务拥有。本叶子临时更换组队/场景/活动及消息盒子的显示内容，离开舞台恢复；不接管服务器主题设置、控制栏业务或外部 SWF。
 - 专用 URL `/play/aola-helper/theme/skin10.swf`；只在热切换模式可选。关闭热切换且保存值为 10 时提示不可用、不推送、不保存覆盖，保持官方资源放行。
 
+### 图鉴与排行悬停菜单修正（2026-10-05）
+
+- 用户在普通仓库版本确认，鼠标停在图鉴/排行时子菜单完全不出现；此前 HTML 预览通过不代表 Flash 交互通过。SWF 中的 `btnPetDic`（全部）、`btnpetskinhandbook`（皮肤）、`btnHonor`（最高荣耀）和 `btnrongyao`（荣誉）仍存在。
+- `Skin10` 显示时将 `mcPetDic.btnpetbook` 与 `mcTipsPetDic`、`btnbillboardicon` 与 `mcRankAndRongyao` 配对，补齐悬停显示监听；图鉴同时监听原 `ActTipsMc` 使用的 `mcPetDic` 容器。监听在原处理之后更新显示，用 `relatedObject` 和 `menu.contains` 保持主按钮、菜单及其子按钮之间的移动；真正离开才收起，主按钮禁用时不展开。
+- 切出主题时关闭菜单并退订，重新显示时重新注册。只改变菜单显示，不新增点击处理、不更换业务实例或点击区域，不改地图透明轮廓。静态复读检查覆盖上述配对、退订与四个原子按钮；真实悬停、移入、点击及反复切换仍需实机确认。
+
 ### 再生成命令
 
 从仓库根目录运行（使用本机已有 Python/Pillow、Node/Playwright、Chrome 与 FFDec）：

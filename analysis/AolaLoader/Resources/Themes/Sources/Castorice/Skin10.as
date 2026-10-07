@@ -18,6 +18,7 @@ package aola.theme.t10.mmo.controlv2.controlbarskin.skin
    import flash.display.Sprite;
    import flash.display.Stage;
    import flash.events.Event;
+   import flash.events.MouseEvent;
    import flash.geom.Matrix;
    import flash.geom.Rectangle;
    import flash.utils.Dictionary;
@@ -68,6 +69,7 @@ package aola.theme.t10.mmo.controlv2.controlbarskin.skin
       private var _styledButtons:Dictionary = new Dictionary(true);
       private var _teamPanels:Array = [];
       private var _notifyIcons:Dictionary = new Dictionary(true);
+      private var _hoverMenus:Dictionary = new Dictionary(true);
 
       public function Skin10()
       {
@@ -135,6 +137,10 @@ package aola.theme.t10.mmo.controlv2.controlbarskin.skin
          _mouseLayerEnabled = _mouseLayer.mouseEnabled;
          _mouseLayer.mouseEnabled = false;
          _themeStage = stage;
+         bindHoverMenu(mcleftdownfloatbar.mcPetDic.btnpetbook,
+            mcleftdownfloatbar.mcPetDic.mcTipsPetDic,mcleftdownfloatbar.mcPetDic);
+         bindHoverMenu(mcleftdownfloatbar.btnbillboardicon,
+            mcleftdownfloatbar.mcRankAndRongyao,mcleftdownfloatbar.btnbillboardicon);
          _themeStage.addEventListener(Event.ADDED,onExternalAdded,true);
          // These objects may already exist when a cached theme is shown again.
          scanExternal(_themeStage);
@@ -147,6 +153,13 @@ package aola.theme.t10.mmo.controlv2.controlbarskin.skin
       {
          _themeStage.removeEventListener(Event.ADDED,onExternalAdded,true);
          _themeStage = null;
+         for(var target:Object in _hoverMenus)
+         {
+            target.removeEventListener(MouseEvent.MOUSE_OVER,onHoverMenuOver);
+            target.removeEventListener(MouseEvent.MOUSE_OUT,onHoverMenuOut);
+            _hoverMenus[target].menu.visible = false;
+         }
+         _hoverMenus = new Dictionary(true);
          for each(var panel:MovieClip in _teamPanels)
             panel.removeEventListener(Event.ADDED,onTeamChildAdded);
          _teamPanels = [];
@@ -171,6 +184,34 @@ package aola.theme.t10.mmo.controlv2.controlbarskin.skin
          removeEventListener(Event.ENTER_FRAME,onThemeFrame);
          _listening = false;
          _lastTime = 0;
+      }
+
+      private function bindHoverMenu(trigger:SimpleButton, menu:MovieClip, hoverTarget:DisplayObject) : void
+      {
+         var pair:Object = {trigger:trigger,menu:menu};
+         _hoverMenus[trigger] = _hoverMenus[menu] = _hoverMenus[hoverTarget] = pair;
+         menu.visible = false;
+         // Run after the original ActTipsMc handlers, which hide on every MOUSE_OUT.
+         for each(var target:DisplayObject in [trigger,hoverTarget,menu])
+         {
+            target.addEventListener(MouseEvent.MOUSE_OVER,onHoverMenuOver,false,-1);
+            target.addEventListener(MouseEvent.MOUSE_OUT,onHoverMenuOut,false,-1);
+         }
+      }
+
+      private function onHoverMenuOver(event:MouseEvent) : void
+      {
+         var pair:Object = _hoverMenus[event.currentTarget];
+         pair.menu.visible = pair.trigger.enabled;
+      }
+
+      private function onHoverMenuOut(event:MouseEvent) : void
+      {
+         var pair:Object = _hoverMenus[event.currentTarget];
+         var next:DisplayObject = event.relatedObject;
+         // Child-to-child transitions and entry into the submenu keep it open.
+         pair.menu.visible = pair.trigger.enabled && next != null &&
+            (next == pair.trigger || next == pair.menu || pair.menu.contains(next));
       }
 
       private function onExternalAdded(event:Event) : void

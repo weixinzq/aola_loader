@@ -123,6 +123,20 @@ def verify(ffdec,evidence):
     assert '_styledButtons = new Dictionary(true);' in removed and '_notifyIcons = new Dictionary(true);' in removed
     assert 'removeEventListener(Event.ADDED' in removed and 'removeEventListener(Event.FRAME_CONSTRUCTED' in removed
     assert re.search(r'\.name == "mcnum"',source),'Unread counter not retained'
+    # These are real Flash menu instances, not the HTML preview's hover controls.
+    for path in ('mcPetDic.btnpetbook','mcPetDic.mcTipsPetDic','mcPetDic','btnbillboardicon','mcRankAndRongyao'):
+        assert 'mcleftdownfloatbar.'+path in added,('Hover menu not bound on mount',path)
+    for handler in ('onHoverMenuOver','onHoverMenuOut'):
+        assert 'addEventListener(MouseEvent.' in source and handler in source
+        assert re.search(r'removeEventListener\(MouseEvent\.\w+,'+handler+r'\)',removed),('Hover listener retained offstage',handler)
+    assert '_hoverMenus = new Dictionary(true);' in removed,'Hover bindings retained offstage'
+    over=source.split('private function onHoverMenuOver(',1)[1].split('private function',1)[0]
+    out=source.split('private function onHoverMenuOut(',1)[1].split('private function',1)[0]
+    assert '.trigger.enabled' in over and '.trigger.enabled' in out,'Disabled trigger opens submenu'
+    assert 'event.relatedObject' in out and '.menu.contains(' in out,'Moving into submenu closes it'
+    # Preserve the four submenu buttons and the original business-dispatch names.
+    for identifier,names in ((358,{'mcFriendBG','btnPetDic','btnpetskinhandbook'}),(374,{'btnrongyao','btnHonor'})):
+        assert names <= {p.get('name') for p in after[identifier].find('subTags')},('Submenu entry missing',identifier)
     ornament=next(p for p in after[1233].find('subTags') if p.get('name')=='aolaOrnament')
     shape=after[int(ornament.get('characterId'))]
     bitmap=after[int(shape.find('shapes/fillStyles/fillStyles/item').get('bitmapId'))]
@@ -134,7 +148,7 @@ def verify(ffdec,evidence):
         point=(x0+(x+.5)*(x1-x0)/width,y0+(y+.5)*(y1-y0)/height)
         assert shape_contains(shape,point)==filled,('Ornament fill blocks transparent map point',x,y)
     assert not any(code in (14,18,19,45) for code,_ in items),'Unexpected audio'
-    print(f'PASS: {named} named placements; {frames} sprite timelines; {buttons} button hit contracts (empty placeholder retained); {len(symbols)} SymbolClass/ABC matches; BlueGem 9 frames; ornament transparent-map/visible-art fill geometry; decoration/root/wrapper/BaseControl mouse isolation with interactive children and policy restoration; lifecycle; no audio')
+    print(f'PASS: {named} named placements; {frames} sprite timelines; {buttons} button hit contracts (empty placeholder retained); {len(symbols)} SymbolClass/ABC matches; BlueGem 9 frames; catalog/rank hover bindings, submenu entries and lifecycle; ornament transparent-map/visible-art fill geometry; decoration/root/wrapper/BaseControl mouse isolation with interactive children and policy restoration; lifecycle; no audio')
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--ffdec',default='D:/Programs/FFdec/ffdec-cli.exe')

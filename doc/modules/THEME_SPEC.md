@@ -8,6 +8,10 @@ OwnerPaths: `analysis/AolaLoader/Features/Theme/**`, `analysis/AolaLoader/Resour
 
 拥有主题选择、Theme Section、主题页面桥及控制栏/专用皮肤资源规则。保留旧的 `skinN~*.swf` 等长适配路径，供实机回退使用。
 
+2026-10-05 图鉴/排行悬停修正：用户确认普通版本中主按钮悬停完全不展开，HTML 预览通过不能代替 Flash 验收。主题 10 叶子在 `ADDED_TO_STAGE` 中绑定 `mcPetDic.btnpetbook → mcTipsPetDic`（同时监听原触发容器 `mcPetDic`）及 `btnbillboardicon → mcRankAndRongyao`，用低优先级监听在原 `ActTipsMc` 之后更新显示。鼠标移入子菜单时按 `relatedObject`/`contains` 保持展开，离开区域收起，主按钮禁用时不展开；切出主题退订并清空绑定，再显示重新注册。原“全部/皮肤/最高荣耀/荣誉”按钮名称、点击业务与 HitTest 保留，没有增加点击处理或协议提交，也没有改变装饰透明轮廓。静态复读与原按钮契约通过；真实悬停、移入点击、移出收起及反复切换仍待验收。
+
+本次只定点重编译主题 10 根类，修复前后的 2145 个非 ABC 标签一致，保留原图、布局和点击定义。完整生成流程也能带入新监听并通过静态契约；普通 Release 构建 0 错误（仍有既有 NU1903），`--theme-live-contract` 与 `git diff --check` 通过，仓库叶子、修复候选与普通输出资源一致。证据在 `analysis/reverse-engineering/theme-castorice/hover-fix-20261005`，其中保留修复前叶子；未执行真实 Flash 悬停或点击。
+
 ## 非职责
 
 不创建 Cef handler、不处理 PetMorph、不清全局缓存、不发送 `UiSkinStyle240927` 或修改账号服务器状态。
@@ -48,7 +52,7 @@ CefSharp 具体类型、PetMorph/Battle 内部实现、PacketHost 和服务器�
 
 热切换只请求 `/play/aola-helper/theme/skin1..10.swf`，官方叶子请求正常放行。候选叶子类、时间轴类及内嵌 `mmo.control` 类位于 `aola.theme.tN` 命名空间，加载到独立子域。每个主题对象只创建一次；保留官方对象以恢复默认。非活动对象的控制栏及辅助对象监听成对停用/恢复，按钮锁辅助对象每个主题只创建一次。
 
-正常启动关闭热切换候选和专用规则，放行官方 controlv2，使用原叶子替换/刷新路径。仅进程启动前显式设置 `AOLA_THEME_LIVE_BRIDGE=1` 启用候选测试；`0` 或未设置均关闭。旧模式仍受 Flash 类缓存影响，选择后需刷新；程序不会自动刷新或重新登录。
+正常启动默认启用热切换与专用规则，使用已从独立测试程序同步的控制栏修复资源；未设置环境变量或设置 `AOLA_THEME_LIVE_BRIDGE=1` 均开启，显式设置 `0` 关闭。关闭时放行官方 controlv2，使用原叶子替换/刷新路径；旧模式仍受 Flash 类缓存影响，选择后需刷新。程序不会自动刷新或重新登录。
 
 关闭热切换时菜单不提供主题 10。已保存的 10 仍保留在 Version 1 设置中，恢复时提示不可用，不推送、不重写保存值，资源保持官方放行；原 0～9 仍使用旧模板。主题 10 不参与 `SkinN` 等长字节适配。
 
@@ -64,7 +68,11 @@ CefSharp 具体类型、PetMorph/Battle 内部实现、PacketHost 和服务器�
 
 动态入口显示适配位于 `Sources/Castorice/Skin10.as`：加入舞台时扫描已有显示对象，之后监听舞台 `ADDED`。仅对本皮肤 `mcrightdownfloatbar` 内的 `mmo.team.teamservice.TeamButton` 更换 `btnTeam`、`btnteampanel.mcscene` 内 `btn_all` 和 `btnactteam` 的三态图；原实例名、`hitTestState`、禁用策略与服务监听保留，面板新增子对象时同步样式。`mmo.notifyview.ActNotifyIcon` 使用现有兔耳睡衣 Q 版，保留 `mcnum` 和原七帧未读/默认页逻辑；`FRAME_CONSTRUCTED` 更新显示，通知气泡不改动。离开舞台退订这些显示监听并恢复原按钮状态与原通知图，缓存主题再次显示时重新适配。不新增协议提交或点击处理。
 
-本轮 SWF 复读、原按钮/具名实例契约、装饰透明点检查、相关主题契约与隔离 Release 构建通过；HTML 预览七个悬停入口及左下人物/客服检查通过。新视觉、真实账号头像、通知计数/红点、场景/活动菜单与切回其他主题的恢复仍待 Flash 实测。独立测试入口为 `C:/Users/weixi/AppData/Local/Temp/aola-theme10-refinement-20261004/loader/TestThemeLive.cmd`，仅该测试输出装入按已修复生成流程重新生成的控制栏候选；正式热切换仍默认关闭。此前确认可行走的叶子保留在同目录上层的 `skin10-map-working.swf`，本轮没有再次登录或发送游戏消息。
+本轮 SWF 复读、原按钮/具名实例契约、装饰透明点检查、相关主题契约与隔离 Release 构建通过；HTML 预览七个悬停入口及左下人物/客服检查通过。新视觉、真实账号头像、通知计数/红点、场景/活动菜单与切回其他主题的恢复仍待 Flash 实测。微调阶段的独立测试入口为 `C:/Users/weixi/AppData/Local/Temp/aola-theme10-refinement-20261004/loader/TestThemeLive.cmd`，当时仅该测试输出装入修复控制栏，普通启动仍关闭热切换。此前确认可行走的叶子保留在同目录上层的 `skin10-map-working.swf`，该阶段没有再次登录或发送游戏消息。
+
+2026-10-05 普通启动同步：用户自行编译后只有“刷新后生效”与主题 1～9。核对确认仓库的 `skin10.swf` 和启动桥已经与测试版一致，但控制栏仍是旧候选，启动开关也仍要求显式 `1`。现已将测试输出的 `controlv2-theme-live-2026082731219998.fws.swf` 同步到项目资源，并改为默认开启；CompositionRoot 据此创建 ThemeBridgeClient，菜单包含主题 10。旧核心保留为 `analysis/reverse-engineering/theme-live-20261004/recovery/controlv2-before-normal-sync-20261005.fws.swf`。此次同步改变普通启动入口，不代表新微调界面的完整真实验收已完成。
+
+同步验证：普通 Release 构建和现有 `--theme-live-contract` 通过，核心 FFDec 复读通过；首次资源复制保留旧时间戳，`PreserveNewest` 未刷新核心输出，更新写入时间后重新构建已确认叶子、启动桥、控制栏在仓库/普通输出/测试版一致。构建仍有既有 NU1903，普通入口的真实登录、菜单切换及新界面交互未在本轮执行。
 
 按用户实机截图修正装饰下方空带：删除 Skin10 构造中额外绘制的纯色底纹，装饰及底部动效下移 33 像素，以装饰图的横向底边贴齐 962×560 视口底部；超出视口的中央垂饰部分自然裁切。账号边框动效、人物、按钮/文字及点击区域坐标不变。HTML 预览同步，横向底边测量为 y≈559.8，好友/背包悬停预览通过；SWF 编译/复读及原按钮契约通过，非 ABC 标签与修改前一致。证据位于 `C:/Users/weixi/AppData/Local/Temp/aola-theme10-bottom-align-20261004`；仅更新主题 10 和当前独立测试资源，贴底效果与前一轮地图点击修正仍待真实 Flash 验收。
 
