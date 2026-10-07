@@ -3,10 +3,10 @@
 !*/
 
 # Public repository entry points and build automation.
-!/.gitignore
-!/README.md
+
+
 !/PROJECT_CONTEXT.md
-!/AGENTS.md
+
 !/AolaLoader.sln
 !/.github/**
 
@@ -72,3 +72,5 @@
 !/analysis/tools/petfight/DocPetFight.bridge.template.as
 !/analysis/tools/petfight/Apply-BattleVisualPatch.ps1
 !/analysis/tools/petfight/Apply-BattleVisualPatch.ps1
+
+
