@@ -1,12 +1,12 @@
+# Publish only maintained source, documentation and required runtime assets.
 *
-
 !*/
 
-# Public repository entry points and build automation.
-
-
+# Repository entry points and build automation.
+!/.gitignore
+!/AGENTS.md
+!/README.md
 !/PROJECT_CONTEXT.md
-
 !/AolaLoader.sln
 !/.github/**
 
@@ -40,29 +40,32 @@
 !/task/update/restruct-directories-resource-cef-20260823.md
 !/task/update/restruct-directories-ui-common-20260823.md
 !/task/update/restruct-directories-appshell-20260823.md
+!/task/update/restruct-browser-session-adapter-20260823.md
+!/task/update/restruct-child-window-coordinator-20260823.md
+!/task/update/restruct-composition-root-20260823.md
+!/task/update/restruct-main-form-final-20260823.md
+!/task/update/restruct-petmorph-coordinator-20260823.md
+!/task/update/restruct-settings-battle-20260823.md
+!/task/update/restruct-theme-coordinator-20260823.md
 !/analysis/Directory.Build.props
 !/analysis/AolaLoader/**
 !/analysis/AolaSocketHack/**
 !/analysis/AolaSocketHack.Contracts/**
 !/analysis/AolaSocketHack.Verify/**
-!/analysis/AolaOfflineClient/**
 
-# Keep runtime setup documentation, but never publish local runtime binaries.
+# Required Flash runtime and its setup documentation.
 !/analysis/runtime/
 /analysis/runtime/*
 !/analysis/runtime/README.md
 !/analysis/runtime/pepflashplayer.dll
 
-# Retained private/reverse-engineering work stays out of the public repository.
-/analysis/loader/
-/analysis/reverse-engineering/
+# Maintained asset preparation tools.
 /analysis/tools/*
 !/analysis/tools/Update-PetFightBattleBridge.ps1
 !/analysis/tools/Prepare-ThemeLiveBridge.ps1
 !/analysis/tools/theme_bridge_assets.py
 !/analysis/tools/theme/
 !/analysis/tools/theme/ControlBarTheme.methods.as
-!/analysis/tools/Add-PetFightNativeAutoBridge.ps1
 !/analysis/tools/Add-PetFightNativeAutoBridge.ps1
 !/analysis/tools/Analyze-BattleResourceTrace.ps1
 !/analysis/tools/Prepare-BattleAssistantAssets.ps1
@@ -71,6 +74,57 @@
 !/analysis/tools/petfight/
 !/analysis/tools/petfight/DocPetFight.bridge.template.as
 !/analysis/tools/petfight/Apply-BattleVisualPatch.ps1
-!/analysis/tools/petfight/Apply-BattleVisualPatch.ps1
 
+# Private reverse-engineering work and generated evidence stay local.
+/analysis/loader/
+/analysis/reverse-engineering/
+/analysis/build/
+/analysis/obj/
+/analysis/AolaLoader/Resources/Patches/Build/
+/analysis/AolaLoader/Resources/Patches/Evidence/
+*.verification/
+[Ee]vidence/
+[Ll]ogs/
+[Cc]ache/
+[Cc]aptures/
+[Ll]ineups/
+.git-backups/
+.codex-read-evidence/
 
+# Build outputs and local development state.
+[Bb]in/
+[Oo]bj/
+packages/
+.vs/
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local accounts, session data, credentials and private keys.
+.env
+.env.*
+settings.json
+settings.json.*
+config.json
+config.local.*
+appsettings.*.local.json
+accounts.json
+account.json
+accounts.*.json
+credentials.*
+secrets.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.pcap
+*.pcapng
+*.jsonl
+*.log
+*.har
+*.dmp

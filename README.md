@@ -35,6 +35,8 @@ Aola Loader 是一个面向奥拉星旧版 Flash 客户端的精简登录、抓�
 - [`doc/runbooks/PETFIGHTNEW_WEEKLY_UPDATE.md`](doc/runbooks/PETFIGHTNEW_WEEKLY_UPDATE.md)：战斗状态桥的版本检测、候选生成、晋级、实机验证与回滚流程。
 - `task/update/`：历史重构记录；阶段 9 总验收和部分逆向证据仅保留在本地，公开检出不保证包含。当前状态以 `doc/architecture.md`、模块规格及文档核对记录为准。
 
+公开提交采用 `.gitignore` 白名单：保留维护中的源码、文档和必要运行资源，排除本地账号配置、凭据、私钥、日志、抓包、浏览器缓存、构建产物及补丁生成证据。已跟踪的生成证据只从 Git 索引移除，本地文件保留；忽略规则不会清除旧提交中的文件。
+
 ## 环境要求
 
 - Windows x64 与 .NET Framework 4.8 Developer Pack。
