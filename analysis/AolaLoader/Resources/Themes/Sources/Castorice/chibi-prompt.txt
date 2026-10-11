@@ -1,7 +1,0 @@
-Use case: background-extraction. Image 1 is the EDIT TARGET provided by the user.
-Create a clean genuinely transparent cutout of this exact existing chibi Castorice character in white bunny-hood pajamas, long lavender hair, purple eyes, white dress and shoes, standing facing front.
-Remove only the black background. Preserve her exact pose, face, expression, costume, proportions, soft pale-lavender colors, outlines and the small lavender butterfly at upper left.
-Keep full body and both hood ears entirely visible.
-Do not redesign, do not add a portrait frame or pedestal, do not add text, do not recolor, do not add another character, no scene, no glow halo over the face.
-Preserve original art faithfully; this is a static game HUD decoration, not an animation.
-Transparent background with clean edges, tightly framed full-body subject plus the original small butterfly.

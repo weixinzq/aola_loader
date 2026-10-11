@@ -1,130 +1,47 @@
-# Publish only maintained source, documentation and required runtime assets.
-*
-!*/
-
-# Repository entry points and build automation.
+# 根目录只发布解决方案；本文件用于保存忽略规则。
+/*
 !/.gitignore
-!/AGENTS.md
-!/README.md
-!/PROJECT_CONTEXT.md
 !/AolaLoader.sln
-!/.github/**
+!/analysis/
 
-# Maintained source and documentation.
-!/doc/**
-!/task/update/restruct-baseline-20260821.md
-!/task/update/restruct-packet-host-20260822.md
-!/task/update/restruct-settings-20260822.md
-!/task/update/restruct-resource-contracts-20260822.md
-!/task/update/restruct-browser-contracts-20260822.md
-!/task/update/restruct-battle-state-contract-20260822.md
-!/task/update/restruct-resource-pipeline-core-20260822.md
-!/task/update/restruct-theme-rule-20260822.md
-!/task/update/restruct-pet-package-rule-20260822.md
-!/task/update/restruct-petmovie-rule-20260822.md
-!/task/update/restruct-poster-rule-20260822.md
-!/task/update/restruct-packet-host-receive-logger-20260822.md
-!/task/update/restruct-packet-host-battle-tracker-20260822.md
-!/task/update/restruct-packet-host-packets-form-20260822.md
-!/task/update/restruct-packet-host-main-status-20260822.md
-!/task/update/restruct-settings-theme-codec-20260822.md
-!/task/update/restruct-settings-theme-production-20260822.md
-!/task/update/restruct-settings-petmorph-production-20260822.md
-!/task/update/restruct-directories-battle-20260823.md
-!/task/update/restruct-directories-packethost-consumers-20260823.md
-!/task/update/restruct-directories-ui-packets-20260823.md
-!/task/update/restruct-directories-ui-petmorph-20260823.md
-!/task/update/restruct-directories-petmorph-domain-20260823.md
-!/task/update/restruct-directories-resource-transformers-20260823.md
-!/task/update/restruct-directories-petmorph-browser-adapters-20260823.md
-!/task/update/restruct-directories-resource-cef-20260823.md
-!/task/update/restruct-directories-ui-common-20260823.md
-!/task/update/restruct-directories-appshell-20260823.md
-!/task/update/restruct-browser-session-adapter-20260823.md
-!/task/update/restruct-child-window-coordinator-20260823.md
-!/task/update/restruct-composition-root-20260823.md
-!/task/update/restruct-main-form-final-20260823.md
-!/task/update/restruct-petmorph-coordinator-20260823.md
-!/task/update/restruct-settings-battle-20260823.md
-!/task/update/restruct-theme-coordinator-20260823.md
-!/analysis/Directory.Build.props
-!/analysis/AolaLoader/**
-!/analysis/AolaSocketHack/**
-!/analysis/AolaSocketHack.Contracts/**
-!/analysis/AolaSocketHack.Verify/**
+# analysis 只发布源码和构建配置。
+/analysis/**/*
+!/analysis/**/
+!/analysis/**/*.cs
+!/analysis/**/*.csproj
+!/analysis/**/*.props
+!/analysis/**/*.targets
+!/analysis/**/*.config
+!/analysis/**/*.manifest
+!/analysis/**/packages.lock.json
+!/analysis/**/*.ps1
+!/analysis/**/*.py
+!/analysis/**/*.as
 
-# Required Flash runtime and its setup documentation.
-!/analysis/runtime/
-/analysis/runtime/*
-!/analysis/runtime/README.md
-!/analysis/runtime/pepflashplayer.dll
-
-# Maintained asset preparation tools.
-/analysis/tools/*
-!/analysis/tools/Update-PetFightBattleBridge.ps1
-!/analysis/tools/Prepare-ThemeLiveBridge.ps1
-!/analysis/tools/theme_bridge_assets.py
-!/analysis/tools/theme/
-!/analysis/tools/theme/ControlBarTheme.methods.as
-!/analysis/tools/Add-PetFightNativeAutoBridge.ps1
-!/analysis/tools/Analyze-BattleResourceTrace.ps1
-!/analysis/tools/Prepare-BattleAssistantAssets.ps1
-!/analysis/tools/prepare_battle_assistant_assets.py
-!/analysis/tools/petfight_bridge_abc.py
-!/analysis/tools/petfight/
-!/analysis/tools/petfight/DocPetFight.bridge.template.as
-!/analysis/tools/petfight/Apply-BattleVisualPatch.ps1
-
-# Private reverse-engineering work and generated evidence stay local.
-/analysis/loader/
-/analysis/reverse-engineering/
+# 本地生成目录、逆向工作区和运行资源。
+/analysis/.*/
 /analysis/build/
 /analysis/obj/
-/analysis/AolaLoader/Resources/Patches/Build/
-/analysis/AolaLoader/Resources/Patches/Evidence/
-*.verification/
+/analysis/reverse-engineering/
+/analysis/runtime/
+/analysis/queue-acceleration-patches/
+/analysis/skill-staging/
+/analysis/skill-tests/
+/analysis/AolaLoader/Resources/
+[Bb]in/
+[Oo]bj/
 [Ee]vidence/
 [Ll]ogs/
 [Cc]ache/
-[Cc]aptures/
-[Ll]ineups/
-.git-backups/
-.codex-read-evidence/
-
-# Build outputs and local development state.
-[Bb]in/
-[Oo]bj/
-packages/
+*.verification/
+__pycache__/
 .vs/
 .vscode/
-.idea/
-__pycache__/
-*.py[cod]
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
 
-# Local accounts, session data, credentials and private keys.
-.env
-.env.*
-settings.json
-settings.json.*
-config.json
-config.local.*
-appsettings.*.local.json
-accounts.json
-account.json
-accounts.*.json
-credentials.*
+# 本地私有配置不发布。
+*.local.config
+*.local.props
+*.local.targets
 secrets.*
-*.key
-*.pem
-*.pfx
-*.p12
-*.pcap
-*.pcapng
-*.jsonl
-*.log
-*.har
-*.dmp
+credentials.*
+accounts.*
