@@ -19,6 +19,7 @@ using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Contracts;
 using AolaLoader.ResourceInterception.Pipeline;
+using AolaLoader.ResourceInterception.Rules;
 
 namespace AolaLoader.ResourceInterception.Cef;
 
@@ -75,7 +76,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		_resourceRuleAdapter = new CefResourceRuleAdapter(new ResourceRulePipeline(
 			new IResourceInterceptionRule[]
 			{
-				_startBridgeRule, _battleBridgeRule, _battleBackgroundRule, themeBridgeRule, _themeRule, _petPackageRule,
+				new StartXmlResourceRule(), _startBridgeRule, _battleBridgeRule, _battleBackgroundRule, themeBridgeRule, _themeRule, _petPackageRule,
 				_petMovieRule, _battlePetMovieRule, _petPosterRule
 			}),
 			new RemoteResourcePlanExecutor(_remoteResourceProbe, _remoteResourceFetcher));

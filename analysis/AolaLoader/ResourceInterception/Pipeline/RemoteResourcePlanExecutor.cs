@@ -33,30 +33,34 @@ internal sealed class RemoteResourcePlanExecutor
 			throw new ArgumentException("Remote execution requires a RewriteRemote plan.", nameof(plan));
 		}
 
-		RemoteResourceProbeResult probeResult;
-		try
+		// XML 直接抓取完整响应；现有 SWF 计划仍先执行头部探测。
+		if (plan.ProbeRemoteResource)
 		{
-			probeResult = await _probe.ProbeAsync(new RemoteResourceProbeRequest(
-				plan.TargetUrl,
-				plan.CacheKey,
-				plan.DiagnosticKey,
-				plan.MaximumResponseBytes,
-				AvailableTimeToLive,
-				UnavailableTimeToLive), cancellationToken).ConfigureAwait(false);
-		}
-		catch (OperationCanceledException)
-		{
-			throw;
-		}
-		catch (Exception ex)
-		{
-			return ResourceTransformResult.Reject("remote.probe_exception", ex.GetType().Name);
-		}
-		if (probeResult == null || !probeResult.Available)
-		{
-			return ResourceTransformResult.Reject(
-				probeResult?.RejectionCode ?? "remote.probe_unavailable",
-				probeResult?.Message ?? "Remote probe returned no result.");
+			RemoteResourceProbeResult probeResult;
+			try
+			{
+				probeResult = await _probe.ProbeAsync(new RemoteResourceProbeRequest(
+					plan.TargetUrl,
+					plan.CacheKey,
+					plan.DiagnosticKey,
+					plan.MaximumResponseBytes,
+					AvailableTimeToLive,
+					UnavailableTimeToLive), cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
+			catch (Exception ex)
+			{
+				return ResourceTransformResult.Reject("remote.probe_exception", ex.GetType().Name);
+			}
+			if (probeResult == null || !probeResult.Available)
+			{
+				return ResourceTransformResult.Reject(
+					probeResult?.RejectionCode ?? "remote.probe_unavailable",
+					probeResult?.Message ?? "Remote probe returned no result.");
+			}
 		}
 
 		RemoteResourceFetchResult fetchResult;

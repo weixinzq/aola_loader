@@ -18,6 +18,7 @@ using AolaLoader.Features.PetMorph.ResourceInterception;
 using AolaLoader.Features.Theme.ResourceInterception;
 using AolaLoader.ResourceInterception.Contracts;
 using AolaLoader.ResourceInterception.Pipeline;
+using AolaLoader.ResourceInterception.Rules;
 using AolaLoader.ResourceInterception.Testing;
 using AolaLoader.ResourceInterception.Transformers;
 
@@ -37,6 +38,7 @@ internal static class ResourceInterceptionContractVerifier
 			VerifySwfHeaderAndProbeCache() &&
 			VerifyThemeLeafRule() &&
 			VerifyStartBridgeRule() &&
+			VerifyStartXmlRule() &&
 			VerifyBattleBridgeRule() &&
 			VerifyBattleBackgroundImageRule() &&
 			VerifyPetPackageLiveRule() &&
@@ -613,6 +615,52 @@ internal static class ResourceInterceptionContractVerifier
 		return content;
 	}
 
+	internal static bool VerifyStartXmlRule()
+	{
+		StartXmlResourceRule rule = new StartXmlResourceRule();
+		foreach (string path in new[] { "start.xml", "start~1792252800000.xml?cache=1" })
+		{
+			string url = "https://aola.100bt.com/play/" + path;
+			ResourceInterceptionPlan plan = new ResourceRulePipeline(new[] { rule })
+				.Evaluate(new ResourceRequestContext(url, "GET", "Other")).Plan;
+			if (plan.Outcome != ResourceInterceptionOutcome.RewriteRemote ||
+				plan.TargetUrl != url || plan.ProbeRemoteResource) return false;
+
+			int fetchCount = 0;
+			RemoteResourcePlanExecutor executor = new RemoteResourcePlanExecutor(
+				new DelegateRemoteResourceProbe((request, token) => throw new InvalidOperationException("XML must skip SWF probing.")),
+				new DelegateRemoteResourceFetcher((request, token) =>
+				{
+					fetchCount++;
+					string state = fetchCount == 1 ? "close" : "open";
+					string version = fetchCount == 1 ? "20261015557387610" : "20261022557387610";
+					return Task.FromResult(RemoteResourceFetchResult.Success(200, "text/xml",
+						Encoding.UTF8.GetBytes("<r>\n<t>" + state + "</t>\n<v>" + version + "</v><u>宠物/版本</u></r>")));
+				}));
+			for (int index = 0; index < 2; index++)
+			{
+				ResourceTransformResult result = executor.ExecuteAsync(plan, CancellationToken.None).GetAwaiter().GetResult();
+				string version = index == 0 ? "20261015557387610" : "20261022557387610";
+				if (!result.Succeeded || result.ContentType != "text/xml" ||
+					Encoding.UTF8.GetString(result.Content) != "<r>\n<t>open</t>\n<v>" + version + "</v><u>宠物/版本</u></r>") return false;
+			}
+			if (fetchCount != 2) return false;
+		}
+		foreach (string url in new[]
+		{
+			"https://example.test/play/start.xml",
+			"https://aola.100bt.com/play/start.xml.bak",
+			"https://aola.100bt.com/play/start~abc.xml",
+			"https://aola.100bt.com/play/start~2107300001.swf"
+		})
+		{
+			if (rule.Evaluate(new ResourceRequestContext(url, "GET", "Other")).Outcome !=
+				ResourceInterceptionOutcome.PassThrough) return false;
+		}
+		return rule.Evaluate(new ResourceRequestContext("https://aola.100bt.com/play/start.xml", "POST", "Other"))
+			.Outcome == ResourceInterceptionOutcome.PassThrough;
+	}
+
 	private static bool VerifyStartBridgeRule()
 	{
 		byte[] template = CreateStartBridgeTemplate(includeLoadBytesMarker: true);
@@ -705,6 +753,9 @@ internal static class ResourceInterceptionContractVerifier
 			rule.SupportedVersion + ".swf?cache=1";
 		ResourceInterceptionPlan matched = rule.Evaluate(
 			new ResourceRequestContext(exactUrl, "GET", "Other"));
+		ResourceInterceptionPlan newerVersion = rule.Evaluate(new ResourceRequestContext(
+			"https://aola.100bt.com/play/pet/petfightnew~2026101541804528.swf?cache=1",
+			"GET", "Other"));
 		ResourceRulePipeline pipeline;
 		try
 		{
@@ -786,9 +837,12 @@ internal static class ResourceInterceptionContractVerifier
 		return fileLoadChecks && !unavailable.IsAvailable &&
 			unavailable.Evaluate(new ResourceRequestContext(exactUrl, "GET", "Other")).Outcome ==
 				ResourceInterceptionOutcome.PassThrough &&
+			newerVersion.Outcome == ResourceInterceptionOutcome.LocalResponse &&
+			newerVersion.CacheKey == matched.CacheKey &&
+			newerVersion.MaximumResponseBytes == matched.MaximumResponseBytes &&
 			rule.Evaluate(new ResourceRequestContext(
 				"https://aola.100bt.com/play/pet/petfightnew~0.swf",
-				"GET", "Other")).Outcome == ResourceInterceptionOutcome.PassThrough &&
+				"GET", "Other")).Outcome == ResourceInterceptionOutcome.LocalResponse &&
 			rule.Evaluate(new ResourceRequestContext(
 				"https://aola.100bt.com/play/pet/petfightnew~" +
 				rule.SupportedVersion + ".swf.bak",
@@ -832,7 +886,7 @@ internal static class ResourceInterceptionContractVerifier
 		return content;
 	}
 
-	private static bool VerifyRemotePlanExecutor()
+	internal static bool VerifyRemotePlanExecutor()
 	{
 		const string originalUrl = "https://aola.100bt.com/original.swf";
 		const string targetUrl = "https://aola.100bt.com/target.swf";

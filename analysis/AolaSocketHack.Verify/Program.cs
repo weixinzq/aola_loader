@@ -17,6 +17,13 @@ internal static class Program
 	[STAThread]
 	private static int Main(string[] args)
 	{
+		if (args.Length == 1 && args[0] == "--start-xml-contract")
+		{
+			bool startXmlPassed = ResourceInterceptionContractVerifier.VerifyStartXmlRule() &&
+				ResourceInterceptionContractVerifier.VerifyRemotePlanExecutor();
+			Console.WriteLine("Start XML contract: " + (startXmlPassed ? "PASS" : "FAIL"));
+			return startXmlPassed ? 0 : 1;
+		}
 		if (args.Length == 1 && args[0] == "--theme-live-contract")
 		{
 			bool themeLivePassed = ThemeLiveContractVerifier.Verify() && ThemeCoordinatorVerifier.Verify()

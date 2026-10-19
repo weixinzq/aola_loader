@@ -100,6 +100,13 @@ def handler_binding_patches(source, target):
         print(name)
 
 
+def initialize_lock_view(method):
+    """Keep the cached helper initialized when lock listeners are unnecessary."""
+    assignment = re.search(r'getlocal0\s+getlocal1\s+initproperty [^\n]+"_controlBar"\)', method).group()
+    method = method.replace(assignment, '', 1)
+    return method.replace('constructsuper 0', 'constructsuper 0\n' + assignment, 1)
+
+
 def listener_patches(source, target):
     """Spill arguments into fresh locals; track paired listener registration."""
     text = source.read_text(encoding='utf-8-sig')
@@ -117,6 +124,8 @@ def listener_patches(source, target):
         owner_scope = class_name == 'ControlBarSkinBase' and signature[1] in (class_name, 'addToStage')
         if not owner_scope and not re.search(r'callpropvoid QName\([^\n]+,"(?:add|remove)EventListener"\)', method):
             continue
+        if class_name == 'ControlBarLockHelper' and signature[1] == class_name:
+            method = initialize_lock_view(method)
         local_count = int(re.search(r'localcount (\d+)', method)[1])
         def replace(match):
             action, argc = match[1], int(match[2])

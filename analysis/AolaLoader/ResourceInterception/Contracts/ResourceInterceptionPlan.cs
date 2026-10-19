@@ -25,7 +25,8 @@ internal sealed class ResourceInterceptionPlan
 		string fallbackUrl,
 		string cacheKey,
 		string diagnosticKey,
-		long maximumResponseBytes)
+		long maximumResponseBytes,
+		bool probeRemoteResource = true)
 	{
 		Outcome = outcome;
 		OriginalUrl = originalUrl;
@@ -37,6 +38,7 @@ internal sealed class ResourceInterceptionPlan
 		CacheKey = cacheKey;
 		DiagnosticKey = diagnosticKey;
 		MaximumResponseBytes = maximumResponseBytes;
+		ProbeRemoteResource = probeRemoteResource;
 	}
 
 	public ResourceInterceptionOutcome Outcome { get; }
@@ -58,6 +60,8 @@ internal sealed class ResourceInterceptionPlan
 	public string DiagnosticKey { get; }
 
 	public long MaximumResponseBytes { get; }
+
+	public bool ProbeRemoteResource { get; }
 
 	public static ResourceInterceptionPlan PassThrough(string originalUrl)
 	{
@@ -112,7 +116,8 @@ internal sealed class ResourceInterceptionPlan
 		string fallbackUrl,
 		string cacheKey,
 		string diagnosticKey,
-		long maximumResponseBytes)
+		long maximumResponseBytes,
+		bool probeRemoteResource = true)
 	{
 		ValidateUrl(originalUrl, nameof(originalUrl));
 		ValidateUrl(targetUrl, nameof(targetUrl));
@@ -137,7 +142,8 @@ internal sealed class ResourceInterceptionPlan
 			fallbackUrl,
 			cacheKey,
 			diagnosticKey,
-			maximumResponseBytes);
+			maximumResponseBytes,
+			probeRemoteResource);
 	}
 
 	private static void ValidateUrl(string value, string parameterName)

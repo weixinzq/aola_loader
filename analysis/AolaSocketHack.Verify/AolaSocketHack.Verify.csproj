@@ -63,6 +63,7 @@
     <Compile Include="..\AolaLoader\ResourceInterception\Testing\ResourceInterceptionTestDoubles.cs" Link="ResourceInterception\Testing\ResourceInterceptionTestDoubles.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\ResourceRuleEvaluation.cs" Link="ResourceInterception\Pipeline\ResourceRuleEvaluation.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\ResourceRulePipeline.cs" Link="ResourceInterception\Pipeline\ResourceRulePipeline.cs" />
+    <Compile Include="..\AolaLoader\ResourceInterception\Rules\StartXmlResourceRule.cs" Link="ResourceInterception\Rules\StartXmlResourceRule.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\BoundedResourceResponseProcessor.cs" Link="ResourceInterception\Pipeline\BoundedResourceResponseProcessor.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\SwfResponseHeaderValidator.cs" Link="ResourceInterception\Pipeline\SwfResponseHeaderValidator.cs" />
     <Compile Include="..\AolaLoader\ResourceInterception\Pipeline\CachingRemoteResourceProbe.cs" Link="ResourceInterception\Pipeline\CachingRemoteResourceProbe.cs" />
