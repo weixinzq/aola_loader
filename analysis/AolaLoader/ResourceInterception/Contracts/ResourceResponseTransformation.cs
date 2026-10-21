@@ -50,6 +50,8 @@ internal sealed class ResourceTransformInput
 
 	public byte[] Content => (byte[])_content.Clone();
 
+	internal byte[] ContentUnsafe => _content;
+
 	public long ContentLength => _content.LongLength;
 }
 
@@ -62,10 +64,11 @@ internal sealed class ResourceTransformResult
 		byte[] content,
 		string contentType,
 		string rejectionCode,
-		string message)
+		string message,
+		bool ownContent = false)
 	{
 		Succeeded = succeeded;
-		_content = content == null ? null : (byte[])content.Clone();
+		_content = content == null || ownContent ? content : (byte[])content.Clone();
 		ContentType = contentType;
 		RejectionCode = rejectionCode;
 		Message = message;
@@ -75,6 +78,10 @@ internal sealed class ResourceTransformResult
 
 	public byte[] Content => _content == null ? null : (byte[])_content.Clone();
 
+	internal byte[] ContentUnsafe => _content;
+
+	internal long ContentLength => _content == null ? 0L : _content.LongLength;
+
 	public string ContentType { get; }
 
 	public string RejectionCode { get; }
@@ -82,6 +89,19 @@ internal sealed class ResourceTransformResult
 	public string Message { get; }
 
 	public static ResourceTransformResult Success(byte[] content, string contentType)
+	{
+		ValidateSuccess(content, contentType);
+		return new ResourceTransformResult(true, content, contentType, null, null);
+	}
+
+	// 仅供新建且不再被调用方复用的输出数组使用，结果不复制 content。
+	internal static ResourceTransformResult SuccessOwned(byte[] content, string contentType)
+	{
+		ValidateSuccess(content, contentType);
+		return new ResourceTransformResult(true, content, contentType, null, null, ownContent: true);
+	}
+
+	private static void ValidateSuccess(byte[] content, string contentType)
 	{
 		if (content == null || content.Length == 0)
 		{
@@ -91,7 +111,6 @@ internal sealed class ResourceTransformResult
 		{
 			throw new ArgumentException("Content type is required.", nameof(contentType));
 		}
-		return new ResourceTransformResult(true, content, contentType, null, null);
 	}
 
 	public static ResourceTransformResult Reject(string rejectionCode, string message)

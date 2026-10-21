@@ -54,7 +54,7 @@ internal sealed class AolaSwfResourceTransformer : IResourceResponseTransformer
 		{
 			throw new ArgumentNullException(nameof(input));
 		}
-		byte[] remote = input.Content;
+		byte[] remote = input.ContentUnsafe;
 		byte[] output = null;
 		if (_structuralClassAdaptation)
 		{
@@ -107,7 +107,7 @@ internal sealed class AolaSwfResourceTransformer : IResourceResponseTransformer
 				"swf.transparency_failed",
 				"SWF bitmap transparency conversion failed.");
 		}
-		return ResourceTransformResult.Success(output, "application/x-shockwave-flash");
+		return ResourceTransformResult.SuccessOwned(output, "application/x-shockwave-flash");
 	}
 
 	internal static bool TryAdaptFws(

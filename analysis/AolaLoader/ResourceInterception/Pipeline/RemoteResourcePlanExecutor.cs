@@ -88,9 +88,8 @@ internal sealed class RemoteResourcePlanExecutor
 
 		using BoundedResourceResponseProcessor processor =
 			new BoundedResourceResponseProcessor(plan.MaximumResponseBytes);
-		byte[] content = fetchResult.Content;
-		processor.TryAppend(content, 0, content.Length);
-		return processor.Complete(
+		return processor.CompleteOwned(
+			fetchResult.ContentUnsafe,
 			plan.TargetUrl,
 			fetchResult.HttpStatusCode.Value,
 			fetchResult.ContentType,

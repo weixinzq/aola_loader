@@ -77,7 +77,7 @@ internal sealed class StartBridgeResourceRule : IResourceInterceptionRule
 			return ResourceInterceptionPlan.PassThrough(request.OriginalUrl);
 		}
 
-		return ResourceInterceptionPlan.LocalResponse(
+		return ResourceInterceptionPlan.LocalResponseOwned(
 			request.OriginalUrl,
 			_template,
 			"application/x-shockwave-flash",

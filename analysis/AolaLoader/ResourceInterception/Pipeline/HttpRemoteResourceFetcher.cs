@@ -53,7 +53,8 @@ internal sealed class HttpRemoteResourceFetcher : IRemoteResourceFetcher
 						"Remote resource returned status " + statusCode + ".",
 						statusCode);
 				}
-				if (response.ContentLength > request.MaximumResponseBytes)
+				long contentLength = response.ContentLength;
+				if (contentLength > request.MaximumResponseBytes)
 				{
 					return RemoteResourceFetchResult.Reject(
 						"fetch.content_length_too_large",
@@ -61,37 +62,67 @@ internal sealed class HttpRemoteResourceFetcher : IRemoteResourceFetcher
 						statusCode);
 				}
 
-				using MemoryStream content = new MemoryStream();
-				using Stream stream = response.GetResponseStream();
-				byte[] buffer = new byte[81920];
-				while (stream != null)
+				byte[] body;
+				if (contentLength > 0)
 				{
-					int read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-						.ConfigureAwait(false);
-					if (read <= 0)
+					// Content-Length 已知且在上限内时按精确长度一次分配并读满。
+					body = new byte[(int)contentLength];
+					using Stream exactStream = response.GetResponseStream();
+					int readTotal = 0;
+					while (exactStream != null && readTotal < body.Length)
 					{
-						break;
+						int read = await exactStream.ReadAsync(
+							body,
+							readTotal,
+							body.Length - readTotal,
+							cancellationToken).ConfigureAwait(false);
+						if (read <= 0)
+						{
+							break;
+						}
+						readTotal += read;
 					}
-					if (content.Length + read > request.MaximumResponseBytes)
+					if (readTotal < body.Length)
 					{
-						return RemoteResourceFetchResult.Reject(
-							"fetch.body_too_large",
-							"Remote body exceeded the configured bound.",
-							statusCode);
+						// 声明长度与实际 body 不符（提前 EOF）时收缩到已读长度，保持原 body 语义。
+						Array.Resize(ref body, readTotal);
 					}
-					content.Write(buffer, 0, read);
 				}
-				if (content.Length == 0)
+				else
+				{
+					using MemoryStream content = new MemoryStream();
+					using Stream stream = response.GetResponseStream();
+					byte[] buffer = new byte[81920];
+					while (stream != null)
+					{
+						int read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+							.ConfigureAwait(false);
+						if (read <= 0)
+						{
+							break;
+						}
+						if (content.Length + read > request.MaximumResponseBytes)
+						{
+							return RemoteResourceFetchResult.Reject(
+								"fetch.body_too_large",
+								"Remote body exceeded the configured bound.",
+								statusCode);
+						}
+						content.Write(buffer, 0, read);
+					}
+					body = content.ToArray();
+				}
+				if (body.Length == 0)
 				{
 					return RemoteResourceFetchResult.Reject(
 						"fetch.empty",
 						"Remote body was empty.",
 						statusCode);
 				}
-				return RemoteResourceFetchResult.Success(
+				return RemoteResourceFetchResult.SuccessOwned(
 					statusCode,
 					response.ContentType,
-					content.ToArray());
+					body);
 			}
 			catch (OperationCanceledException)
 			{

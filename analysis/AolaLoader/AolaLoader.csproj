@@ -32,6 +32,9 @@
 	<Content Include="Resources\Patches\start-bridge-2107300001.fws.swf">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
+	<Content Include="Resources\Patches\play-panel-capture-2026101541804528.fws.swf">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
 	<Content Include="Resources\Patches\petfightnew-battle-state-current.fws.swf">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>

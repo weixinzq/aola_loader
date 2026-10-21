@@ -51,6 +51,12 @@ internal static class Program
 			Console.WriteLine("Battle background contract: " + (backgroundPassed ? "PASS" : "FAIL"));
 			return battleBridgePassed && backgroundPassed ? 0 : 1;
 		}
+		if (args.Length == 1 && args[0] == "--resource-contract")
+		{
+			bool resourcePassed = ResourceInterceptionContractVerifier.Verify();
+			Console.WriteLine("ResourceInterception contract: " + (resourcePassed ? "PASS" : "FAIL"));
+			return resourcePassed ? 0 : 1;
+		}
 		if ((args.Length == 2 || args.Length == 4) && args[0] == "--battle-sample")
 		{
 			bool contract = BattleStateContractVerifier.Verify();

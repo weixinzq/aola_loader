@@ -7,18 +7,21 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AolaLoader.BrowserHost.Contracts;
 using AolaLoader.Features.ActiveSend;
 using AolaLoader.Features.Lineup;
+using AolaLoader.Features.PanelCapture;
 using AolaLoader.UI.Lineup;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.Battle.Coordination;
 using AolaLoader.Features.Battle.Bridge;
 using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
+using AolaLoader.Features.Runtime;
 using AolaLoader.Features.Theme.Coordination;
 using AolaLoader.PacketHost;
 using AolaLoader.PacketHost.Consumers;
@@ -26,9 +29,11 @@ using AolaLoader.UI.Battle;
 using AolaLoader.UI.Common;
 using AolaLoader.UI.Packets;
 using AolaLoader.UI.PetMorph;
+using AolaLoader.UI.PanelCapture;
 using AolaSocketHack.Contracts;
 using CefSharp;
 using CefSharp.WinForms;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace AolaLoader.AppShell;
@@ -38,6 +43,12 @@ internal sealed class AolaMainForm : AolaFormBase
 	internal const string DefaultUrl = "https://aola.100bt.com/play/play.html";
 	private const double PageWidth = 962;
 	private const double PageHeight = 560;
+	private static readonly TimeSpan RuntimeTrimAfterBattle = TimeSpan.FromSeconds(5);
+	private static readonly TimeSpan RuntimeTrimAfterMinimize = TimeSpan.FromSeconds(1);
+	private static readonly TimeSpan RuntimeTrimMinimumInterval = TimeSpan.FromMinutes(5);
+	private static readonly TimeSpan RuntimeIdleThreshold = TimeSpan.FromMinutes(10);
+	private const int RuntimeFrameObservationWindowMs = 5000;
+	private const int RuntimeLongFrameFuseMs = 500;
 	private readonly ToolStrip _toolbar;
 	private readonly ToolStripDropDownButton _windowSizeMenu = new ToolStripDropDownButton("窗口大小");
 	private double _windowScale = 1;
@@ -48,6 +59,11 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly System.Windows.Forms.Timer _injectTimer = new System.Windows.Forms.Timer();
 	private readonly System.Windows.Forms.Timer _battleMorphTimer = new System.Windows.Forms.Timer();
 	private readonly System.Windows.Forms.Timer _themeTimer = new System.Windows.Forms.Timer();
+	private readonly System.Windows.Forms.Timer _runtimeMemoryTimer = new System.Windows.Forms.Timer();
+	private readonly System.Windows.Forms.Timer _runtimeFrameTimer = new System.Windows.Forms.Timer();
+	private readonly Stopwatch _runtimeFrameClock = Stopwatch.StartNew();
+	private readonly FlashRuntimeClient _flashRuntimeClient;
+	private readonly bool _trimMemoryEnabled;
 	private bool _themePushInProgress;
 	private string _themeStatusKey;
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
@@ -70,6 +86,18 @@ internal sealed class AolaMainForm : AolaFormBase
 	private bool _battleMorphCheckInProgress;
 	private bool _isClosing;
 	private bool _mainWindowMinimized;
+	private DateTime? _runtimeBattleEndDueUtc;
+	private DateTime? _runtimeMinimizeDueUtc;
+	private DateTime _runtimeLastTrimUtc = DateTime.MinValue;
+	private DateTime _runtimeLastActivityUtc = DateTime.UtcNow;
+	private DateTime _runtimeLastBattleUpdateUtc;
+	private JObject _runtimePendingRecord;
+	private long _runtimeFrameWindowStartMs;
+	private long _runtimeLastFrameTickMs;
+	private int _runtimeMaxFrameGapMs;
+	private bool _runtimeBattleWasActive;
+	private bool _runtimeTrimInProgress;
+	private bool _runtimeTrimFused;
 
 	internal AolaMainForm(
 		ChromiumWebBrowser browser,
@@ -93,6 +121,11 @@ internal sealed class AolaMainForm : AolaFormBase
 		_packetEventSource = packetEventSource ?? throw new ArgumentNullException(nameof(packetEventSource));
 		_commandSender = commandSender ?? throw new ArgumentNullException(nameof(commandSender));
 		_pageBridge = pageBridge ?? throw new ArgumentNullException(nameof(pageBridge));
+		_flashRuntimeClient = new FlashRuntimeClient(_pageBridge);
+		_trimMemoryEnabled = string.Equals(
+			Environment.GetEnvironmentVariable("AOLA_TRIM_MEMORY"),
+			"1",
+			StringComparison.Ordinal);
 		_receiveLogger = receiveLogger ?? throw new ArgumentNullException(nameof(receiveLogger));
 		_battleTracker = battleTracker ?? throw new ArgumentNullException(nameof(battleTracker));
 		_themeCoordinator = themeCoordinator ?? throw new ArgumentNullException(nameof(themeCoordinator));
@@ -125,6 +158,10 @@ internal sealed class AolaMainForm : AolaFormBase
 			finally { _themePushInProgress = false; }
 		};
 		_themeTimer.Start();
+		_runtimeMemoryTimer.Interval = 500;
+		_runtimeMemoryTimer.Tick += RuntimeMemoryTimerTick;
+		_runtimeFrameTimer.Interval = 50;
+		_runtimeFrameTimer.Tick += RuntimeFrameTimerTick;
 		_browserSession.PageLifecycleChanged += OnBrowserLifecycleChanged;
 		_browser.FrameLoadEnd += BrowserFrameLoadEnd;
 		_browser.ClientSizeChanged += BrowserClientSizeChanged;
@@ -160,6 +197,7 @@ internal sealed class AolaMainForm : AolaFormBase
 			await UpdateBrowserZoomAsync();
 			_injectTimer.Start();
 			_battleMorphTimer.Start();
+			_runtimeMemoryTimer.Start();
 			EnsureHookInjectedAsync();
 			_status.Text = "收发日志默认关闭；点击“保留日志”后开始写入文件。";
 			BattleMorphPreparationResult morph = await _battlePresentationCoordinator
@@ -202,6 +240,10 @@ internal sealed class AolaMainForm : AolaFormBase
 		_battleMorphTimer.Dispose();
 		_themeTimer.Stop();
 		_themeTimer.Dispose();
+		_runtimeMemoryTimer.Stop();
+		_runtimeMemoryTimer.Dispose();
+		_runtimeFrameTimer.Stop();
+		_runtimeFrameTimer.Dispose();
 		_childWindowCoordinator.Dispose();
 		base.OnFormClosed(e);
 	}
@@ -213,11 +255,13 @@ internal sealed class AolaMainForm : AolaFormBase
 		if (minimized && !_mainWindowMinimized)
 		{
 			_mainWindowMinimized = true;
+			_runtimeMinimizeDueUtc = DateTime.UtcNow + RuntimeTrimAfterMinimize;
 			_childWindowCoordinator.RememberAndHideVisible();
 		}
 		else if (!minimized && _mainWindowMinimized)
 		{
 			_mainWindowMinimized = false;
+			_runtimeMinimizeDueUtc = null;
 			_childWindowCoordinator.RestoreVisibleAfterUnminimize();
 		}
 	}
@@ -245,6 +289,12 @@ internal sealed class AolaMainForm : AolaFormBase
 		ToolStripMenuItem lineup = new ToolStripMenuItem("阵容方案");
 		lineup.Click += delegate { _childWindowCoordinator.Show("lineupPresets", () => new LineupPresetsForm(_lineupCoordinator)); };
 		extensions.DropDownItems.Add(lineup);
+		ToolStripMenuItem panelCapture = new ToolStripMenuItem("面板调用采集");
+		panelCapture.Click += delegate
+		{
+			_childWindowCoordinator.Show("panelCapture", () => new PanelCaptureForm(new PanelCaptureClient(_pageBridge)));
+		};
+		extensions.DropDownItems.Add(panelCapture);
 		extensions.DropDownItems.Add(new ToolStripSeparator());
 		extensions.DropDownItems.Add(BuildThemeMenu());
 		return extensions;
@@ -722,6 +772,224 @@ internal sealed class AolaMainForm : AolaFormBase
 		catch (Exception ex)
 		{
 			if (!_isClosing && !IsDisposed) _status.Text = "页面缩放失败：" + ex.Message;
+		}
+	}
+
+	private void RuntimeMemoryTimerTick(object sender, EventArgs e)
+	{
+		if (_isClosing || IsDisposed || _runtimeTrimInProgress || _runtimeTrimFused)
+		{
+			return;
+		}
+		DateTime now = DateTime.UtcNow;
+		AolaBattleSnapshot snapshot = _battleTracker.CurrentSnapshot;
+		bool battleActive = snapshot != null && snapshot.HasBattle && !snapshot.IsEnded;
+		if (snapshot != null && snapshot.LastUpdatedUtc != _runtimeLastBattleUpdateUtc)
+		{
+			_runtimeLastBattleUpdateUtc = snapshot.LastUpdatedUtc;
+			_runtimeLastActivityUtc = now;
+		}
+		if (battleActive)
+		{
+			_runtimeBattleWasActive = true;
+			_runtimeBattleEndDueUtc = null;
+			_runtimeMinimizeDueUtc = null;
+			return;
+		}
+		if (_runtimeBattleWasActive)
+		{
+			_runtimeBattleWasActive = false;
+			_runtimeBattleEndDueUtc = now + RuntimeTrimAfterBattle;
+		}
+		if (_runtimeBattleEndDueUtc.HasValue && now < _runtimeBattleEndDueUtc.Value)
+		{
+			return;
+		}
+		string trigger = null;
+		if (_runtimeBattleEndDueUtc.HasValue && now >= _runtimeBattleEndDueUtc.Value)
+		{
+			trigger = "battle-end";
+			_runtimeBattleEndDueUtc = null;
+			_runtimeMinimizeDueUtc = null;
+		}
+		else if (WindowState == FormWindowState.Minimized &&
+			_runtimeMinimizeDueUtc.HasValue && now >= _runtimeMinimizeDueUtc.Value)
+		{
+			trigger = "minimize";
+			_runtimeMinimizeDueUtc = null;
+		}
+		else if (WindowState == FormWindowState.Minimized && _runtimeMinimizeDueUtc.HasValue)
+		{
+			return;
+		}
+		else if (!ContainsFocus && now - _runtimeLastActivityUtc >= RuntimeIdleThreshold)
+		{
+			// 空闲触发只在主窗体不持有焦点时生效，避免玩家在场景内持续操作时插入 GC 提示。
+			trigger = "idle";
+			_runtimeLastActivityUtc = now;
+		}
+		if (trigger == null)
+		{
+			return;
+		}
+		_runtimeLastActivityUtc = now;
+		BeginRuntimeTrim(trigger);
+	}
+
+	private async void BeginRuntimeTrim(string trigger)
+	{
+		if (_runtimeTrimInProgress || _runtimeTrimFused || _isClosing || IsDisposed)
+		{
+			return;
+		}
+		DateTime now = DateTime.UtcNow;
+		if (now - _runtimeLastTrimUtc < RuntimeTrimMinimumInterval)
+		{
+			return;
+		}
+		_runtimeLastTrimUtc = now;
+		// 默认关闭时只记录只读统计，不调用 aolaTrimMemory；设为 1 才实际整理。
+		if (!_trimMemoryEnabled)
+		{
+			_runtimeTrimInProgress = true;
+			FlashRuntimeStatsResult stats;
+			try
+			{
+				stats = await _flashRuntimeClient.GetRuntimeStatsAsync(CancellationToken.None);
+			}
+			catch (Exception ex)
+			{
+				stats = FlashRuntimeStatsResult.Failure(ex.Message);
+			}
+			_runtimeTrimInProgress = false;
+			if (_isClosing || IsDisposed)
+			{
+				return;
+			}
+			if (!stats.Succeeded)
+			{
+				WriteRuntimeMemoryRecord(new JObject
+				{
+					["timeUtc"] = DateTime.UtcNow.ToString("O"),
+					["trigger"] = trigger,
+					["enabled"] = false,
+					["status"] = "Failed",
+					["message"] = stats.Message
+				});
+				return;
+			}
+			WriteRuntimeMemoryRecord(new JObject
+			{
+				["timeUtc"] = DateTime.UtcNow.ToString("O"),
+				["trigger"] = trigger,
+				["enabled"] = false,
+				["status"] = "Observed",
+				["totalMB"] = stats.TotalMB,
+				["privateMB"] = stats.PrivateMB,
+				["freeMB"] = stats.FreeMB,
+				["frameRate"] = stats.FrameRate,
+				["quality"] = stats.Quality
+			});
+			return;
+		}
+		_runtimeTrimInProgress = true;
+		FlashTrimMemoryResult result;
+		try
+		{
+			result = await _flashRuntimeClient.TrimMemoryAsync(1, CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			result = FlashTrimMemoryResult.Failure(ex.Message);
+		}
+		if (_isClosing || IsDisposed)
+		{
+			_runtimeTrimInProgress = false;
+			return;
+		}
+		if (!result.Succeeded)
+		{
+			WriteRuntimeMemoryRecord(new JObject
+			{
+				["timeUtc"] = DateTime.UtcNow.ToString("O"),
+				["trigger"] = trigger,
+				["enabled"] = true,
+				["status"] = "Failed",
+				["message"] = result.Message
+			});
+			_runtimeTrimInProgress = false;
+			return;
+		}
+		StartRuntimeFrameObservation(trigger, result);
+	}
+
+	private void StartRuntimeFrameObservation(string trigger, FlashTrimMemoryResult result)
+	{
+		// 页面桥不提供 Flash 帧间隔；用 UI 线程定时器间隔近似 trim 后的 5 秒长帧。
+		_runtimePendingRecord = new JObject
+		{
+			["timeUtc"] = DateTime.UtcNow.ToString("O"),
+			["trigger"] = trigger,
+			["enabled"] = true,
+			["status"] = "TrimApplied",
+			["beforeMB"] = result.BeforeMB,
+			["afterMB"] = result.AfterMB,
+			["privateMB"] = result.PrivateMB
+		};
+		_runtimeFrameWindowStartMs = _runtimeFrameClock.ElapsedMilliseconds;
+		_runtimeLastFrameTickMs = _runtimeFrameWindowStartMs;
+		_runtimeMaxFrameGapMs = 0;
+		_runtimeFrameTimer.Start();
+	}
+
+	private void RuntimeFrameTimerTick(object sender, EventArgs e)
+	{
+		long now = _runtimeFrameClock.ElapsedMilliseconds;
+		long gap = now - _runtimeLastFrameTickMs;
+		_runtimeLastFrameTickMs = now;
+		if (gap > _runtimeMaxFrameGapMs)
+		{
+			_runtimeMaxFrameGapMs = (int)Math.Min(gap, int.MaxValue);
+		}
+		long elapsed = now - _runtimeFrameWindowStartMs;
+		if (elapsed < RuntimeFrameObservationWindowMs)
+		{
+			return;
+		}
+		_runtimeFrameTimer.Stop();
+		JObject record = _runtimePendingRecord;
+		_runtimePendingRecord = null;
+		bool fuseTripped = _runtimeMaxFrameGapMs > RuntimeLongFrameFuseMs;
+		if (record != null)
+		{
+			record["maxFrameGapMs"] = _runtimeMaxFrameGapMs;
+			record["frameWindowMs"] = (int)elapsed;
+			record["fuseTripped"] = fuseTripped;
+			WriteRuntimeMemoryRecord(record);
+		}
+		if (fuseTripped)
+		{
+			_runtimeTrimFused = true;
+		}
+		_runtimeTrimInProgress = false;
+	}
+
+	private static void WriteRuntimeMemoryRecord(JObject record)
+	{
+		try
+		{
+			string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "performance");
+			Directory.CreateDirectory(directory);
+			File.AppendAllText(
+				Path.Combine(directory, "runtime-memory.jsonl"),
+				record.ToString(Formatting.None) + Environment.NewLine,
+				new UTF8Encoding(false));
+		}
+		catch (IOException)
+		{
+		}
+		catch (UnauthorizedAccessException)
+		{
 		}
 	}
 

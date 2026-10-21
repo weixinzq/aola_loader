@@ -74,6 +74,11 @@ internal static class CompatibilityPathSourceGuardVerifier
 			"ExternalInterface.addCallback(\"aolaSendCommand\",this.onAolaSendCommand)",
 			"ExternalInterface.addCallback(\"aolaOpenPanel\",this.onAolaOpenPanel)",
 			"ExternalInterface.addCallback(\"aolaSetPlayback\",this.onAolaSetPlayback)",
+			"ExternalInterface.addCallback(\"aolaTrimMemory\",this.onAolaTrimMemory)",
+			"ExternalInterface.addCallback(\"aolaGetRuntimeStats\",this.onAolaGetRuntimeStats)",
+			"System.pauseForGCIfCollectionImminent(0.25)",
+			"\"TrimApplied|\"",
+			"\"RuntimeStats|\"",
 			"ApplicationDomain.currentDomain.hasDefinition(ACT_CLIENT_SENDER)",
 			"ApplicationDomain.currentDomain.getDefinition(ACT_CLIENT_SENDER)",
 			"sender[\"sendMessage\"](extension,command,parameters",
@@ -99,6 +104,92 @@ internal static class CompatibilityPathSourceGuardVerifier
 		{
 			Console.Error.WriteLine("Compatibility path source guard rejected hard imports from the startup bridge.");
 			return false;
+		}
+		if (startBridgeSource.IndexOf("System.gc(", StringComparison.Ordinal) >= 0)
+		{
+			Console.Error.WriteLine("Compatibility path source guard rejected forced GC from the startup bridge.");
+			return false;
+		}
+
+		string pageBridgePath = Path.Combine(loaderRoot, "BrowserHost", "AolaPageBridge.cs");
+		string pageBridgeSource = File.ReadAllText(pageBridgePath);
+		string[] requiredRuntimePageTokens =
+		{
+			"operation === 'system.trimMemory'",
+			"operation === 'system.runtimeStats'",
+			"aolaTrimMemory(trimLevel)",
+			"aolaGetRuntimeStats()",
+			"trimParts[0] !== 'TrimApplied'",
+			"statsParts[0] !== 'RuntimeStats'"
+		};
+		foreach (string token in requiredRuntimePageTokens)
+		{
+			if (pageBridgeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires page bridge token " + token + ".");
+				return false;
+			}
+		}
+
+		string flashRuntimeClientPath = Path.Combine(
+			loaderRoot, "Features", "Runtime", "FlashRuntimeClient.cs");
+		string flashRuntimeClientSource = File.ReadAllText(flashRuntimeClientPath);
+		string[] requiredFlashRuntimeTokens =
+		{
+			"\"system.trimMemory\"",
+			"\"system.runtimeStats\"",
+			"TrimMemoryAsync",
+			"GetRuntimeStatsAsync"
+		};
+		foreach (string token in requiredFlashRuntimeTokens)
+		{
+			if (flashRuntimeClientSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires flash runtime client token " + token + ".");
+				return false;
+			}
+		}
+
+		string mainFormRuntimePath = Path.Combine(loaderRoot, "AppShell", "AolaMainForm.cs");
+		string mainFormRuntimeSource = File.ReadAllText(mainFormRuntimePath);
+		string[] requiredRuntimeTriggerTokens =
+		{
+			"AOLA_TRIM_MEMORY",
+			"runtime-memory.jsonl",
+			"TimeSpan.FromSeconds(5)",
+			"TimeSpan.FromSeconds(1)",
+			"TimeSpan.FromMinutes(5)",
+			"TimeSpan.FromMinutes(10)",
+			"RuntimeLongFrameFuseMs = 500"
+		};
+		foreach (string token in requiredRuntimeTriggerTokens)
+		{
+			if (mainFormRuntimeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires runtime trigger token " + token + ".");
+				return false;
+			}
+		}
+
+		string updateStartBridgePath = Path.Combine(
+			repositoryRoot, "analysis", "tools", "Update-StartBridge.ps1");
+		string updateStartBridgeSource = File.ReadAllText(updateStartBridgePath);
+		string[] requiredStartBridgeUpdateTokens =
+		{
+			"D:\\Programs\\FFdec\\ffdec-cli.exe",
+			"mmo.checkversion.Load",
+			"start-bridge-2107300001.fws.swf",
+			"aolaTrimMemory",
+			"aolaGetRuntimeStats",
+			"pauseForGCIfCollectionImminent(0.25)"
+		};
+		foreach (string token in requiredStartBridgeUpdateTokens)
+		{
+			if (updateStartBridgeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires start bridge update token " + token + ".");
+				return false;
+			}
 		}
 
 		string petDocClassPath = Path.Combine(

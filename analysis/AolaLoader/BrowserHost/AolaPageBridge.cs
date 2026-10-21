@@ -77,6 +77,10 @@ internal sealed class AolaPageBridge : IPageBridge
 
 	internal static string BuildInvocationScript(string operation, JObject arguments)
 	{
+		if (operation == "panelCapture.poll" || operation == "panelCapture.stop")
+		{
+			return PanelCapturePageScript.Build(operation, arguments);
+		}
 		string operationJson = JsonConvert.SerializeObject(operation);
 		string argumentsJson = (arguments ?? new JObject()).ToString(Formatting.None);
 		return @"(function (operation, args) {
@@ -140,6 +144,9 @@ internal sealed class AolaPageBridge : IPageBridge
 	}
 	function validDiagnosticNumber(value) {
 		return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= -1;
+	}
+	function validMemoryMb(value) {
+		return typeof value === 'string' && /^\d{1,9}$/.test(value);
 	}
 	try {
 		if (operation === 'theme.apply') {
@@ -324,6 +331,42 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Flash returned invalid battle resource events.');
 			}
 			return envelope(true, trace, '', '');
+		}
+		if (operation === 'system.trimMemory') {
+			var trimLevel = Number(args.level);
+			if (typeof args.level !== 'number' || !Number.isInteger(trimLevel) || (trimLevel !== 0 && trimLevel !== 1))
+				return envelope(false, null, 'InvocationFailed', 'Invalid memory trim level.');
+			var trimFlash = findFlash('aolaTrimMemory');
+			if (!trimFlash) return envelope(false, null, 'BridgeNotInstalled', '游戏内存桥尚未就绪，请等待游戏加载完成。');
+			var trimRaw = String(trimFlash.aolaTrimMemory(trimLevel) || '');
+			var trimParts = trimRaw.split('|');
+			if (trimParts.length !== 4 || trimParts[0] !== 'TrimApplied' ||
+				!validMemoryMb(trimParts[1]) || !validMemoryMb(trimParts[2]) || !validMemoryMb(trimParts[3]))
+				return envelope(false, null, 'InvocationFailed', trimRaw || 'Flash rejected the memory trim request.');
+			return envelope(true, {
+				status: trimParts[0],
+				beforeMB: Number(trimParts[1]),
+				afterMB: Number(trimParts[2]),
+				privateMB: Number(trimParts[3])
+			}, '', '');
+		}
+		if (operation === 'system.runtimeStats') {
+			var statsFlash = findFlash('aolaGetRuntimeStats');
+			if (!statsFlash) return envelope(false, null, 'BridgeNotInstalled', '游戏内存桥尚未就绪，请等待游戏加载完成。');
+			var statsRaw = String(statsFlash.aolaGetRuntimeStats() || '');
+			var statsParts = statsRaw.split('|');
+			if (statsParts.length !== 6 || statsParts[0] !== 'RuntimeStats' ||
+				!validMemoryMb(statsParts[1]) || !validMemoryMb(statsParts[2]) || !validMemoryMb(statsParts[3]) ||
+				!/^\d{1,4}$/.test(statsParts[4]) || statsParts[5].length > 32)
+				return envelope(false, null, 'InvocationFailed', statsRaw || 'Flash returned invalid runtime stats.');
+			return envelope(true, {
+				status: statsParts[0],
+				totalMB: Number(statsParts[1]),
+				privateMB: Number(statsParts[2]),
+				freeMB: Number(statsParts[3]),
+				frameRate: Number(statsParts[4]),
+				quality: statsParts[5]
+			}, '', '');
 		}
 		if (operation === 'feature.push') {
 			var feature = String(args.feature || '');

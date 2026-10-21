@@ -51,12 +51,13 @@ internal sealed class RemoteResourceFetchResult
 		string contentType,
 		byte[] content,
 		string rejectionCode,
-		string message)
+		string message,
+		bool ownContent = false)
 	{
 		Succeeded = succeeded;
 		HttpStatusCode = httpStatusCode;
 		ContentType = contentType ?? string.Empty;
-		_content = content == null ? null : (byte[])content.Clone();
+		_content = content == null || ownContent ? content : (byte[])content.Clone();
 		RejectionCode = rejectionCode;
 		Message = message ?? string.Empty;
 	}
@@ -69,11 +70,36 @@ internal sealed class RemoteResourceFetchResult
 
 	public byte[] Content => _content == null ? null : (byte[])_content.Clone();
 
+	internal byte[] ContentUnsafe => _content;
+
 	public string RejectionCode { get; }
 
 	public string Message { get; }
 
 	public static RemoteResourceFetchResult Success(int httpStatusCode, string contentType, byte[] content)
+	{
+		ValidateSuccess(httpStatusCode, content);
+		return new RemoteResourceFetchResult(true, httpStatusCode, contentType, content, null, null);
+	}
+
+	// 仅供本次新建且不再被调用方复用的 body 使用，结果不复制 content。
+	internal static RemoteResourceFetchResult SuccessOwned(
+		int httpStatusCode,
+		string contentType,
+		byte[] content)
+	{
+		ValidateSuccess(httpStatusCode, content);
+		return new RemoteResourceFetchResult(
+			true,
+			httpStatusCode,
+			contentType,
+			content,
+			null,
+			null,
+			ownContent: true);
+	}
+
+	private static void ValidateSuccess(int httpStatusCode, byte[] content)
 	{
 		if (httpStatusCode < 200 || httpStatusCode > 299)
 		{
@@ -83,7 +109,6 @@ internal sealed class RemoteResourceFetchResult
 		{
 			throw new ArgumentException("Fetched content is required.", nameof(content));
 		}
-		return new RemoteResourceFetchResult(true, httpStatusCode, contentType, content, null, null);
 	}
 
 	public static RemoteResourceFetchResult Reject(

@@ -28,7 +28,7 @@ internal sealed class BattlePetMovieResourceTransformer : IResourceResponseTrans
 	public ResourceTransformResult Transform(ResourceTransformInput input)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		if (!AolaSwfClassAdapter.TryDecodeToFws(input.Content, out byte[] fws))
+		if (!AolaSwfClassAdapter.TryDecodeToFws(input.ContentUnsafe, out byte[] fws))
 		{
 			return ResourceTransformResult.Reject("battle.swf_decode_failed", "战斗模型 SWF 无法完整解压。");
 		}
@@ -67,7 +67,7 @@ internal sealed class BattlePetMovieResourceTransformer : IResourceResponseTrans
 		{
 			return ResourceTransformResult.Reject("battle.class_contract_failed", "战斗模型类契约校验失败。");
 		}
-		return ResourceTransformResult.Success(adapted, "application/x-shockwave-flash");
+		return ResourceTransformResult.SuccessOwned(adapted, "application/x-shockwave-flash");
 	}
 
 	private static int Count(byte[] content, byte[] token)

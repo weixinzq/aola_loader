@@ -63,18 +63,54 @@ internal sealed class BoundedResourceResponseProcessor : IDisposable
 		{
 			return ResourceTransformResult.Reject(_rejectionCode, "Response exceeded the configured input bound.");
 		}
+		return CompleteCore(
+			_buffer.ToArray(),
+			sourceUrl,
+			httpStatusCode,
+			contentType,
+			defaultContentType,
+			transformer);
+	}
+
+	// 仅供已按 MaximumResponseBytes 约束且不再复用的完整 body 使用，processor 不复制 content。
+	internal ResourceTransformResult CompleteOwned(
+		byte[] content,
+		string sourceUrl,
+		int httpStatusCode,
+		string contentType,
+		string defaultContentType,
+		IResourceResponseTransformer transformer)
+	{
+		ThrowIfCompletedOrDisposed();
+		_completed = true;
+		return CompleteCore(
+			content,
+			sourceUrl,
+			httpStatusCode,
+			contentType,
+			defaultContentType,
+			transformer);
+	}
+
+	private ResourceTransformResult CompleteCore(
+		byte[] content,
+		string sourceUrl,
+		int httpStatusCode,
+		string contentType,
+		string defaultContentType,
+		IResourceResponseTransformer transformer)
+	{
 		if (httpStatusCode < 200 || httpStatusCode > 299)
 		{
 			return ResourceTransformResult.Reject(
 				"response.http_non_success",
 				"Remote response status was " + httpStatusCode + ".");
 		}
-		if (_buffer.Length == 0)
+		if (content == null || content.Length == 0)
 		{
 			return ResourceTransformResult.Reject("response.empty", "Remote response was empty.");
 		}
 
-		byte[] content = _buffer.ToArray();
 		string resolvedContentType = string.IsNullOrWhiteSpace(contentType)
 			? defaultContentType
 			: contentType;
@@ -86,7 +122,7 @@ internal sealed class BoundedResourceResponseProcessor : IDisposable
 					"response.content_type_missing",
 					"No response content type was available.");
 			}
-			return ResourceTransformResult.Success(content, resolvedContentType);
+			return ResourceTransformResult.SuccessOwned(content, resolvedContentType);
 		}
 
 		ResourceTransformResult result;
@@ -110,7 +146,7 @@ internal sealed class BoundedResourceResponseProcessor : IDisposable
 				"response.transform_invalid",
 				"Transformer returned null.");
 		}
-		if (result.Succeeded && result.Content.LongLength > _maximumBytes)
+		if (result.Succeeded && result.ContentLength > _maximumBytes)
 		{
 			return ResourceTransformResult.Reject(
 				"response.output_too_large",

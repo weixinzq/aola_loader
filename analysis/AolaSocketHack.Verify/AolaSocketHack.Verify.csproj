@@ -118,6 +118,7 @@
     <Compile Include="..\AolaLoader\BrowserHost\Contracts\BrowserScriptContracts.cs" Link="BrowserHost\Contracts\BrowserScriptContracts.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Contracts\IPageBridge.cs" Link="BrowserHost\Contracts\IPageBridge.cs" />
 	<Compile Include="..\AolaLoader\BrowserHost\AolaPageBridge.cs" Link="BrowserHost\AolaPageBridge.cs" />
+	<Compile Include="..\AolaLoader\BrowserHost\PanelCapturePageScript.cs" Link="BrowserHost\PanelCapturePageScript.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualBrowserSession.cs" Link="BrowserHost\Testing\ManualBrowserSession.cs" />
     <Compile Include="..\AolaLoader\BrowserHost\Testing\ManualPageBridge.cs" Link="BrowserHost\Testing\ManualPageBridge.cs" />
 	<Compile Include="..\AolaLoader\Features\ActiveSend\IAolaCommandSender.cs" Link="Features\ActiveSend\IAolaCommandSender.cs" />

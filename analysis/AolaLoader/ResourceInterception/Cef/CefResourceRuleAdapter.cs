@@ -52,7 +52,7 @@ internal sealed class CefResourceRuleAdapter
 
 		disableDefaultHandling = true;
 		return new LocalResourceRequestHandler(
-			evaluation.Plan.LocalContent,
+			evaluation.Plan.LocalContentUnsafe,
 			evaluation.Plan.ContentType);
 	}
 
@@ -96,7 +96,7 @@ internal sealed class CefResourceRuleAdapter
 				result = _result;
 			}
 			return result != null && result.Succeeded
-				? ResourceHandler.FromByteArray(result.Content, result.ContentType)
+				? ResourceHandler.FromByteArray(result.ContentUnsafe, result.ContentType)
 				: null;
 		}
 

@@ -52,7 +52,7 @@ internal sealed class PetFightBattleBridgeResourceRule : IResourceInterceptionRu
 			return ResourceInterceptionPlan.PassThrough(request.OriginalUrl);
 		}
 
-		return ResourceInterceptionPlan.LocalResponse(
+		return ResourceInterceptionPlan.LocalResponseOwned(
 			request.OriginalUrl,
 			_artifact.Content,
 			"application/x-shockwave-flash",

@@ -26,12 +26,15 @@ internal sealed class ResourceInterceptionPlan
 		string cacheKey,
 		string diagnosticKey,
 		long maximumResponseBytes,
-		bool probeRemoteResource = true)
+		bool probeRemoteResource = true,
+		bool ownLocalContent = false)
 	{
 		Outcome = outcome;
 		OriginalUrl = originalUrl;
 		TargetUrl = targetUrl;
-		_localContent = localContent == null ? null : (byte[])localContent.Clone();
+		_localContent = localContent == null || ownLocalContent
+			? localContent
+			: (byte[])localContent.Clone();
 		ContentType = contentType;
 		Transformer = transformer;
 		FallbackUrl = fallbackUrl;
@@ -48,6 +51,8 @@ internal sealed class ResourceInterceptionPlan
 	public string TargetUrl { get; }
 
 	public byte[] LocalContent => _localContent == null ? null : (byte[])_localContent.Clone();
+
+	internal byte[] LocalContentUnsafe => _localContent;
 
 	public string ContentType { get; }
 
@@ -86,6 +91,40 @@ internal sealed class ResourceInterceptionPlan
 		string cacheKey,
 		string diagnosticKey)
 	{
+		return CreateLocalResponse(
+			originalUrl,
+			content,
+			contentType,
+			cacheKey,
+			diagnosticKey,
+			ownContent: false);
+	}
+
+	// 仅供字节只读且由规则长期持有的调用方使用，计划不复制 content。
+	internal static ResourceInterceptionPlan LocalResponseOwned(
+		string originalUrl,
+		byte[] content,
+		string contentType,
+		string cacheKey,
+		string diagnosticKey)
+	{
+		return CreateLocalResponse(
+			originalUrl,
+			content,
+			contentType,
+			cacheKey,
+			diagnosticKey,
+			ownContent: true);
+	}
+
+	private static ResourceInterceptionPlan CreateLocalResponse(
+		string originalUrl,
+		byte[] content,
+		string contentType,
+		string cacheKey,
+		string diagnosticKey,
+		bool ownContent)
+	{
 		ValidateUrl(originalUrl, nameof(originalUrl));
 		if (content == null || content.Length == 0)
 		{
@@ -105,7 +144,9 @@ internal sealed class ResourceInterceptionPlan
 			null,
 			cacheKey,
 			diagnosticKey,
-			content.LongLength);
+			content.LongLength,
+			probeRemoteResource: true,
+			ownLocalContent: ownContent);
 	}
 
 	public static ResourceInterceptionPlan RewriteRemote(

@@ -241,7 +241,12 @@ def parse_abc(data: bytes, targets: set[tuple[str, str]]) -> list[dict[str, int 
             if class_initializer_method_index in target_methods:
                 raise ParseError(f"duplicate target method index {class_initializer_method_index}")
             target_methods[class_initializer_method_index] = (class_name, "$cinit")
-        skip_traits(reader, reader.u30())
+        traits = skip_traits(reader, reader.u30())
+        for trait_name_index, _, method_index in traits:
+            trait_name = multiname_text(trait_name_index, strings, namespaces, multinames)
+            method_name = trait_name.rsplit(".", 1)[-1] if trait_name else ""
+            if (class_name, method_name) in targets:
+                target_methods[method_index] = (class_name, method_name)
 
     for _ in range(reader.u30()):
         reader.u30()
