@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <LangVersion>latest</LangVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CefSharp.WinForms" Version="87.1.132" />
+    <Compile Include="..\AolaLoader\BrowserHost\AolaCefInitializer.cs" Link="AolaCefInitializer.cs" />
+    <Content Include="..\runtime\pepflashplayer.dll" Link="runtime\pepflashplayer.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

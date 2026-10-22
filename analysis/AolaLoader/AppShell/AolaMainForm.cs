@@ -19,6 +19,7 @@ using AolaLoader.UI.Lineup;
 using AolaLoader.Features.Battle.State;
 using AolaLoader.Features.Battle.Coordination;
 using AolaLoader.Features.Battle.Bridge;
+using AolaLoader.Features.Battle.Diagnostics;
 using AolaLoader.Features.PetMorph;
 using AolaLoader.Features.PetMorph.Coordination;
 using AolaLoader.Features.Runtime;
@@ -47,6 +48,7 @@ internal sealed class AolaMainForm : AolaFormBase
 	private static readonly TimeSpan RuntimeTrimAfterMinimize = TimeSpan.FromSeconds(1);
 	private static readonly TimeSpan RuntimeTrimMinimumInterval = TimeSpan.FromMinutes(5);
 	private static readonly TimeSpan RuntimeIdleThreshold = TimeSpan.FromMinutes(10);
+	private static readonly TimeSpan BattleOwnerProbeAfterBattle = TimeSpan.FromSeconds(5);
 	private const int RuntimeFrameObservationWindowMs = 5000;
 	private const int RuntimeLongFrameFuseMs = 500;
 	private readonly ToolStrip _toolbar;
@@ -63,7 +65,13 @@ internal sealed class AolaMainForm : AolaFormBase
 	private readonly System.Windows.Forms.Timer _runtimeFrameTimer = new System.Windows.Forms.Timer();
 	private readonly Stopwatch _runtimeFrameClock = Stopwatch.StartNew();
 	private readonly FlashRuntimeClient _flashRuntimeClient;
-	private readonly bool _trimMemoryEnabled;
+	private readonly BattleOwnerProbeClient _battleOwnerProbeClient;
+	private readonly int _trimMemoryMode;
+	private readonly bool _battleProbeEnabled;
+	private readonly int _battleProbeMode;
+	private bool _battleProbeInProgress;
+	private bool _battleProbeWasActive;
+	private DateTime? _battleProbeDueUtc;
 	private bool _themePushInProgress;
 	private string _themeStatusKey;
 	private readonly IChildWindowCoordinator _childWindowCoordinator;
@@ -122,10 +130,15 @@ internal sealed class AolaMainForm : AolaFormBase
 		_commandSender = commandSender ?? throw new ArgumentNullException(nameof(commandSender));
 		_pageBridge = pageBridge ?? throw new ArgumentNullException(nameof(pageBridge));
 		_flashRuntimeClient = new FlashRuntimeClient(_pageBridge);
-		_trimMemoryEnabled = string.Equals(
-			Environment.GetEnvironmentVariable("AOLA_TRIM_MEMORY"),
+		_battleOwnerProbeClient = new BattleOwnerProbeClient(_pageBridge);
+		// 0=只记录（默认），1=5 分钟节流实际 trim，2=诊断 A/B：每场结束都实际 trim。
+		_trimMemoryMode = ParseTrimMemoryMode(Environment.GetEnvironmentVariable("AOLA_TRIM_MEMORY"));
+		// owner probe 默认关闭；只有显式 AOLA_BATTLE_PROBE=1 才在战斗结束 5 秒后调用一次。
+		_battleProbeEnabled = string.Equals(
+			Environment.GetEnvironmentVariable("AOLA_BATTLE_PROBE"),
 			"1",
 			StringComparison.Ordinal);
+		_battleProbeMode = ParseBattleProbeMode(Environment.GetEnvironmentVariable("AOLA_BATTLE_PROBE_MODE"));
 		_receiveLogger = receiveLogger ?? throw new ArgumentNullException(nameof(receiveLogger));
 		_battleTracker = battleTracker ?? throw new ArgumentNullException(nameof(battleTracker));
 		_themeCoordinator = themeCoordinator ?? throw new ArgumentNullException(nameof(themeCoordinator));
@@ -777,7 +790,13 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private void RuntimeMemoryTimerTick(object sender, EventArgs e)
 	{
-		if (_isClosing || IsDisposed || _runtimeTrimInProgress || _runtimeTrimFused)
+		if (_isClosing || IsDisposed)
+		{
+			return;
+		}
+		// owner probe 与 trim 触发解耦：不使用 trim 的 5 分钟节流，也不受 trim 熔断影响。
+		ObserveBattleOwnerProbe();
+		if (_runtimeTrimInProgress || _runtimeTrimFused)
 		{
 			return;
 		}
@@ -843,13 +862,14 @@ internal sealed class AolaMainForm : AolaFormBase
 			return;
 		}
 		DateTime now = DateTime.UtcNow;
-		if (now - _runtimeLastTrimUtc < RuntimeTrimMinimumInterval)
+		// mode 0/1 保留 5 分钟节流；mode 2 是每场结束都执行的诊断模式，不做节流。
+		if (_trimMemoryMode <= 1 && now - _runtimeLastTrimUtc < RuntimeTrimMinimumInterval)
 		{
 			return;
 		}
 		_runtimeLastTrimUtc = now;
-		// 默认关闭时只记录只读统计，不调用 aolaTrimMemory；设为 1 才实际整理。
-		if (!_trimMemoryEnabled)
+		// 默认关闭时只记录只读统计，不调用 aolaTrimMemory；设为 1 或 2 才实际整理。
+		if (_trimMemoryMode == 0)
 		{
 			_runtimeTrimInProgress = true;
 			FlashRuntimeStatsResult stats;
@@ -873,6 +893,7 @@ internal sealed class AolaMainForm : AolaFormBase
 					["timeUtc"] = DateTime.UtcNow.ToString("O"),
 					["trigger"] = trigger,
 					["enabled"] = false,
+					["mode"] = _trimMemoryMode,
 					["status"] = "Failed",
 					["message"] = stats.Message
 				});
@@ -883,6 +904,7 @@ internal sealed class AolaMainForm : AolaFormBase
 				["timeUtc"] = DateTime.UtcNow.ToString("O"),
 				["trigger"] = trigger,
 				["enabled"] = false,
+				["mode"] = _trimMemoryMode,
 				["status"] = "Observed",
 				["totalMB"] = stats.TotalMB,
 				["privateMB"] = stats.PrivateMB,
@@ -914,6 +936,7 @@ internal sealed class AolaMainForm : AolaFormBase
 				["timeUtc"] = DateTime.UtcNow.ToString("O"),
 				["trigger"] = trigger,
 				["enabled"] = true,
+				["mode"] = _trimMemoryMode,
 				["status"] = "Failed",
 				["message"] = result.Message
 			});
@@ -931,6 +954,7 @@ internal sealed class AolaMainForm : AolaFormBase
 			["timeUtc"] = DateTime.UtcNow.ToString("O"),
 			["trigger"] = trigger,
 			["enabled"] = true,
+			["mode"] = _trimMemoryMode,
 			["status"] = "TrimApplied",
 			["beforeMB"] = result.BeforeMB,
 			["afterMB"] = result.AfterMB,
@@ -976,12 +1000,17 @@ internal sealed class AolaMainForm : AolaFormBase
 
 	private static void WriteRuntimeMemoryRecord(JObject record)
 	{
+		WritePerformanceRecord("runtime-memory.jsonl", record);
+	}
+
+	private static void WritePerformanceRecord(string fileName, JObject record)
+	{
 		try
 		{
 			string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "performance");
 			Directory.CreateDirectory(directory);
 			File.AppendAllText(
-				Path.Combine(directory, "runtime-memory.jsonl"),
+				Path.Combine(directory, fileName),
 				record.ToString(Formatting.None) + Environment.NewLine,
 				new UTF8Encoding(false));
 		}
@@ -991,6 +1020,130 @@ internal sealed class AolaMainForm : AolaFormBase
 		catch (UnauthorizedAccessException)
 		{
 		}
+	}
+
+	private static int ParseTrimMemoryMode(string value)
+	{
+		switch (value)
+		{
+			case "1":
+				return 1;
+			case "2":
+				return 2;
+			default:
+				return 0;
+		}
+	}
+
+	private static int ParseBattleProbeMode(string value)
+	{
+		switch (value)
+		{
+			case "0":
+				return 0;
+			case "2":
+				return 2;
+			case "3":
+				return 3;
+			default:
+				return 1;
+		}
+	}
+
+	private void ObserveBattleOwnerProbe()
+	{
+		if (!_battleProbeEnabled || _battleProbeInProgress)
+		{
+			return;
+		}
+		DateTime now = DateTime.UtcNow;
+		AolaBattleSnapshot snapshot = _battleTracker.CurrentSnapshot;
+		bool battleActive = snapshot != null && snapshot.HasBattle && !snapshot.IsEnded;
+		if (battleActive)
+		{
+			_battleProbeWasActive = true;
+			_battleProbeDueUtc = null;
+			return;
+		}
+		if (_battleProbeWasActive)
+		{
+			_battleProbeWasActive = false;
+			_battleProbeDueUtc = now + BattleOwnerProbeAfterBattle;
+		}
+		if (!_battleProbeDueUtc.HasValue || now < _battleProbeDueUtc.Value)
+		{
+			return;
+		}
+		_battleProbeDueUtc = null;
+		BeginBattleOwnerProbe();
+	}
+
+	private async void BeginBattleOwnerProbe()
+	{
+		if (_battleProbeInProgress || _isClosing || IsDisposed)
+		{
+			return;
+		}
+		_battleProbeInProgress = true;
+		BattleOwnerProbeResult result;
+		try
+		{
+			result = await _battleOwnerProbeClient.ProbeAsync(_battleProbeMode, CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			result = BattleOwnerProbeResult.Failure(ex.Message);
+		}
+		finally
+		{
+			_battleProbeInProgress = false;
+		}
+		WriteBattleOwnerProbeRecord(result);
+	}
+
+	private void WriteBattleOwnerProbeRecord(BattleOwnerProbeResult result)
+	{
+		JObject record = new JObject
+		{
+			["timeUtc"] = DateTime.UtcNow.ToString("O"),
+			["mode"] = _battleProbeMode,
+			["status"] = result.Succeeded ? "ProbeApplied" : "ProbeFailed"
+		};
+		if (result.Succeeded && result.Snapshot != null)
+		{
+			BattleOwnerProbeSnapshot snapshot = result.Snapshot;
+			record["startMovies"] = snapshot.StartMovies;
+			record["before"] = DescribeBattleOwnerProbeMemory(snapshot.Before);
+			record["after"] = DescribeBattleOwnerProbeMemory(snapshot.After);
+			record["actions"] = new JObject
+			{
+				["tipsRemoved"] = snapshot.Actions.TipsRemoved,
+				["tipsFailed"] = snapshot.Actions.TipsFailed,
+				["tipsUnavailable"] = snapshot.Actions.TipsUnavailable,
+				["headFrameCleared"] = snapshot.Actions.HeadFrameCleared,
+				["headFrameFailed"] = snapshot.Actions.HeadFrameFailed,
+				["headFrameUnavailable"] = snapshot.Actions.HeadFrameUnavailable
+			};
+			record["errors"] = new JArray(snapshot.Errors);
+		}
+		else
+		{
+			record["message"] = result.Message;
+		}
+		WritePerformanceRecord("battle-owner-probe.jsonl", record);
+	}
+
+	private static JObject DescribeBattleOwnerProbeMemory(BattleOwnerProbeMemory memory)
+	{
+		return new JObject
+		{
+			["totalMB"] = memory.TotalMB,
+			["privateMB"] = memory.PrivateMB,
+			["titleNodes"] = memory.TitleNodes,
+			["headFrameNodes"] = memory.HeadFrameNodes,
+			["signNodes"] = memory.SignNodes,
+			["displayChildren"] = memory.DisplayChildren
+		};
 	}
 
 	private void HookStatusReceived(AolaHookStatus status)

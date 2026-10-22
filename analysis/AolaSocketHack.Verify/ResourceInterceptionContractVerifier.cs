@@ -870,6 +870,98 @@ internal static class ResourceInterceptionContractVerifier
 			Throws<ArgumentException>(() => new PetFightBattleBridgeResourceRule(invalidUrlDocument.ToString(), File.ReadAllBytes(path)));
 	}
 
+	internal static bool VerifyBattleOwnerProbeRule()
+	{
+		string temporaryRoot = Path.Combine(
+			Path.GetTempPath(),
+			"aola-battle-owner-probe-" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(temporaryRoot);
+		try
+		{
+			string probePath = Path.Combine(temporaryRoot, "petfightnew-owner-probe.fws.swf");
+			File.WriteAllBytes(probePath, CreateFws(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }));
+			string url = "https://aola.100bt.com/play/pet/petfightnew~260929024751831.swf?cache=1";
+			BattleOwnerProbeResourceRule unset = new BattleOwnerProbeResourceRule((string)null);
+			BattleOwnerProbeResourceRule invalid = new BattleOwnerProbeResourceRule(
+				Path.Combine(temporaryRoot, "missing.fws.swf"));
+			BattleOwnerProbeResourceRule loaded = new BattleOwnerProbeResourceRule(probePath);
+			string legacyLoaderProbe = Environment.GetEnvironmentVariable("AOLA_DOMAIN_OWNER_LOADER_SWF");
+			BattleOwnerProbeResourceRule legacyConfigured;
+			try
+			{
+				Environment.SetEnvironmentVariable("AOLA_DOMAIN_OWNER_LOADER_SWF", probePath);
+				legacyConfigured = new BattleOwnerProbeResourceRule();
+			}
+			finally
+			{
+				Environment.SetEnvironmentVariable("AOLA_DOMAIN_OWNER_LOADER_SWF", legacyLoaderProbe);
+			}
+			foreach (string startupPath in new[]
+			{
+				"play.html", "load.swf", "loader.swf", "loader~20261015557387610.swf",
+				"loader_res~20261015557387610.swf", "versiondata~20261015557387610.swf",
+				"config~20261015557387610.xml", "start~2107300001.swf"
+			})
+			{
+				ResourceRequestContext startup = new ResourceRequestContext(
+					"https://aola.100bt.com/play/" + startupPath, "GET", "PluginResource");
+				if (loaded.Evaluate(startup).Outcome != ResourceInterceptionOutcome.PassThrough ||
+					legacyConfigured.Evaluate(startup).Outcome != ResourceInterceptionOutcome.PassThrough)
+				{
+					return false;
+				}
+			}
+			ResourceInterceptionPlan matched = loaded.Evaluate(new ResourceRequestContext(url, "GET", "Other"));
+			ResourceInterceptionPlan otherVersion = loaded.Evaluate(new ResourceRequestContext(
+				"https://aola.100bt.com/play/pet/petfightnew~2026101541804528.swf",
+				"GET", "Other"));
+			if (unset.IsAvailable || invalid.IsAvailable || !loaded.IsAvailable ||
+				loaded.Priority != 851 || loaded.ContentLength != 16 ||
+				unset.Evaluate(new ResourceRequestContext(url, "GET", "Other")).Outcome !=
+					ResourceInterceptionOutcome.PassThrough ||
+				invalid.Evaluate(new ResourceRequestContext(url, "GET", "Other")).Outcome !=
+					ResourceInterceptionOutcome.PassThrough ||
+				matched.Outcome != ResourceInterceptionOutcome.LocalResponse ||
+				matched.ContentType != "application/x-shockwave-flash" ||
+				otherVersion.Outcome != ResourceInterceptionOutcome.LocalResponse ||
+				loaded.Evaluate(new ResourceRequestContext(url, "POST", "Other")).Outcome !=
+					ResourceInterceptionOutcome.PassThrough ||
+				loaded.Evaluate(new ResourceRequestContext(
+					"https://example.test/play/pet/petfightnew~260929024751831.swf",
+					"GET", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough ||
+				loaded.Evaluate(new ResourceRequestContext(
+					"https://aola.100bt.com/play/pet/petfightnew~260929024751831.swf.bak",
+					"GET", "Other")).Outcome != ResourceInterceptionOutcome.PassThrough)
+			{
+				return false;
+			}
+			byte[] firstRead = matched.LocalContent;
+			firstRead[8] ^= 1;
+			if (matched.LocalContent[8] == firstRead[8])
+			{
+				return false;
+			}
+			File.WriteAllBytes(probePath, new byte[] { (byte)'F', (byte)'W', (byte)'S', 9, 9, 9, 9, 9 });
+			return !new BattleOwnerProbeResourceRule(probePath).IsAvailable;
+		}
+		finally
+		{
+			Directory.Delete(temporaryRoot, recursive: true);
+		}
+	}
+
+	private static byte[] CreateFws(byte[] body)
+	{
+		byte[] content = new byte[8 + body.Length];
+		content[0] = (byte)'F';
+		content[1] = (byte)'W';
+		content[2] = (byte)'S';
+		content[3] = 18;
+		Buffer.BlockCopy(BitConverter.GetBytes((uint)content.Length), 0, content, 4, 4);
+		Buffer.BlockCopy(body, 0, content, 8, body.Length);
+		return content;
+	}
+
 	private static byte[] CreateStartBridgeTemplate(bool includeLoadBytesMarker)
 	{
 		string body = "aolaSendCommand|aolaOpenPanel|aolaSetPlayback|aolaCommandCompleted|" +

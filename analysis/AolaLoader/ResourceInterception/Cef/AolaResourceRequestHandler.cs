@@ -31,6 +31,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 	private const string SupportedPosterResourceSuffix = "~1210";
 	private readonly ThemeLeafResourceRule _themeRule;
 	private readonly StartBridgeResourceRule _startBridgeRule;
+	private readonly BattleOwnerProbeResourceRule _battleOwnerProbeRule;
 	private readonly PetFightBattleBridgeResourceRule _battleBridgeRule;
 	private readonly BattleBackgroundImageResourceRule _battleBackgroundRule;
 	private readonly BattlePetMovieResourceRule _battlePetMovieRule;
@@ -62,6 +63,8 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		var themeBridgeRule = new ThemeControlBridgeResourceRule(
 			Path.Combine(themeDirectory, "..", "Patches", "controlv2-theme-live-2026082731219998.fws.swf"), liveTheme);
 		_startBridgeRule = new StartBridgeResourceRule(startBridgeTemplatePath);
+		// 诊断开关：仅在 AOLA_BATTLE_BRIDGE_PROBE_SWF 指向有效 FWS 时优先返回 owner probe 候选。
+		_battleOwnerProbeRule = new BattleOwnerProbeResourceRule();
 		_battleBridgeRule = new PetFightBattleBridgeResourceRule(battleBridgeManifestPath);
 		_battleBackgroundRule = new BattleBackgroundImageResourceRule(battleBackgroundImagePath);
 		_battlePetMovieRule = new BattlePetMovieResourceRule();
@@ -77,7 +80,7 @@ internal sealed class AolaResourceRequestHandler : RequestHandler, IThemeSelecti
 		_resourceRuleAdapter = new CefResourceRuleAdapter(new ResourceRulePipeline(
 			new IResourceInterceptionRule[]
 			{
-				new StartXmlResourceRule(), _startBridgeRule, _battleBridgeRule, _battleBackgroundRule, themeBridgeRule, _themeRule, _petPackageRule,
+				new StartXmlResourceRule(), _startBridgeRule, _battleOwnerProbeRule, _battleBridgeRule, _battleBackgroundRule, themeBridgeRule, _themeRule, _petPackageRule,
 				new PanelCaptureResourceRule(Path.Combine(themeDirectory, "..", "Patches")),
 				_petMovieRule, _battlePetMovieRule, _petPosterRule
 			}),

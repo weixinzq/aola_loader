@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <SupportedOSPlatformVersion></SupportedOSPlatformVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <Compile Include="..\AolaSocketHack\Protocol\AolaProtocol.cs;..\AolaSocketHack\Protocol\Amf3Reader.cs;..\AolaSocketHack\Protocol\Amf3Writer.cs;..\AolaSocketHack\Transport\FrameBuffer.cs;..\AolaSocketHack.Contracts\AolaPacketEvent.cs" LinkBase="Protocol" />
+  </ItemGroup>
+</Project>

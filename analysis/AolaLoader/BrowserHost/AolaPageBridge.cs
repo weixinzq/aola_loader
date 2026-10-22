@@ -148,6 +148,25 @@ internal sealed class AolaPageBridge : IPageBridge
 	function validMemoryMb(value) {
 		return typeof value === 'string' && /^\d{1,9}$/.test(value);
 	}
+	function validProbeSnapshot(snapshot) {
+		if (!snapshot || typeof snapshot !== 'object') return false;
+		var keys = ['totalMB', 'privateMB', 'titleNodes', 'headFrameNodes', 'signNodes', 'displayChildren'];
+		for (var i = 0; i < keys.length; i++) {
+			var value = snapshot[keys[i]];
+			if (typeof value !== 'number' || !Number.isInteger(value) || value < -1 || value > 2147483647) return false;
+		}
+		return true;
+	}
+	function validProbeActions(probeActions) {
+		if (!probeActions || typeof probeActions !== 'object') return false;
+		var keys = ['tipsRemoved', 'tipsFailed', 'tipsUnavailable',
+			'headFrameCleared', 'headFrameFailed', 'headFrameUnavailable'];
+		for (var i = 0; i < keys.length; i++) {
+			var value = probeActions[keys[i]];
+			if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 2147483647) return false;
+		}
+		return true;
+	}
 	try {
 		if (operation === 'theme.apply') {
 			var themeId = Number(args.themeId), themeRequest = Number(args.requestId);
@@ -331,6 +350,24 @@ internal sealed class AolaPageBridge : IPageBridge
 				return envelope(false, null, 'InvocationFailed', 'Flash returned invalid battle resource events.');
 			}
 			return envelope(true, trace, '', '');
+		}
+		if (operation === 'battle.probeRelease') {
+			var probeMode = Number(args.mode);
+			if (typeof args.mode !== 'number' || !Number.isInteger(probeMode) || probeMode < 0 || probeMode > 3)
+				return envelope(false, null, 'InvocationFailed', 'Invalid owner probe mode.');
+			var probeFlash = findFlash('aolaBattleProbeRelease');
+			if (!probeFlash) return envelope(false, null, 'BridgeNotInstalled', '战斗 owner probe 桥尚未就绪。');
+			var probe = JSON.parse(String(probeFlash.aolaBattleProbeRelease(probeMode) || ''));
+			if (!probe || Number(probe.version) !== 1 || Number(probe.mode) !== probeMode ||
+				typeof probe.startMovies !== 'number' || !Number.isInteger(probe.startMovies) || probe.startMovies < -1 ||
+				!validProbeSnapshot(probe.before) || !validProbeSnapshot(probe.after) ||
+				!validProbeActions(probe.actions) || !Array.isArray(probe.errors) || probe.errors.length > 8 ||
+				probe.errors.some(function (item) {
+					return typeof item !== 'string' || !item || item.length > 64;
+				})) {
+				return envelope(false, null, 'InvocationFailed', 'Flash returned an invalid owner probe result.');
+			}
+			return envelope(true, probe, '', '');
 		}
 		if (operation === 'system.trimMemory') {
 			var trimLevel = Number(args.level);

@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "dependencies": {
+    ".NETFramework,Version=v4.8": {
+      "CefSharp.WinForms": {
+        "type": "Direct",
+        "requested": "[87.1.132, )",
+        "resolved": "87.1.132",
+        "contentHash": "N36U8FrkL1lIEH/eWQB+FvJ2kPtSEwmo0RzNpp+nAfjQDR1nbN0VQ5VTsiVmlptMoRFCguw1BoYWa58PaGfx4w==",
+        "dependencies": {
+          "CefSharp.Common": "[87.1.132]"
+        }
+      },
+      "System.Resources.Extensions": {
+        "type": "Direct",
+        "requested": "[10.0.10, )",
+        "resolved": "10.0.10",
+        "contentHash": "xUBGLR+HPujL5k3LmHIJSS6xFsKECOGO52nurXMDADkLRFNVVUxCH4ng2WBD1YTxGHkE/s2kJs1I2B89DJJyLA==",
+        "dependencies": {
+          "System.Formats.Nrbf": "10.0.10",
+          "System.Memory": "4.6.3"
+        }
+      },
+      "cef.redist.x64": {
+        "type": "Transitive",
+        "resolved": "87.1.13",
+        "contentHash": "FDv0Av1mD0zuQhZOC5jBULlDJoK+IuNZNAY5CvhAJ3Z4ejWmYPzL15a33j+Z3UOA1XGOxsrUmOWTE21/plJwBA=="
+      },
+      "cef.redist.x86": {
+        "type": "Transitive",
+        "resolved": "87.1.13",
+        "contentHash": "MksfWX7T62CWVY3mswlv1CXWJTU/y5XxLaSQMEYdi6Ttx68aOCisrEf1lSagn42fMzQs3DlWm5qneg3mFcb/3A=="
+      },
+      "CefSharp.Common": {
+        "type": "Transitive",
+        "resolved": "87.1.132",
+        "contentHash": "fXtE0hY8G4HeyGVL4kKEIQjvVOjzcrUaKuGuNrO3EAdq8JvyTp2V7c21WDF2eznvq1dFZ6q5F/nFau2sXZ6TPQ==",
+        "dependencies": {
+          "cef.redist.x64": "[87.1.13]",
+          "cef.redist.x86": "[87.1.13]"
+        }
+      },
+      "Microsoft.Bcl.HashCode": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "GI4jcoi6eC9ZhNOQylIBaWOQjyGaR8T6N3tC1u8p3EXfndLCVNNWa+Zp+ocjvvS3kNBN09Zma2HXL0ezO0dRfw=="
+      },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.6.1",
+        "contentHash": "N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw=="
+      },
+      "System.Collections.Immutable": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "Ih5zrydoDc1H5I0eNP6f4Lzw3cjsPMN4Nikd86kbyi66y0flkM9GfjVo62aUbcxeTbypzBCFAFQ+/6RF2jRORg==",
+        "dependencies": {
+          "System.Memory": "4.6.3",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        }
+      },
+      "System.Formats.Nrbf": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "gOcWB7GddeYRGZWA8lHi84MvuzTI3ugYISfLfCg5FTdZB3cDaoAj7yG7c2bBaO+hio1nZ5kz/BrwpzfLT1R8Bg==",
+        "dependencies": {
+          "Microsoft.Bcl.HashCode": "6.0.0",
+          "System.Reflection.Metadata": "10.0.10",
+          "System.ValueTuple": "4.6.2"
+        }
+      },
+      "System.Memory": {
+        "type": "Transitive",
+        "resolved": "4.6.3",
+        "contentHash": "qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A==",
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Numerics.Vectors": "4.6.1",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        }
+      },
+      "System.Numerics.Vectors": {
+        "type": "Transitive",
+        "resolved": "4.6.1",
+        "contentHash": "sQxefTnhagrhoq2ReR0D/6K0zJcr9Hrd6kikeXsA1I8kOCboTavcUC4r7TSfpKFeE163uMuxZcyfO1mGO3EN8Q=="
+      },
+      "System.Reflection.Metadata": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "NZIS6/IUBh70nJfVvE577oDc81y5GfYRgjWssC8AGpSlVzSu5YfbHXEtHXyLeEY7gqqbAaASwJEP0Oy3Q54Jfw==",
+        "dependencies": {
+          "System.Collections.Immutable": "10.0.10"
+        }
+      },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Transitive",
+        "resolved": "6.1.2",
+        "contentHash": "2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw=="
+      },
+      "System.ValueTuple": {
+        "type": "Transitive",
+        "resolved": "4.6.2",
+        "contentHash": "yQgmjfFximrNm9LIV3mL6T5MzjeC+epeE5rl4hXxAlYmxby7RM1dPSkIKXk9HNkl6G54h2JHOmLD46+Pey+IRg=="
+      }
+    },
+    ".NETFramework,Version=v4.8/win-x64": {}
+  }
+}

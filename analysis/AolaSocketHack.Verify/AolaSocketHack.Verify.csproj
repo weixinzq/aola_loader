@@ -74,6 +74,7 @@
     <Compile Include="..\AolaLoader\Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" Link="Features\ActiveSend\ResourceInterception\StartBridgeResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\PetFightBattleBridgeArtifact.cs" Link="Features\Battle\ResourceInterception\PetFightBattleBridgeArtifact.cs" />
+	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattleOwnerProbeResourceRule.cs" Link="Features\Battle\ResourceInterception\BattleOwnerProbeResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattleBackgroundImageResourceRule.cs" Link="Features\Battle\ResourceInterception\BattleBackgroundImageResourceRule.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieVersionCatalog.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieVersionCatalog.cs" />
 	<Compile Include="..\AolaLoader\Features\Battle\ResourceInterception\BattlePetMovieResourceRule.cs" Link="Features\Battle\ResourceInterception\BattlePetMovieResourceRule.cs" />

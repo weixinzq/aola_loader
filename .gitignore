@@ -24,7 +24,6 @@
 /analysis/build/
 /analysis/obj/
 /analysis/reverse-engineering/
-/analysis/runtime/
 /analysis/queue-acceleration-patches/
 /analysis/skill-staging/
 /analysis/skill-tests/

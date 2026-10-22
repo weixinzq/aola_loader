@@ -171,6 +171,41 @@ internal static class CompatibilityPathSourceGuardVerifier
 			}
 		}
 
+		string[] requiredOwnerProbePageTokens =
+		{
+			"operation === 'battle.probeRelease'",
+			"aolaBattleProbeRelease",
+			"aolaBattleProbeRelease(probeMode)",
+			"validProbeSnapshot(probe.before)",
+			"validProbeActions(probe.actions)"
+		};
+		foreach (string token in requiredOwnerProbePageTokens)
+		{
+			if (pageBridgeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires owner probe page token " + token + ".");
+				return false;
+			}
+		}
+		string[] requiredOwnerProbeTriggerTokens =
+		{
+			"AOLA_BATTLE_PROBE",
+			"AOLA_BATTLE_PROBE_MODE",
+			"battle-owner-probe.jsonl",
+			"AOLA_TRIM_MEMORY",
+			"_trimMemoryMode == 0",
+			"ParseTrimMemoryMode",
+			"BattleOwnerProbeAfterBattle"
+		};
+		foreach (string token in requiredOwnerProbeTriggerTokens)
+		{
+			if (mainFormRuntimeSource.IndexOf(token, StringComparison.Ordinal) < 0)
+			{
+				Console.Error.WriteLine("Compatibility path source guard requires owner probe trigger token " + token + ".");
+				return false;
+			}
+		}
+
 		string updateStartBridgePath = Path.Combine(
 			repositoryRoot, "analysis", "tools", "Update-StartBridge.ps1");
 		string updateStartBridgeSource = File.ReadAllText(updateStartBridgePath);
