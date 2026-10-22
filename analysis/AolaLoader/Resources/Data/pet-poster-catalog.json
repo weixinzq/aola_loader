@@ -1,0 +1,2991 @@
+{
+  "schemaVersion": 1,
+  "source": "PetSkinConfig.as",
+  "sourceSha256": "e46abd8128057b2ace6cebf2fe9161eef402498c263b7dbd6dea8d468bb4681c",
+  "entryCount": 1060,
+  "backgroundCount": 426,
+  "entries": [
+    {
+      "skinId": 3735,
+      "resourceId": 4,
+      "name": "樱花の恋舞",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3751,
+      "resourceId": 14,
+      "name": "仲夏夜之梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3752,
+      "resourceId": 15,
+      "name": "梦中的婚礼",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3755,
+      "resourceId": 16,
+      "name": "[薄荷宾治]可兰",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3780,
+      "resourceId": 17,
+      "name": "夏日派对",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3771,
+      "resourceId": 18,
+      "name": "[蜜糖初恋]达芙妮",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3772,
+      "resourceId": 19,
+      "name": "[蓝莓冰沙]洛羲",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3773,
+      "resourceId": 20,
+      "name": "[草莓奶昔]欧若拉",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3778,
+      "resourceId": 21,
+      "name": "[天使恋之吻]羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3779,
+      "resourceId": 22,
+      "name": "[红粉佳人]阿尔忒弥斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3814,
+      "resourceId": 26,
+      "name": "超凶超可爱",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3830,
+      "resourceId": 28,
+      "name": "唯一的线人",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3848,
+      "resourceId": 33,
+      "name": "王牌特工",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3865,
+      "resourceId": 36,
+      "name": "再见，英雄",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3881,
+      "resourceId": 40,
+      "name": "愿得一人心",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3882,
+      "resourceId": 41,
+      "name": "执子之手",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3913,
+      "resourceId": 46,
+      "name": "夜色未央",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3939,
+      "resourceId": 53,
+      "name": "一起过圣诞",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3945,
+      "resourceId": 56,
+      "name": "天使的凝望·银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3956,
+      "resourceId": 57,
+      "name": "女仆·欧若拉",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3955,
+      "resourceId": 58,
+      "name": "女仆·可兰",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3961,
+      "resourceId": 59,
+      "name": "女仆·洛羲",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3962,
+      "resourceId": 60,
+      "name": "女仆欢迎你",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3973,
+      "resourceId": 61,
+      "name": "女仆咖啡馆",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3972,
+      "resourceId": 62,
+      "name": "主人，欢迎光临",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3971,
+      "resourceId": 63,
+      "name": "梦里花落知多少",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3969,
+      "resourceId": 64,
+      "name": "女仆·羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3970,
+      "resourceId": 65,
+      "name": "女仆·银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3976,
+      "resourceId": 66,
+      "name": "仁者无敌·湛卢",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 3978,
+      "resourceId": 67,
+      "name": "少爷的专属女仆",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3994,
+      "resourceId": 71,
+      "name": " 蝴蝶千里传相思",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 3992,
+      "resourceId": 73,
+      "name": "威震天下·太阿",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4014,
+      "resourceId": 77,
+      "name": "樱花の约",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4023,
+      "resourceId": 80,
+      "name": "红衣一袭怜娇软",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4034,
+      "resourceId": 82,
+      "name": "圣道御天·轩辕夏禹",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4052,
+      "resourceId": 89,
+      "name": "尊贵无双·纯钧",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4069,
+      "resourceId": 92,
+      "name": "野餐浪起来",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4101,
+      "resourceId": 97,
+      "name": "时光的轨迹·至臻初心未来",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4125,
+      "resourceId": 110,
+      "name": "相伴十载",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4126,
+      "resourceId": 111,
+      "name": "晨曦沐梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4130,
+      "resourceId": 112,
+      "name": "剑归无形·承影",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4133,
+      "resourceId": 113,
+      "name": "斗篷人·奈亚",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4137,
+      "resourceId": 115,
+      "name": "破碎的心",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4163,
+      "resourceId": 121,
+      "name": "中秋家宴",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4164,
+      "resourceId": 122,
+      "name": "誓约之谊",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4176,
+      "resourceId": 129,
+      "name": "飘渺绝尘·七星龙渊",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4180,
+      "resourceId": 130,
+      "name": "寂夜之叹息",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4181,
+      "resourceId": 131,
+      "name": "夜未央人未眠",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4190,
+      "resourceId": 134,
+      "name": "端丽冠绝画中颜",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4197,
+      "resourceId": 137,
+      "name": "踏阙飞影·鱼肠",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4214,
+      "resourceId": 138,
+      "name": "只属于你的太阳",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4231,
+      "resourceId": 141,
+      "name": "平行时空的她们",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4243,
+      "resourceId": 143,
+      "name": "刹那即永恒",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4232,
+      "resourceId": 144,
+      "name": "光年之外的来客",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4233,
+      "resourceId": 145,
+      "name": "零阶·愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4272,
+      "resourceId": 153,
+      "name": "新春快乐",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4276,
+      "resourceId": 154,
+      "name": "“梦”照进了现实",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4268,
+      "resourceId": 156,
+      "name": "日月轮回之龙息·传说帝俊",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4286,
+      "resourceId": 157,
+      "name": "凤临人间千秋盛世",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4287,
+      "resourceId": 158,
+      "name": "良辰美景与君度",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4319,
+      "resourceId": 165,
+      "name": "喵星人与铲屎官",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4325,
+      "resourceId": 167,
+      "name": "论风流还看今朝",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4326,
+      "resourceId": 168,
+      "name": "山河不夜天",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4332,
+      "resourceId": 171,
+      "name": "深渊の枷锁",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4335,
+      "resourceId": 172,
+      "name": "大荒之战",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4343,
+      "resourceId": 173,
+      "name": "掌混沌终因果·卡奥斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4349,
+      "resourceId": 178,
+      "name": "一生的情诗",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4350,
+      "resourceId": 179,
+      "name": "你是我唯一的光",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4362,
+      "resourceId": 183,
+      "name": "深海遗梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4373,
+      "resourceId": 186,
+      "name": "造物主与悠久乐园",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4395,
+      "resourceId": 191,
+      "name": "听风听雨画娥眉",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4408,
+      "resourceId": 194,
+      "name": "十年热血 志竞巅峰",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4423,
+      "resourceId": 197,
+      "name": "月圆花好配天长",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4421,
+      "resourceId": 200,
+      "name": "夏日欧尼酱·世界",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4427,
+      "resourceId": 203,
+      "name": "破晓棋局·无冕之王",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4431,
+      "resourceId": 204,
+      "name": "至高冠冕之谕·真理之后",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4432,
+      "resourceId": 205,
+      "name": "携手同行·一心一意",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4439,
+      "resourceId": 207,
+      "name": "盛夏热梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4436,
+      "resourceId": 209,
+      "name": "碧海晴空！迎风起航！",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4338,
+      "resourceId": 211,
+      "name": "挚情不渝·干将x莫邪",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4339,
+      "resourceId": 212,
+      "name": "挚情不渝·干将x莫邪",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4451,
+      "resourceId": 214,
+      "name": "秘密花园",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4456,
+      "resourceId": 215,
+      "name": "混沌之子·厄瑞玻斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4462,
+      "resourceId": 218,
+      "name": "永恒的乐园",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4465,
+      "resourceId": 221,
+      "name": "达斯特首辅大臣",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4473,
+      "resourceId": 223,
+      "name": "深渊之拥",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4479,
+      "resourceId": 225,
+      "name": "繁华落幕，心之归宿",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4484,
+      "resourceId": 228,
+      "name": "暗物质创世母神·提亚玛特",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4493,
+      "resourceId": 229,
+      "name": "星河相约",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4494,
+      "resourceId": 230,
+      "name": "流星的祝福，花海的回忆",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4502,
+      "resourceId": 236,
+      "name": "总裁哥哥的宠妹日常",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4506,
+      "resourceId": 241,
+      "name": "电竞王者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4513,
+      "resourceId": 244,
+      "name": "银色高跟鞋",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4524,
+      "resourceId": 246,
+      "name": "夜色醉人·梦醒时分",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4536,
+      "resourceId": 248,
+      "name": "堇色晚霞风",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4548,
+      "resourceId": 255,
+      "name": "遥知不是雪，为有暗香来",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4563,
+      "resourceId": 258,
+      "name": "我们所希望的未来",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4574,
+      "resourceId": 262,
+      "name": "光年之外·花海之约",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4566,
+      "resourceId": 263,
+      "name": "引万意掌器界·阿赖耶识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4565,
+      "resourceId": 264,
+      "name": "小识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4579,
+      "resourceId": 268,
+      "name": "猫王子与在逃公主",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4600,
+      "resourceId": 270,
+      "name": "醉心泉·洛洛离",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4589,
+      "resourceId": 273,
+      "name": "昆仑温泉馆",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4595,
+      "resourceId": 275,
+      "name": "漆黑追踪者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4607,
+      "resourceId": 286,
+      "name": "日月泉·羲和",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4620,
+      "resourceId": 287,
+      "name": "星河泉·银河",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4615,
+      "resourceId": 288,
+      "name": "相思泉·阿赖耶识",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4613,
+      "resourceId": 289,
+      "name": "无穷泉·愚者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4596,
+      "resourceId": 282,
+      "name": "流云碧落日月之辉·羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4597,
+      "resourceId": 283,
+      "name": "诸天万世我主浮沉·帝俊",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4611,
+      "resourceId": 284,
+      "name": "熵寂·愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4616,
+      "resourceId": 285,
+      "name": "星穹溯光苍生为棋·银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4609,
+      "resourceId": 290,
+      "name": "月夜星灯，泛舟湖上",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4621,
+      "resourceId": 291,
+      "name": "温泉物语",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4630,
+      "resourceId": 295,
+      "name": "樱色悄悄话",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4635,
+      "resourceId": 296,
+      "name": "纪念日之夜，梦幻圆舞曲",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4637,
+      "resourceId": 297,
+      "name": "登临·愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4647,
+      "resourceId": 300,
+      "name": "独坐一隅，静享时光",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4652,
+      "resourceId": 303,
+      "name": "命运的拐点",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4648,
+      "resourceId": 304,
+      "name": "黑白之契",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4661,
+      "resourceId": 307,
+      "name": "乐土将倾，红莲绽放",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4672,
+      "resourceId": 310,
+      "name": "山海异兽.鲲",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4673,
+      "resourceId": 311,
+      "name": "山海异兽·九尾狐",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4678,
+      "resourceId": 315,
+      "name": "少女兔的小秘密",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4684,
+      "resourceId": 318,
+      "name": "月心尖上的向日葵",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4695,
+      "resourceId": 319,
+      "name": "山海异兽·䑏疏",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4697,
+      "resourceId": 320,
+      "name": "混沌暗涌，遥岸之危",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4696,
+      "resourceId": 321,
+      "name": "朝朝暮暮，岁岁年年",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4689,
+      "resourceId": 324,
+      "name": "掌混沌终因果·卡奥斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4701,
+      "resourceId": 326,
+      "name": "梦落云端",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4707,
+      "resourceId": 329,
+      "name": "夜幕下的风信子",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4722,
+      "resourceId": 335,
+      "name": "山海异兽·青鸾",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4723,
+      "resourceId": 336,
+      "name": "绚丽碧海天",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4726,
+      "resourceId": 338,
+      "name": "异乡人",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4732,
+      "resourceId": 341,
+      "name": "回忆里的凤凰花",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4739,
+      "resourceId": 345,
+      "name": "葬花吟",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4740,
+      "resourceId": 346,
+      "name": "古韵花舫·阿赖耶识",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4750,
+      "resourceId": 350,
+      "name": "蓝色梦幻曲",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4751,
+      "resourceId": 351,
+      "name": "我们的浪漫旅行",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4759,
+      "resourceId": 354,
+      "name": "古韵醴舫·女帝",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4763,
+      "resourceId": 356,
+      "name": "古韵琴舫·羲和",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4781,
+      "resourceId": 358,
+      "name": "超越轮回的羁绊（背景）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4768,
+      "resourceId": 364,
+      "name": "终夜流影",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4779,
+      "resourceId": 365,
+      "name": "黑寂魔姬",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4780,
+      "resourceId": 366,
+      "name": "五王陪你度周年",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4777,
+      "resourceId": 367,
+      "name": "光明如你所愿",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4767,
+      "resourceId": 368,
+      "name": "轮回誓约·无冕之王",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4786,
+      "resourceId": 371,
+      "name": "都市猎人",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4793,
+      "resourceId": 372,
+      "name": "江南烟雨，古韵美人",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4794,
+      "resourceId": 373,
+      "name": "古韵诗舫·银河（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4795,
+      "resourceId": 374,
+      "name": "古韵舞舫·提亚玛特（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4805,
+      "resourceId": 381,
+      "name": "山海异兽·狰",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4806,
+      "resourceId": 382,
+      "name": "少年侠骨·岁月如故",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4812,
+      "resourceId": 385,
+      "name": "回不去的故乡，梦不到的团圆",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4809,
+      "resourceId": 386,
+      "name": "贤者陨落，殉道之旅",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4813,
+      "resourceId": 387,
+      "name": "贤者陨落，殉道之旅",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4821,
+      "resourceId": 390,
+      "name": "燃烧的末日，永恒的羁绊",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4830,
+      "resourceId": 395,
+      "name": "花与夜之恋",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4839,
+      "resourceId": 399,
+      "name": "奇幻之夜",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4831,
+      "resourceId": 400,
+      "name": "多元·愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4833,
+      "resourceId": 401,
+      "name": "陨尘造物星神主 ·星尘",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4848,
+      "resourceId": 405,
+      "name": "星空下的玛格丽特",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4851,
+      "resourceId": 407,
+      "name": "都市传说",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4857,
+      "resourceId": 410,
+      "name": "山海异兽·夫诸",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4864,
+      "resourceId": 414,
+      "name": "旅途中的零度之夜",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4878,
+      "resourceId": 415,
+      "name": "你好，窥探者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4889,
+      "resourceId": 422,
+      "name": "双向奔赴的救赎",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4896,
+      "resourceId": 425,
+      "name": "圣诞夜的礼物",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4897,
+      "resourceId": 426,
+      "name": "裁决已下，末日将临",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4898,
+      "resourceId": 427,
+      "name": "永恒晶源裁决之龙-阿卜苏",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4908,
+      "resourceId": 430,
+      "name": "并肩至世界终焉",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4915,
+      "resourceId": 433,
+      "name": "微醺冬日-银河",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4919,
+      "resourceId": 435,
+      "name": "慵懒冬日-愚者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4916,
+      "resourceId": 436,
+      "name": "陨星-愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4909,
+      "resourceId": 437,
+      "name": "寰宇鎏金星河入怀-银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4920,
+      "resourceId": 438,
+      "name": "圣宇星轨时扉之光-羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4927,
+      "resourceId": 439,
+      "name": "浮生浮灭万意恒常-阿赖耶识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4925,
+      "resourceId": 445,
+      "name": "执掌因果万世轮回-帝俊",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 4934,
+      "resourceId": 446,
+      "name": "品阅冬日-羲和",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4935,
+      "resourceId": 447,
+      "name": "妆点冬日-阿卜苏",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4936,
+      "resourceId": 448,
+      "name": "喵居冬日-阿赖耶识",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4937,
+      "resourceId": 449,
+      "name": "在一起，宅一起",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4938,
+      "resourceId": 450,
+      "name": "一级戒备",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4951,
+      "resourceId": 451,
+      "name": "众里寻他千百度-梦（璀璨版）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4944,
+      "resourceId": 453,
+      "name": "陈列的爱意",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4963,
+      "resourceId": 460,
+      "name": "魔女的房间",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4976,
+      "resourceId": 464,
+      "name": "不负春光不负卿",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4984,
+      "resourceId": 469,
+      "name": "春樱之约",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4985,
+      "resourceId": 470,
+      "name": "无法停止的坠落",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4991,
+      "resourceId": 474,
+      "name": "狩猎开始",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 4992,
+      "resourceId": 475,
+      "name": "都市猎妖师",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5016,
+      "resourceId": 482,
+      "name": "伊甸园的四季",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5014,
+      "resourceId": 486,
+      "name": "金色暖阳天",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5015,
+      "resourceId": 487,
+      "name": "琴键上的爱恋",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5007,
+      "resourceId": 488,
+      "name": "永劫破灭混沌至尊-卡奥斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5025,
+      "resourceId": 490,
+      "name": "星轨圣裁之回响-羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5029,
+      "resourceId": 494,
+      "name": "长发委地落灯影",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5036,
+      "resourceId": 497,
+      "name": "水色月华夜",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5041,
+      "resourceId": 499,
+      "name": "心之所在",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5049,
+      "resourceId": 504,
+      "name": "唤醒的晨曦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5062,
+      "resourceId": 509,
+      "name": "花鸟四条屏",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5072,
+      "resourceId": 516,
+      "name": "画中人",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5080,
+      "resourceId": 520,
+      "name": "七月的海-女帝",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5081,
+      "resourceId": 521,
+      "name": "七月的海-赫耳墨斯",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5086,
+      "resourceId": 526,
+      "name": "七月的海-绮美拉",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5091,
+      "resourceId": 528,
+      "name": "七月的海-梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5092,
+      "resourceId": 530,
+      "name": "热辣音乐季",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5095,
+      "resourceId": 534,
+      "name": "光影的幻梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5102,
+      "resourceId": 535,
+      "name": "一路的回忆",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5103,
+      "resourceId": 536,
+      "name": "徜徉于梦之星海",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5094,
+      "resourceId": 537,
+      "name": "光影的幻梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5093,
+      "resourceId": 538,
+      "name": "棋临无间-无冕之王",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5109,
+      "resourceId": 541,
+      "name": "往昔留影",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5110,
+      "resourceId": 542,
+      "name": "永远的你们",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5116,
+      "resourceId": 545,
+      "name": "七月的海-愚者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5117,
+      "resourceId": 546,
+      "name": "JULY女团",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5111,
+      "resourceId": 547,
+      "name": "无垠-愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5128,
+      "resourceId": 552,
+      "name": "紫色初遇时",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5134,
+      "resourceId": 553,
+      "name": "假相与真实",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5131,
+      "resourceId": 554,
+      "name": "童年往事",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5141,
+      "resourceId": 558,
+      "name": "早安，美好的一日",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5151,
+      "resourceId": 562,
+      "name": "侠客行",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5161,
+      "resourceId": 567,
+      "name": "忘忧地带",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5152,
+      "resourceId": 568,
+      "name": "极乐欲界天魔主-波旬",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5154,
+      "resourceId": 569,
+      "name": "天魔之邀",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5155,
+      "resourceId": 570,
+      "name": "尘世繁华-阿赖耶识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5170,
+      "resourceId": 574,
+      "name": "夜醉人心",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5181,
+      "resourceId": 578,
+      "name": "黑色制裁者",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5187,
+      "resourceId": 580,
+      "name": "星宇之隙穹宙之辉-银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5192,
+      "resourceId": 583,
+      "name": "星落潮汐，心在朝夕",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5202,
+      "resourceId": 587,
+      "name": "人间皆是浪漫",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5223,
+      "resourceId": 596,
+      "name": "金色间奏曲",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5224,
+      "resourceId": 598,
+      "name": "始与终的轮回",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5225,
+      "resourceId": 599,
+      "name": "异界史诗-渡",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5226,
+      "resourceId": 600,
+      "name": "异界史诗-渡（不朽者）",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5239,
+      "resourceId": 603,
+      "name": "来，请欣赏《世界名画》！",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5246,
+      "resourceId": 605,
+      "name": "忘忧凝缘-上古龙女",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5251,
+      "resourceId": 610,
+      "name": "忘忧茶缘-洛洛离（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5252,
+      "resourceId": 611,
+      "name": "夜色梦初醒",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5256,
+      "resourceId": 613,
+      "name": "忘忧音缘-维纳斯（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5261,
+      "resourceId": 615,
+      "name": "忘忧食缘-渡（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5269,
+      "resourceId": 619,
+      "name": "华灯夜彩，佳人共聚（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5270,
+      "resourceId": 620,
+      "name": "忘忧结缘-炽寒天凤（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5271,
+      "resourceId": 621,
+      "name": "忘忧财缘-阿卜苏（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5274,
+      "resourceId": 623,
+      "name": "雪落之夜，舞者的秘密（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5278,
+      "resourceId": 625,
+      "name": "长夜有梦 世间只你（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5276,
+      "resourceId": 626,
+      "name": "如星永伴长夜-梦（璀璨版）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5265,
+      "resourceId": 627,
+      "name": "永恒炽阳-神阿波罗",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5288,
+      "resourceId": 631,
+      "name": "此夜不眠",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5298,
+      "resourceId": 634,
+      "name": "白鸽，公园，剧作家",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5306,
+      "resourceId": 636,
+      "name": "代号：烛龙",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5313,
+      "resourceId": 639,
+      "name": "一念逍遥一念杀伐（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5323,
+      "resourceId": 644,
+      "name": "清风动天地 樱花漫山间（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5335,
+      "resourceId": 646,
+      "name": "以诺为盟再相逢",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5341,
+      "resourceId": 647,
+      "name": "不期而遇-提亚玛特",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5336,
+      "resourceId": 648,
+      "name": "群星守护寰宇光辉-神银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5340,
+      "resourceId": 649,
+      "name": "如约而至-银河",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5338,
+      "resourceId": 650,
+      "name": "一生之诺",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5350,
+      "resourceId": 652,
+      "name": "私有爱意-梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5354,
+      "resourceId": 653,
+      "name": "秘密花园-芙蕾雅",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5357,
+      "resourceId": 656,
+      "name": "春意里的暗香",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5363,
+      "resourceId": 657,
+      "name": "粽情酣梦-阿赖耶识",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5364,
+      "resourceId": 658,
+      "name": "混沌始源万物终湮-卡奥斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5374,
+      "resourceId": 663,
+      "name": "故城二十四年·不夜城",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5385,
+      "resourceId": 668,
+      "name": "专属女仆-梦",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5386,
+      "resourceId": 669,
+      "name": "专属女仆-银河",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5379,
+      "resourceId": 672,
+      "name": "深渊觉醒",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5395,
+      "resourceId": 674,
+      "name": "专属女仆-羲和",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5399,
+      "resourceId": 676,
+      "name": "盛夏回想-奈亚",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5404,
+      "resourceId": 677,
+      "name": "专属女仆-提亚玛特",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5409,
+      "resourceId": 682,
+      "name": "闲庭对弈",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5411,
+      "resourceId": 684,
+      "name": "星月交辉-一生一世（璀璨版）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5422,
+      "resourceId": 687,
+      "name": "无始无明之境-阿赖耶识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5424,
+      "resourceId": 688,
+      "name": "专属女仆-阿赖耶识",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5425,
+      "resourceId": 689,
+      "name": "早安！全世界！（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5426,
+      "resourceId": 690,
+      "name": "早安！全世界！（签名版）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5430,
+      "resourceId": 692,
+      "name": "非工作时间（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5436,
+      "resourceId": 695,
+      "name": "海滩微憩-梅比乌斯",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5441,
+      "resourceId": 698,
+      "name": "废墟之上，明日之花",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5439,
+      "resourceId": 699,
+      "name": "囚坠寂渊",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5445,
+      "resourceId": 701,
+      "name": "公路狂花-阿波罗",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5449,
+      "resourceId": 703,
+      "name": "月光似雾，美人如醉",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5283,
+      "resourceId": 704,
+      "name": "炎刃燎原-赤霄",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5302,
+      "resourceId": 705,
+      "name": "剑逐山河-轩辕夏禹",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5361,
+      "resourceId": 706,
+      "name": "苍松剑意-干将",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5392,
+      "resourceId": 707,
+      "name": "明月剑心-莫邪",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5428,
+      "resourceId": 708,
+      "name": "千里踏燕-鱼肠",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5451,
+      "resourceId": 709,
+      "name": "剑影迷踪-承影",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5121,
+      "resourceId": 710,
+      "name": "混沌恩赐-厄瑞玻斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5360,
+      "resourceId": 711,
+      "name": "混沌寂烬-厄瑞玻斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5452,
+      "resourceId": 712,
+      "name": "永恒圣穹焚罪终裁-阿卜苏",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5454,
+      "resourceId": 713,
+      "name": "闲看庭前花开花落-渡",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5457,
+      "resourceId": 716,
+      "name": "永恒圣穹焚罪终裁-阿卜苏",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5459,
+      "resourceId": 717,
+      "name": "午后的洗浴时光-姬露比",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5463,
+      "resourceId": 721,
+      "name": "山海异兽·应龙",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5466,
+      "resourceId": 723,
+      "name": "浪漫微醒 爱意永恒",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5470,
+      "resourceId": 724,
+      "name": "妙舞清歌-夜樱",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5481,
+      "resourceId": 729,
+      "name": "深秋露营（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5487,
+      "resourceId": 733,
+      "name": "血夜之狩（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5483,
+      "resourceId": 734,
+      "name": "日月映海晨曦微露-羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5484,
+      "resourceId": 735,
+      "name": "天人共铸-纯钧",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5490,
+      "resourceId": 736,
+      "name": "金阁绾青丝-一生一世",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5501,
+      "resourceId": 742,
+      "name": "后会有期，再见有时（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5508,
+      "resourceId": 744,
+      "name": "长眠前夕的告别（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5511,
+      "resourceId": 745,
+      "name": "温暖的记忆",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5512,
+      "resourceId": 746,
+      "name": "温暖的记忆",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5522,
+      "resourceId": 751,
+      "name": "最后的宝藏（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5520,
+      "resourceId": 754,
+      "name": "星月下的加冕（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5528,
+      "resourceId": 757,
+      "name": "剑指天下-太阿",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5532,
+      "resourceId": 758,
+      "name": "穹星创迹苍宇生辉-银河",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5537,
+      "resourceId": 761,
+      "name": "画中仙-银河（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5538,
+      "resourceId": 762,
+      "name": "画中仙-阿卜苏（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5539,
+      "resourceId": 763,
+      "name": "空寂无尘万法唯心-阿赖耶识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5543,
+      "resourceId": 765,
+      "name": "画中仙-阿赖耶识（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5551,
+      "resourceId": 771,
+      "name": "灯如昼，人长久（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5570,
+      "resourceId": 772,
+      "name": "画中仙-阿比斯（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5552,
+      "resourceId": 773,
+      "name": "星冕-愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5555,
+      "resourceId": 775,
+      "name": "佳人在水一方（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5571,
+      "resourceId": 776,
+      "name": "画中仙-愚者（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5559,
+      "resourceId": 778,
+      "name": "雾涧凝香 犹记良宵（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5560,
+      "resourceId": 779,
+      "name": "花前月下 待君归兮（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5563,
+      "resourceId": 780,
+      "name": "甜心厨娘-冰雪女皇",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5565,
+      "resourceId": 781,
+      "name": "一桥一诺一相逢-梦（璀璨版）",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5568,
+      "resourceId": 784,
+      "name": "恋爱游戏（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5577,
+      "resourceId": 786,
+      "name": "飞剑游云-湛卢",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5587,
+      "resourceId": 792,
+      "name": "夜读时光（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5595,
+      "resourceId": 795,
+      "name": "玄潭游龙-七星龙渊",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5597,
+      "resourceId": 797,
+      "name": "日辉月影之扉-羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5604,
+      "resourceId": 800,
+      "name": "珠纱织梦，岁月留香（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5609,
+      "resourceId": 804,
+      "name": "青春物语（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5621,
+      "resourceId": 810,
+      "name": "一蓑烟雨任平生（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5630,
+      "resourceId": 814,
+      "name": "蛇骨缠心 千年幻梦（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5631,
+      "resourceId": 815,
+      "name": "精灵公主的森之恋诗（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5633,
+      "resourceId": 816,
+      "name": "月纱甜浴-渡",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5650,
+      "resourceId": 823,
+      "name": "河灯映梦夜未休（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5651,
+      "resourceId": 824,
+      "name": "溺于绯渊之咒（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5661,
+      "resourceId": 828,
+      "name": "蜜波澄空-阿比斯（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5669,
+      "resourceId": 833,
+      "name": "陷于茧梦之夜（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5670,
+      "resourceId": 834,
+      "name": "柠夏沁光-冰雪女皇（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5679,
+      "resourceId": 840,
+      "name": "半夏青蜜-梦（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5684,
+      "resourceId": 842,
+      "name": "椰芒晴沙-女娲（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5690,
+      "resourceId": 844,
+      "name": "莓冻甜夏-羲和（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5685,
+      "resourceId": 845,
+      "name": "日月时境御主-羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5693,
+      "resourceId": 846,
+      "name": "世外录-天女",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5699,
+      "resourceId": 854,
+      "name": "芋你共夏-银河（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5700,
+      "resourceId": 855,
+      "name": "夏日x甜品（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5701,
+      "resourceId": 856,
+      "name": "夏日x甜品（签名版）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5703,
+      "resourceId": 857,
+      "name": "英雄信条（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5704,
+      "resourceId": 858,
+      "name": "山海异兽·腓腓（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5721,
+      "resourceId": 864,
+      "name": "沉沦于深海的誓约（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5722,
+      "resourceId": 865,
+      "name": "如星如月舟中梦（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5730,
+      "resourceId": 869,
+      "name": "今宵特调",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5740,
+      "resourceId": 876,
+      "name": "谢幕之后（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5737,
+      "resourceId": 877,
+      "name": "修罗之道（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5754,
+      "resourceId": 883,
+      "name": "桂花留夜色（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5753,
+      "resourceId": 884,
+      "name": "山海异兽·赢鱼（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5761,
+      "resourceId": 889,
+      "name": "花眠晚舟（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5762,
+      "resourceId": 890,
+      "name": "虚环-愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5768,
+      "resourceId": 893,
+      "name": "城堡里的蓝玫瑰（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5778,
+      "resourceId": 898,
+      "name": "檐下共烟雨（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5787,
+      "resourceId": 902,
+      "name": "与夜共舞（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5797,
+      "resourceId": 907,
+      "name": "萦于拂晓之刻（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5809,
+      "resourceId": 911,
+      "name": "永夜的残梦（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5999,
+      "resourceId": 913,
+      "name": "谛听万欲 有祈必应",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 6000,
+      "resourceId": 914,
+      "name": "万欲之源众望终响-祈",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5822,
+      "resourceId": 918,
+      "name": "欲与愿的禁果（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5829,
+      "resourceId": 920,
+      "name": "致爱礼匣-龙母（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5830,
+      "resourceId": 921,
+      "name": "星涡归溯隙间守望-银河（唤灵使）",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5837,
+      "resourceId": 926,
+      "name": "惑于沉醉之夜（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5838,
+      "resourceId": 927,
+      "name": "雪柿浮氤-银河（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5844,
+      "resourceId": 932,
+      "name": "棠绯意暖-阿比斯（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5845,
+      "resourceId": 933,
+      "name": "梅雪凝香-末那 （动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5846,
+      "resourceId": 934,
+      "name": "万识莲台​浮音渡世-阿赖耶识",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5847,
+      "resourceId": 935,
+      "name": "无垢心灯-阿赖耶识 ",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5850,
+      "resourceId": 937,
+      "name": "冬庭朱实-阿赖耶识（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5855,
+      "resourceId": 939,
+      "name": "雪涧浮仙-赫耳墨斯（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5857,
+      "resourceId": 940,
+      "name": "绣缔朝暮花诏寄心-梦（璀璨版）",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5866,
+      "resourceId": 941,
+      "name": "诸因起源诸界归墟-卡奥斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5864,
+      "resourceId": 945,
+      "name": "致最爱的你（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5869,
+      "resourceId": 948,
+      "name": "愿为连理枝（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5874,
+      "resourceId": 951,
+      "name": "沐雪问花-祈（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5875,
+      "resourceId": 952,
+      "name": "冬日温泉乡（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5888,
+      "resourceId": 954,
+      "name": "茶话会时光（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5895,
+      "resourceId": 956,
+      "name": "晨光中的守候-海蒂拉玛（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5897,
+      "resourceId": 958,
+      "name": "闲坐金山（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5902,
+      "resourceId": 962,
+      "name": "万象纪-天女",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5903,
+      "resourceId": 963,
+      "name": "文明之茧-天女",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5910,
+      "resourceId": 966,
+      "name": "游戏沉浸时刻-祈（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5919,
+      "resourceId": 972,
+      "name": "幽林的秘密（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5911,
+      "resourceId": 974,
+      "name": "异维-愚者",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5924,
+      "resourceId": 977,
+      "name": "定格·深海眠梦（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5933,
+      "resourceId": 979,
+      "name": "天地同鸣辟命斩因-帝俊",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5938,
+      "resourceId": 983,
+      "name": "日落之后，杯酒之间（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5940,
+      "resourceId": 984,
+      "name": "浪漫之夜（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5939,
+      "resourceId": 985,
+      "name": "日晷月轮万时归序-羲和",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5945,
+      "resourceId": 988,
+      "name": "此时此刻 曦光为凭（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5948,
+      "resourceId": 989,
+      "name": "丹青书荷意-阿比斯（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5952,
+      "resourceId": 990,
+      "name": "悸动的雨季-阿卜苏（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5963,
+      "resourceId": 995,
+      "name": "一杆，定音夜色（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5964,
+      "resourceId": 996,
+      "name": "醒于永寂之棺（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5973,
+      "resourceId": 999,
+      "name": "牧羊诗谣-露易丝（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5986,
+      "resourceId": 1006,
+      "name": "融于初雪的炽热（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 5988,
+      "resourceId": 1008,
+      "name": "天道至尊万序真宰-乾坤",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 5993,
+      "resourceId": 1010,
+      "name": "喵屿浅醉-奈亚（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6002,
+      "resourceId": 1013,
+      "name": "喵屿雪吻-圣羽女皇（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6003,
+      "resourceId": 1014,
+      "name": "喵屿栖浪-森林女皇（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6008,
+      "resourceId": 1016,
+      "name": "喵屿甜果-冰雪女皇（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6017,
+      "resourceId": 1021,
+      "name": "守望者（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6030,
+      "resourceId": 1022,
+      "name": "喵屿馋意-艾琳（动效特写海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6021,
+      "resourceId": 1023,
+      "name": "界源之初-赫里娅",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 6028,
+      "resourceId": 1029,
+      "name": "山海异兽·比翼鸟（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6029,
+      "resourceId": 1030,
+      "name": "四时如画（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6027,
+      "resourceId": 1031,
+      "name": "晓于长夜终章（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6038,
+      "resourceId": 1037,
+      "name": "喵屿蜜语-梦（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6039,
+      "resourceId": 1038,
+      "name": "喵呜夏日 海屿沁凉（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6045,
+      "resourceId": 1041,
+      "name": "栖于星澜深处（昼）（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6046,
+      "resourceId": 1042,
+      "name": "栖于星澜深处（夜）（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6052,
+      "resourceId": 1045,
+      "name": "星与萤会记得（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6057,
+      "resourceId": 1046,
+      "name": "热夜无眠之时-波旬（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6059,
+      "resourceId": 1048,
+      "name": "墟境的萤蝶（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6061,
+      "resourceId": 1052,
+      "name": "未来之光（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6081,
+      "resourceId": 1058,
+      "name": "山海异兽·耳鼠（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6082,
+      "resourceId": 1059,
+      "name": "夜色膛线（海报）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6084,
+      "resourceId": 1060,
+      "name": "终端归演之核-阿比斯",
+      "hasBackground": true,
+      "showPet": true
+    },
+    {
+      "skinId": 6088,
+      "resourceId": 1061,
+      "name": "莲灯映芙蓉-卡蜜拉（皮肤）",
+      "hasBackground": true,
+      "showPet": false
+    },
+    {
+      "skinId": 6092,
+      "resourceId": 1065,
+      "name": "红绡帐暖醉良夜（海报）",
+      "hasBackground": true,
+      "showPet": false
+    }
+  ]
+}

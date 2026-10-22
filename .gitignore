@@ -1,7 +1,8 @@
-# 根目录只发布解决方案；本文件用于保存忽略规则。
+# 根目录只发布解决方案和构建脚本；本文件用于保存忽略规则。
 /*
 !/.gitignore
 !/AolaLoader.sln
+!/build.ps1
 !/analysis/
 
 # analysis 只发布源码和构建配置。
@@ -27,7 +28,23 @@
 /analysis/queue-acceleration-patches/
 /analysis/skill-staging/
 /analysis/skill-tests/
-/analysis/AolaLoader/Resources/
+# 仅发布当前项目引用的运行资源，排除资源源码、预览和旧候选。
+/analysis/AolaLoader/Resources/**
+!/analysis/AolaLoader/Resources/**/
+!/analysis/AolaLoader/Resources/Themes/*.swf
+!/analysis/AolaLoader/Resources/Themes/Live/*.swf
+!/analysis/AolaLoader/Resources/Data/*.json
+!/analysis/AolaLoader/Resources/BattleAssistant/**/*.png
+!/analysis/AolaLoader/Resources/BattleAssistant/catalog.json
+!/analysis/AolaLoader/Resources/Battle/background.jpg
+!/analysis/AolaLoader/Resources/Patches/controlv2-theme-live-2026082731219998.fws.swf
+!/analysis/AolaLoader/Resources/Patches/start-bridge-2107300001.fws.swf
+!/analysis/AolaLoader/Resources/Patches/play-panel-capture-2026101541804528.fws.swf
+!/analysis/AolaLoader/Resources/Patches/petfightnew-battle-state-current.fws.swf
+!/analysis/AolaLoader/Resources/Patches/petfightnew-battle-cinematics-2026091780747880-v4.fws.swf
+!/analysis/AolaLoader/Resources/Patches/petfightnew-battle-visual-260929024751831.fws.swf
+!/analysis/AolaLoader/Resources/Patches/petfightnew-battle-state.current.json
+!/analysis/AolaLoader/Resources/Patches/newpetpackage-morph-20260919895706432-visual-v3.fws.swf
 [Bb]in/
 [Oo]bj/
 [Ee]vidence/
