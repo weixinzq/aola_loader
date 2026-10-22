@@ -18,6 +18,7 @@
 !/analysis/**/*.ps1
 !/analysis/**/*.py
 !/analysis/**/*.as
+!/analysis/runtime/pepflashplayer.dll
 
 # 本地生成目录、逆向工作区和运行资源。
 /analysis/.*/
